@@ -1,17 +1,23 @@
 # Care-Calendar
 
-A locally hosted weekly calendar scheduler for my dear dad's required full time care. This application helps coordinate caregivers, track shifts, and manage schedule changes.
+A locally hosted weekly calendar scheduler for coordinating full-time care. This application helps coordinate caregivers, track shifts, and manage schedule changes.
 
 ## Current Implementation
 
-The project now has a structured approach with clear separation of concerns:
+The project has a structured approach with clear separation of concerns:
 
-- **components/**: UI components organized by feature
-- **hooks/**: Business logic and state management
-- **services/**: Data handling (mock data for now, SQLite later)
-- **types/**: TypeScript type definitions
-- **utils/**: Helper functions
-- **pages/**: Page components that compose other components
+- **Frontend:**
+  - **components/**: UI components organized by feature
+  - **hooks/**: Business logic and state management
+  - **services/**: Data services connecting to the backend API
+  - **types/**: TypeScript type definitions
+  - **utils/**: Helper functions
+
+- **Backend:**
+  - **Express.js server**: Handling API requests
+  - **SQLite database**: Storing application data
+  - **Knex.js**: SQL query builder
+  - **Socket.io**: Real-time updates
 
 ## Development
 
@@ -23,11 +29,26 @@ The project now has a structured approach with clear separation of concerns:
 ### Setup
 
 ```bash
-# Install dependencies
+# Install frontend dependencies
 npm install
 
-# Start development server
+# Install backend dependencies
+npm run backend:install
+
+# Set up the database
+npm run backend:setup-db
+
+# Seed database with initial data
+npm run backend:seed-db
+
+# Start both frontend and backend
+npm run dev:all
+
+# Start only frontend
 npm run dev
+
+# Start only backend
+npm run backend:dev
 
 # Build for production
 npm run build
@@ -159,12 +180,13 @@ CREATE TABLE payroll_records (
 3. ✅ Initialize React frontend with Vite
 4. ✅ Implement component structure and separation of concerns
 
-### Phase 2: Core Functionality (Weeks 2-3)
-1. Set up Node.js/Express backend
-2. Configure SQLite database
-3. Create the schedule view component with week navigation
-4. Develop shift management functionality
-5. Create team member management
+### Phase 2: Backend & Database (Weeks 2-3) - COMPLETED
+1. ✅ Set up Node.js/Express backend
+2. ✅ Configure SQLite database with Knex.js
+3. ✅ Implement database schema for team members, shifts, weeks, notifications, and payroll
+4. ✅ Create API endpoints for data operations
+5. ✅ Add Socket.io for real-time updates
+6. ✅ Connect frontend to backend via API services
 
 ### Phase 3: Historical Data & Future Planning (Week 4)
 1. Implement week creation and management

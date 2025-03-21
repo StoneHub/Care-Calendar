@@ -1,48 +1,65 @@
 # Care Calendar Development Plan
 
 ## Architecture
+- Frontend: React with TypeScript and Vite
+- Backend: Express.js server with SQLite database
 - Separate UI components from business logic
 - Use hooks for state management and business rules
 - Create service layer for data operations
 - Define clear TypeScript interfaces
 
-## Directory Structure
+## Project Structure
 ```
-src/
-├── components/ - UI components only
-│   ├── layout/ - Layout components
-│   ├── schedule/ - Schedule-related components
-│   ├── team/ - Team management components
-│   └── shared/ - Reusable UI components
-├── hooks/ - Custom hooks for business logic
-├── services/ - Data services (Firebase integration later)
-├── types/ - TypeScript interfaces and types
-├── utils/ - Helper functions
-└── pages/ - Page components that compose other components
+/
+├── src/ - Frontend code
+│   ├── components/ - UI components only
+│   │   ├── layout/ - Layout components
+│   │   ├── schedule/ - Schedule-related components
+│   │   ├── team/ - Team management components
+│   │   └── shared/ - Reusable UI components
+│   ├── hooks/ - Custom hooks for business logic
+│   ├── services/ - API and Socket services
+│   ├── types/ - TypeScript interfaces and types
+│   └── utils/ - Helper functions
+│
+├── backend/ - Backend code
+│   ├── src/
+│   │   ├── routes/ - API route definitions
+│   │   ├── controllers/ - Business logic
+│   │   ├── utils/ - Helper functions
+│   │   └── server.js - Express server setup
+│   └── db/ - SQLite database files
 ```
 
-## Phase 1: Project Setup & Basic Components
-- Set up project structure
+## Completed Phases
+
+### ✅ Phase 1: Project Setup & Component Structure
+- Set up project structure with Vite
 - Define core TypeScript interfaces
 - Create basic UI components
-- Add mock data providers
+- Add initial styling with Tailwind CSS
 
-## Phase 2: State Management & Business Logic
-- Implement state management with hooks
-- Extract business logic from UI
-- Create service interfaces
+### ✅ Phase 2: Backend & Database Integration
+- Set up Express.js backend
+- Implement SQLite database with Knex.js
+- Define database schema and migrations
+- Create API endpoints
+- Set up Socket.io for real-time updates
+- Connect frontend to backend
 
-## Phase 3: Feature Implementation
+## Upcoming Phases
+
+### Phase 3: Feature Implementation
 - Schedule management functionality
 - Team management
 - Notifications system
 
-## Phase 4: Firebase Integration
-- Connect to Firebase
-- Implement authentication
-- Real-time updates
+### Phase 4: Data Visualization & Reporting
+- Implement payroll reporting
+- Create schedule analytics
+- Add historical data views
 
-## Phase 5: Polish & Deployment
+### Phase 5: Polish & Deployment
 - UI refinement
 - Testing
-- Deployment setup
+- Deployment to local server setup
