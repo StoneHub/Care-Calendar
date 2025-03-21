@@ -1,20 +1,31 @@
 import React from 'react';
-import { getCurrentWeekRange } from '../../utils/dateUtils';
+import { Week } from '../../types';
 
 interface HeaderProps {
   onPreviousWeek: () => void;
   onNextWeek: () => void;
   onToday: () => void;
   onPayroll: () => void;
+  selectedWeek?: Week | null;
+  isCurrentWeek?: boolean;
 }
 
 const Header: React.FC<HeaderProps> = ({
   onPreviousWeek,
   onNextWeek,
   onToday,
-  onPayroll
+  onPayroll,
+  selectedWeek,
+  isCurrentWeek
 }) => {
-  const weekRange = getCurrentWeekRange();
+  // Format the week date range for display
+  const formatWeekRange = () => {
+    if (!selectedWeek) return 'Select a week';
+    
+    const startDate = new Date(selectedWeek.start_date);
+    const endDate = new Date(selectedWeek.end_date);
+    return `${startDate.toLocaleDateString()} - ${endDate.toLocaleDateString()}`;
+  };
 
   return (
     <div className="bg-blue-700 text-white p-4 shadow-md">
@@ -27,7 +38,10 @@ const Header: React.FC<HeaderProps> = ({
           &larr; Previous Week
         </button>
         <div className="text-center">
-          <p className="text-sm opacity-80">Week of {weekRange}</p>
+          <p className="text-sm opacity-80">
+            {formatWeekRange()}
+            {isCurrentWeek && <span className="ml-2 text-xs bg-green-500 px-1 py-0.5 rounded-full">Current</span>}
+          </p>
           <div className="flex justify-center mt-1 text-xs space-x-2">
             <button 
               className="bg-blue-600 px-2 py-1 rounded"

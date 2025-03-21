@@ -1,5 +1,5 @@
-import React from 'react';
-import { useSchedule, useTeam, useUIState } from '../hooks';
+import React, { useState } from 'react';
+import { useSchedule, useTeam, useUIState, useWeeks } from '../hooks';
 import Header from '../components/layout/Header';
 import BottomNav from '../components/layout/BottomNav';
 import ScheduleGrid from '../components/schedule/ScheduleGrid';
@@ -7,15 +7,34 @@ import ShiftOptionsModal from '../components/schedule/ShiftOptionsModal';
 import NotificationsView from '../components/notifications/NotificationsView';
 import TeamView from '../components/team/TeamView';
 import CaregiverModal from '../components/team/CaregiverModal';
-import { Caregiver } from '../types';
+import AddShiftModal from '../components/schedule/AddShiftModal';
+import LogViewer from '../components/shared/LogViewer';
+import { Caregiver, DayName } from '../types';
 
 const CareSchedulerPage: React.FC = () => {
+  // State for log viewer
+  const [showLogs, setShowLogs] = useState(false);
+  
+  // Hook for week management
+  const {
+    weeks,
+    currentWeek,
+    selectedWeek,
+    isLoading: weeksLoading,
+    error: weeksError,
+    fetchWeeks,
+    createWeek,
+    selectWeek
+  } = useWeeks();
+
   // Hook for schedule management
   const { 
     schedule, 
     notifications, 
     selectedDay, 
     selectedShift, 
+    isLoading: scheduleLoading,
+    error: scheduleError,
     handleShiftClick, 
     handleDropShift, 
     handleSwapShift, 
@@ -23,13 +42,17 @@ const CareSchedulerPage: React.FC = () => {
     approveRequest, 
     getShiftStatusColor,
     setSelectedDay,
-    setSelectedShift
-  } = useSchedule();
+    setSelectedShift,
+    addShift,
+    deleteShift
+  } = useSchedule({ selectedWeek });
 
   // Hook for team management
   const {
     caregivers,
     selectedCaregiver,
+    isLoading: teamsLoading,
+    error: teamsError,
     addCaregiver,
     updateCaregiver,
     selectCaregiver,
@@ -47,7 +70,7 @@ const CareSchedulerPage: React.FC = () => {
   } = useUIState();
 
   // Handlers
-  const handleShiftSelection = (day, shift) => {
+  const handleShiftSelection = (day: DayName, shift) => {
     handleShiftClick(day, shift);
     openModal('shiftOptions');
   };
@@ -68,17 +91,53 @@ const CareSchedulerPage: React.FC = () => {
     openModal('addTeamMember');
   };
 
-  const handleSaveCaregiver = (caregiver: Caregiver | Omit<Caregiver, 'id'>) => {
+  const handleSaveCaregiver = async (caregiver: Caregiver | Omit<Caregiver, 'id'>) => {
     if ('id' in caregiver) {
-      updateCaregiver(caregiver);
+      await updateCaregiver(caregiver);
     } else {
-      addCaregiver(caregiver);
+      await addCaregiver(caregiver);
     }
   };
 
   const handleWeekNavigation = (direction: 'prev' | 'next' | 'today') => {
-    // This would be implemented with actual date handling in a real app
-    console.log(`Navigate to ${direction} week`);
+    if (!weeks.length) return;
+    
+    if (direction === 'today' && currentWeek) {
+      selectWeek(currentWeek.id);
+      return;
+    }
+    
+    // Sort weeks by start date
+    const sortedWeeks = [...weeks].sort((a, b) => 
+      new Date(a.start_date).getTime() - new Date(b.start_date).getTime()
+    );
+    
+    // Find current index
+    const currentIndex = selectedWeek 
+      ? sortedWeeks.findIndex(w => w.id === selectedWeek.id)
+      : -1;
+    
+    if (currentIndex === -1) return;
+    
+    if (direction === 'prev' && currentIndex > 0) {
+      selectWeek(sortedWeeks[currentIndex - 1].id);
+    } else if (direction === 'next' && currentIndex < sortedWeeks.length - 1) {
+      selectWeek(sortedWeeks[currentIndex + 1].id);
+    }
+  };
+  
+  // Handlers for shift management
+  const handleOpenAddShift = (day: DayName | null = null) => {
+    setSelectedDay(day);
+    openModal('addShift');
+  };
+  
+  const handleAddShift = async (day: DayName, shiftData) => {
+    return await addShift(day, shiftData);
+  };
+  
+  const handleDeleteShift = async (shiftId: number) => {
+    return await deleteShift(shiftId);
   };
 
   // Count pending notifications for badge
@@ -92,17 +151,70 @@ const CareSchedulerPage: React.FC = () => {
         onNextWeek={() => handleWeekNavigation('next')}
         onToday={() => handleWeekNavigation('today')}
         onPayroll={() => console.log('Payroll')}
+        selectedWeek={selectedWeek}
+        isCurrentWeek={currentWeek && selectedWeek && currentWeek.id === selectedWeek.id}
       />
+      
+      {/* Debug button for logs - only in development */}
+      {process.env.NODE_ENV !== 'production' && (
+        <button 
+          onClick={() => setShowLogs(true)}
+          className="fixed bottom-20 right-4 z-50 bg-gray-800 text-white px-3 py-1 rounded-full text-xs shadow-lg"
+        >
+          View Logs
+        </button>
+      )}
 
       {/* Main Content Area */}
       <div className="flex-1 overflow-auto p-4">
+        {/* Loading States */}
+        {(weeksLoading || scheduleLoading || teamsLoading) && (
+          <div className="text-center py-4">
+            <p className="text-gray-500">Loading...</p>
+          </div>
+        )}
+        
+        {/* Error States */}
+        {(weeksError || scheduleError || teamsError) && (
+          <div className="bg-red-100 text-red-800 p-3 rounded mb-4">
+            {weeksError || scheduleError || teamsError}
+          </div>
+        )}
+        
         {/* Schedule Tab */}
         {activeTab === 'schedule' && (
-          <ScheduleGrid 
-            schedule={schedule}
-            onShiftClick={handleShiftSelection}
-            getShiftStatusColor={getShiftStatusColor}
-          />
+          <>
+            {/* Add Shift and Week Info Header */}
+            <div className="flex justify-between items-center mb-4">
+              <div className="text-sm font-medium">
+                {selectedWeek && (
+                  <span className="bg-blue-100 text-blue-800 px-3 py-1 rounded">
+                    {new Date(selectedWeek.start_date).toLocaleDateString()} - {new Date(selectedWeek.end_date).toLocaleDateString()}
+                    {currentWeek && selectedWeek.id === currentWeek.id && (
+                      <span className="ml-2 bg-green-100 text-green-800 px-2 py-0.5 rounded-full text-xs">Current</span>
+                    )}
+                  </span>
+                )}
+              </div>
+              
+              <button 
+                className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 flex items-center text-sm font-medium"
+                onClick={() => handleOpenAddShift(null)}
+              >
+                <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 mr-1" viewBox="0 0 20 20" fill="currentColor">
+                  <path fillRule="evenodd" d="M10 5a1 1 0 011 1v3h3a1 1 0 110 2h-3v3a1 1 0 11-2 0v-3H6a1 1 0 110-2h3V6a1 1 0 011-1z" clipRule="evenodd" />
+                </svg>
+                Add Shift
+              </button>
+            </div>
+            
+            {/* Schedule Grid */}
+            <ScheduleGrid 
+              schedule={schedule}
+              onShiftClick={handleShiftSelection}
+              getShiftStatusColor={getShiftStatusColor}
+            />
+          </>
         )}
 
         {/* Notifications Tab */}
@@ -136,18 +248,19 @@ const CareSchedulerPage: React.FC = () => {
           selectedDay={selectedDay}
           selectedShift={selectedShift}
           onClose={handleCloseModal}
-          onDropShift={() => {
-            handleDropShift();
-            handleCloseModal();
+          onDropShift={async () => {
+            const success = await handleDropShift();
+            if (success) handleCloseModal();
           }}
-          onSwapShift={() => {
-            handleSwapShift();
-            handleCloseModal();
+          onSwapShift={async () => {
+            const success = await handleSwapShift();
+            if (success) handleCloseModal();
           }}
-          onAdjustShift={() => {
-            handleAdjustShift();
-            handleCloseModal();
+          onAdjustShift={async () => {
+            const success = await handleAdjustShift();
+            if (success) handleCloseModal();
           }}
+          onDeleteShift={handleDeleteShift}
         />
       )}
 
@@ -158,6 +271,24 @@ const CareSchedulerPage: React.FC = () => {
           onClose={handleCloseModal}
           onSave={handleSaveCaregiver}
         />
+      )}
+      
+      {showModal && modalType === 'addShift' && (
+        <AddShiftModal 
+          selectedDay={selectedDay}
+          caregivers={caregivers}
+          selectedWeek={selectedWeek}
+          weeks={weeks}
+          onClose={handleCloseModal}
+          onAddShift={handleAddShift}
+          onSelectWeek={selectWeek}
+        />
+      )}
+      
+      
+      {/* Log Viewer */}
+      {showLogs && (
+        <LogViewer onClose={() => setShowLogs(false)} />
       )}
     </div>
   );
