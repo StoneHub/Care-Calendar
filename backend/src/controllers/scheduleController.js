@@ -1,5 +1,6 @@
 const db = require('../utils/db');
 const io = require('../utils/socket');
+const logger = require('../utils/logger');
 
 // GET all weeks
 exports.getAllWeeks = async (req, res) => {
@@ -38,6 +39,7 @@ exports.getWeekById = async (req, res) => {
 exports.getCurrentWeek = async (req, res) => {
   try {
     const today = new Date().toISOString().split('T')[0];
+    logger.debug('Looking for current week', { today });
     
     const currentWeek = await db('weeks')
       .where('start_date', '<=', today)
@@ -45,12 +47,36 @@ exports.getCurrentWeek = async (req, res) => {
       .first();
     
     if (!currentWeek) {
+      logger.warn('No current week found', { today });
+      
+      // Try to get the most recent week as a fallback
+      const mostRecentWeek = await db('weeks')
+        .orderBy('start_date', 'desc')
+        .first();
+      
+      if (mostRecentWeek) {
+        logger.info('Returning most recent week as fallback', { 
+          week_id: mostRecentWeek.id,
+          start_date: mostRecentWeek.start_date
+        });
+        return res.status(200).json(mostRecentWeek);
+      }
+      
       return res.status(404).json({ error: 'No current week found' });
     }
     
+    logger.info('Current week found', { 
+      week_id: currentWeek.id,
+      start_date: currentWeek.start_date,
+      end_date: currentWeek.end_date 
+    });
+    
     res.status(200).json(currentWeek);
   } catch (error) {
-    console.error('Error fetching current week:', error);
+    logger.error('Error fetching current week', { 
+      error: error.message,
+      stack: error.stack
+    });
     res.status(500).json({ error: 'Failed to fetch current week' });
   }
 };

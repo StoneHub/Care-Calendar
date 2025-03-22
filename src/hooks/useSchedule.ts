@@ -1,13 +1,101 @@
-import { useState } from 'react';
-import { WeeklySchedule, Shift, DayName, Notification } from '../types';
+import { useState, useEffect } from 'react';
+import { WeeklySchedule, Shift, DayName, Notification, Week } from '../types';
 import { mockSchedule, mockNotifications } from '../services/mockData';
 import { createTimestamp, adjustTime } from '../utils/dateUtils';
+import { apiService } from '../services/api';
+import { organizeShiftsByDay } from '../utils/mappers';
+import { logger } from '../utils/logger';
 
-export const useSchedule = () => {
+interface UseScheduleProps {
+  selectedWeek?: Week | null;
+}
+
+export const useSchedule = ({ selectedWeek }: UseScheduleProps = {}) => {
   const [schedule, setSchedule] = useState<WeeklySchedule>(mockSchedule);
   const [notifications, setNotifications] = useState<Notification[]>(mockNotifications);
   const [selectedDay, setSelectedDay] = useState<DayName | null>(null);
   const [selectedShift, setSelectedShift] = useState<Shift | null>(null);
+  const [isLoading, setIsLoading] = useState<boolean>(false);
+  const [error, setError] = useState<string | null>(null);
+  const [selectedWeekId, setSelectedWeekId] = useState<number | null>(null);
+
+  // Update selected week ID when it changes
+  useEffect(() => {
+    if (selectedWeek) {
+      logger.info('Selected week changed', {
+        week_id: selectedWeek.id,
+        start_date: selectedWeek.start_date,
+        end_date: selectedWeek.end_date
+      });
+      setSelectedWeekId(selectedWeek.id);
+      fetchScheduleForWeek(selectedWeek.id);
+      fetchNotifications();
+    }
+  }, [selectedWeek]);
+  
+  // Debug selectedWeekId changes
+  useEffect(() => {
+    logger.debug('selectedWeekId value changed', { selectedWeekId });
+  }, [selectedWeekId]);
+
+  const fetchScheduleForWeek = async (weekId: number) => {
+    setIsLoading(true);
+    setError(null);
+    
+    try {
+      logger.info('Fetching schedule for week', { weekId });
+      const shiftsData = await apiService.getScheduleForWeek(weekId);
+      logger.debug('Schedule data received', { 
+        count: shiftsData.length,
+        firstShift: shiftsData.length > 0 ? shiftsData[0] : null
+      });
+      const organizedSchedule = organizeShiftsByDay(shiftsData);
+      logger.debug('Schedule organized by day', { 
+        days: Object.keys(organizedSchedule),
+        shiftCounts: Object.entries(organizedSchedule).reduce((acc, [day, shifts]) => {
+          acc[day] = shifts.length;
+          return acc;
+        }, {} as Record<string, number>)
+      });
+      setSchedule(organizedSchedule);
+    } catch (err: any) {
+      logger.error('Error fetching schedule', {
+        weekId,
+        error: err.message,
+        details: err.response?.data
+      });
+      setError(`Failed to fetch schedule: ${err.message}`);
+      // Fallback to mock data in case of error
+      setSchedule(mockSchedule);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+  
+  const fetchNotifications = async () => {
+    setIsLoading(true);
+    setError(null);
+    
+    try {
+      logger.info('Fetching notifications');
+      const notificationsData = await apiService.getAllNotifications();
+      logger.debug('Notifications received', { 
+        count: notificationsData.length,
+        pendingCount: notificationsData.filter((n: Notification) => n.status === 'pending').length
+      });
+      setNotifications(notificationsData);
+    } catch (err: any) {
+      logger.error('Error fetching notifications', {
+        error: err.message,
+        details: err.response?.data
+      });
+      setError(`Failed to fetch notifications: ${err.message}`);
+      // Fallback to mock data in case of error
+      setNotifications(mockNotifications);
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
   const handleShiftClick = (day: DayName, shift: Shift) => {
     setSelectedDay(day);
@@ -15,212 +103,296 @@ export const useSchedule = () => {
     return { day, shift };
   };
 
-  const handleDropShift = () => {
-    if (!selectedDay || !selectedShift) return false;
-    
-    const updatedSchedule = {...schedule};
-    const shift = updatedSchedule[selectedDay].find(s => s.id === selectedShift.id);
-    
-    if (shift) {
-      shift.status = 'dropped';
-      shift.droppedBy = shift.caregiver;
-      setSchedule(updatedSchedule);
-      
-      const timeString = createTimestamp();
-      
-      // Add notification for dropped shift
-      setNotifications([
-        ...notifications,
-        { 
-          id: notifications.length + 1, 
-          type: 'drop', 
-          from: shift.caregiver, 
-          date: selectedDay.charAt(0).toUpperCase() + selectedDay.slice(1), 
-          time: timeString,
-          message: `Dropped shift (${shift.start}-${shift.end}), needs coverage`, 
-          status: 'pending' 
-        },
-        { 
-          id: notifications.length + 2, 
-          type: 'suggestion', 
-          from: 'System', 
-          date: selectedDay.charAt(0).toUpperCase() + selectedDay.slice(1), 
-          time: timeString,
-          message: `Suggested: ${shift.caregiver === 'Robin' || shift.caregiver === 'Scarlet' ? 'Joanne' : 'Scarlet'} is available to cover this shift`, 
-          status: 'pending' 
-        }
-      ]);
-      
-      return true;
+  const handleDropShift = async () => {
+    if (!selectedDay || !selectedShift || !selectedWeekId) {
+      logger.error('Cannot drop shift: missing data', { 
+        selectedDay, 
+        selectedShift: selectedShift?.id, 
+        selectedWeekId 
+      });
+      return false;
     }
     
-    return false;
-  };
-
-  const handleSwapShift = () => {
-    if (!selectedDay || !selectedShift) return false;
-    
-    const updatedSchedule = {...schedule};
-    const shift = updatedSchedule[selectedDay].find(s => s.id === selectedShift.id);
-    
-    if (shift) {
-      // Find who to swap with based on time of day
-      const swapWith = shift.caregiver === 'Robin' ? 'Scarlet' : 
-                       shift.caregiver === 'Scarlet' ? 'Robin' :
-                       shift.caregiver === 'Kelly' ? 'Joanne' : 'Kelly';
-                       
-      shift.status = 'swap-proposed';
-      shift.swapWith = swapWith;
-      setSchedule(updatedSchedule);
+    try {
+      setIsLoading(true);
       
-      const timeString = createTimestamp();
-      
-      // Add notification for swap request
-      setNotifications([
-        ...notifications,
-        { 
-          id: notifications.length + 1, 
-          type: 'swap', 
-          from: shift.caregiver, 
-          date: selectedDay.charAt(0).toUpperCase() + selectedDay.slice(1), 
-          time: timeString,
-          message: `Proposed shift swap with ${swapWith}`, 
-          status: 'pending' 
-        }
-      ]);
-      
-      return true;
-    }
-    
-    return false;
-  };
-  
-  const handleAdjustShift = () => {
-    if (!selectedDay || !selectedShift) return false;
-    
-    const updatedSchedule = {...schedule};
-    const shift = updatedSchedule[selectedDay].find(s => s.id === selectedShift.id);
-    
-    if (shift) {
-      // For demonstration, adjust the shift by 1 hour later
-      const originalStart = shift.start;
-      const originalEnd = shift.end;
-      
-      shift.start = adjustTime(shift.start, 1);
-      shift.end = adjustTime(shift.end, 1);
-      shift.status = 'adjusted';
-      setSchedule(updatedSchedule);
-      
-      const timeString = createTimestamp();
-      
-      // Add notification for adjusted shift
-      setNotifications([
-        ...notifications,
-        { 
-          id: notifications.length + 1, 
-          type: 'adjust', 
-          from: shift.caregiver, 
-          date: selectedDay.charAt(0).toUpperCase() + selectedDay.slice(1), 
-          time: timeString,
-          message: `Changed shift from ${originalStart}-${originalEnd} to ${shift.start}-${shift.end}`, 
-          status: 'completed' 
-        }
-      ]);
-      
-      return true;
-    }
-    
-    return false;
-  };
-
-  const approveRequest = (notificationId: number) => {
-    const updatedNotifications = notifications.map(notification => 
-      notification.id === notificationId ? {...notification, status: 'completed'} : notification
-    );
-    
-    // Update the schedule based on notification type
-    const notification = notifications.find(n => n.id === notificationId);
-    if (notification) {
-      const timeString = createTimestamp();
-      
-      if (notification.type === 'drop') {
-        // Handle dropped shift confirmation
-        Object.keys(schedule).forEach(day => {
-          schedule[day as DayName].forEach(shift => {
-            if (shift.status === 'dropped' && shift.caregiver === notification.from) {
-              shift.status = 'confirmed'; // Reset to confirmed but now with new caregiver
-              shift.caregiver = 'You'; // For demo, assume you're covering
-              
-              // Add confirmation to notifications
-              const newNotification = {
-                id: notifications.length + 1,
-                type: 'coverage' as const,
-                from: 'You',
-                date: notification.date,
-                time: timeString,
-                message: `Confirmed coverage for ${notification.from}'s shift`,
-                status: 'completed' as const
-              };
-              updatedNotifications.push(newNotification);
-            }
-          });
-        });
-      } else if (notification.type === 'swap') {
-        // Handle swap confirmation
-        Object.keys(schedule).forEach(day => {
-          schedule[day as DayName].forEach(shift => {
-            if (shift.status === 'swap-proposed' && shift.caregiver === notification.from) {
-              // Find the other person's shift to swap with
-              const otherShift = schedule[day as DayName].find(s => 
-                s.caregiver === shift.swapWith
-              );
-              
-              if (otherShift) {
-                // Swap the caregivers
-                const tempCaregiver = shift.caregiver;
-                shift.caregiver = otherShift.caregiver;
-                otherShift.caregiver = tempCaregiver;
-                
-                // Reset statuses
-                shift.status = 'confirmed';
-                otherShift.status = 'confirmed';
-                delete shift.swapWith;
-                
-                // Add confirmation to notifications
-                const newNotification = {
-                  id: notifications.length + 1,
-                  type: 'swap' as const,
-                  from: 'System',
-                  date: notification.date,
-                  time: timeString,
-                  message: `Confirmed shift swap between ${tempCaregiver} and ${shift.caregiver}`,
-                  status: 'completed' as const
-                };
-                updatedNotifications.push(newNotification);
-              }
-            }
-          });
-        });
-      } else if (notification.type === 'suggestion') {
-        // Handle suggestion application
-        const newNotification = {
-          id: notifications.length + 1,
-          type: 'suggestion' as const,
-          from: 'System',
-          date: notification.date,
-          time: timeString,
-          message: `Applied suggested solution: ${notification.message}`,
-          status: 'completed' as const
-        };
-        updatedNotifications.push(newNotification);
+      // Call the API to drop the shift
+      if (!selectedShift.id) {
+        logger.error('Cannot drop shift: missing shift ID');
+        return false;
       }
       
-      setSchedule({...schedule});
-      setNotifications(updatedNotifications);
-      return true;
+      logger.info('Dropping shift', { 
+        shiftId: selectedShift.id,
+        caregiver: selectedShift.caregiver,
+        day: selectedDay,
+        time: `${selectedShift.start}-${selectedShift.end}`
+      });
+      
+      const result = await apiService.dropShift(selectedShift.id);
+      logger.debug('Drop shift result', { result });
+      
+      // Update the local data after successful API call
+      if (result) {
+        logger.info('Shift dropped successfully, refreshing data', { 
+          shiftId: selectedShift.id,
+          weekId: selectedWeekId 
+        });
+        
+        // Refresh the schedule data
+        await fetchScheduleForWeek(selectedWeekId);
+        // Refresh notifications
+        await fetchNotifications();
+        return true;
+      }
+      
+      return false;
+    } catch (err: any) {
+      logger.error('Error dropping shift', {
+        shiftId: selectedShift.id,
+        error: err.message,
+        details: err.response?.data
+      });
+      setError(`Failed to drop shift: ${err.message}`);
+      return false;
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleSwapShift = async () => {
+    if (!selectedDay || !selectedShift || !selectedWeekId) {
+      console.error('Cannot swap shift: missing data', { 
+        selectedDay, 
+        selectedShift: selectedShift?.id, 
+        selectedWeekId 
+      });
+      return false;
     }
     
-    return false;
+    try {
+      setIsLoading(true);
+      
+      // Need to find a shift to swap with
+      const dayShifts = schedule[selectedDay];
+      if (!dayShifts || dayShifts.length < 2) {
+        console.error('Cannot swap shift: not enough shifts on this day');
+        return false;
+      }
+      
+      // Find another shift on the same day to swap with
+      const otherShift = dayShifts.find(s => s.id !== selectedShift.id);
+      if (!otherShift || !otherShift.id || !selectedShift.id) {
+        console.error('Cannot swap shift: no other shift found or missing IDs');
+        return false;
+      }
+      
+      // Call the API to swap the shifts
+      console.log(`Swapping shifts: ${selectedShift.id} with ${otherShift.id}`);
+      const result = await apiService.swapShift(selectedShift.id, otherShift.id);
+      console.log('Swap result:', result);
+      
+      // Update the local data after successful API call
+      if (result) {
+        console.log(`Refreshing schedule for week: ${selectedWeekId}`);
+        // Refresh the schedule data
+        await fetchScheduleForWeek(selectedWeekId);
+        // Refresh notifications
+        await fetchNotifications();
+        return true;
+      }
+      
+      return false;
+    } catch (err: any) {
+      console.error('Error swapping shift:', err);
+      console.error('Error details:', err.response?.data || err.message);
+      setError(`Failed to swap shift: ${err.message}`);
+      return false;
+    } finally {
+      setIsLoading(false);
+    }
+  };
+  
+  const handleAdjustShift = async (newStartTime?: string, newEndTime?: string) => {
+    if (!selectedDay || !selectedShift || !selectedWeekId) {
+      console.error('Cannot adjust shift: missing data', { 
+        selectedDay, 
+        selectedShift: selectedShift?.id, 
+        selectedWeekId 
+      });
+      return false;
+    }
+    
+    try {
+      setIsLoading(true);
+      
+      if (!selectedShift.id) {
+        console.error('Cannot adjust shift: missing shift ID');
+        return false;
+      }
+      
+      // If no new times provided, default to shifting by 1 hour
+      const defaultStartTime = newStartTime || adjustTime(selectedShift.start, 1);
+      const defaultEndTime = newEndTime || adjustTime(selectedShift.end, 1);
+      
+      // Call the API to adjust the shift
+      console.log(`Adjusting shift: ${selectedShift.id} to ${defaultStartTime}-${defaultEndTime}`);
+      const result = await apiService.adjustShift(
+        selectedShift.id, 
+        defaultStartTime, 
+        defaultEndTime
+      );
+      console.log('Adjust result:', result);
+      
+      // Update the local data after successful API call
+      if (result) {
+        console.log(`Refreshing schedule for week: ${selectedWeekId}`);
+        // Refresh the schedule data
+        await fetchScheduleForWeek(selectedWeekId);
+        // Refresh notifications
+        await fetchNotifications();
+        return true;
+      }
+      
+      return false;
+    } catch (err: any) {
+      console.error('Error adjusting shift:', err);
+      console.error('Error details:', err.response?.data || err.message);
+      setError(`Failed to adjust shift: ${err.message}`);
+      return false;
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const approveRequest = async (notificationId: number) => {
+    if (!selectedWeekId) {
+      console.error('Cannot approve notification: missing selectedWeekId');
+      return false;
+    }
+    
+    try {
+      setIsLoading(true);
+      
+      // Call the API to approve the notification
+      console.log(`Approving notification: ${notificationId}`);
+      const result = await apiService.approveNotification(notificationId);
+      console.log('Approval result:', result);
+      
+      // Update the local data after successful API call
+      if (result) {
+        console.log(`Refreshing schedule for week: ${selectedWeekId}`);
+        // Refresh the schedule data
+        await fetchScheduleForWeek(selectedWeekId);
+        // Refresh notifications
+        await fetchNotifications();
+        return true;
+      }
+      
+      return false;
+    } catch (err: any) {
+      console.error('Error approving notification:', err);
+      console.error('Error details:', err.response?.data || err.message);
+      setError(`Failed to approve notification: ${err.message}`);
+      return false;
+    } finally {
+      setIsLoading(false);
+    }
+  };
+  
+  // New function to add a shift
+  const addShift = async (day: DayName, shift: Omit<Shift, 'id'>) => {
+    if (!selectedWeekId) {
+      logger.error('Cannot add shift: missing selectedWeekId');
+      return false;
+    }
+    
+    try {
+      setIsLoading(true);
+      
+      // Prepare shift data for the API
+      const shiftData = {
+        week_id: selectedWeekId,
+        day_of_week: day,
+        caregiver_id: shift.caregiver_id || 1, // Default to first caregiver if not provided
+        start_time: shift.start,
+        end_time: shift.end,
+        status: shift.status || 'confirmed'
+      };
+      
+      // Call the API to create a new shift
+      logger.info('Adding new shift', shiftData);
+      
+      try {
+        const result = await apiService.createShift(shiftData);
+        logger.info('Add shift API response', result);
+        
+        // Update the local data after successful API call
+        if (result) {
+          logger.info(`Refreshing schedule after adding shift`, { 
+            weekId: selectedWeekId, 
+            newShiftId: result.id 
+          });
+          // Refresh the schedule data
+          await fetchScheduleForWeek(selectedWeekId);
+          return true;
+        } else {
+          logger.warn('Add shift returned unexpected result', { result });
+          return false;
+        }
+      } catch (apiError: any) {
+        logger.error('API error while adding shift', {
+          error: apiError.message,
+          stack: apiError.stack,
+          response: apiError.response?.data,
+          status: apiError.response?.status,
+          url: apiError.config?.url,
+          method: apiError.config?.method,
+          data: apiError.config?.data
+        });
+        throw apiError; // Re-throw to be caught by outer try/catch
+      }
+    } catch (err: any) {
+      logger.error('Error adding shift', {
+        error: err.message,
+        day,
+        caregiver_id: shift.caregiver_id,
+        selectedWeekId
+      });
+      setError(`Failed to add shift: ${err.message}`);
+      return false;
+    } finally {
+      setIsLoading(false);
+    }
+  };
+  
+  // New function to delete a shift
+  const deleteShift = async (shiftId: number) => {
+    if (!selectedWeekId) {
+      console.error('Cannot delete shift: missing selectedWeekId');
+      return false;
+    }
+    
+    try {
+      setIsLoading(true);
+      
+      // Call the API to delete the shift
+      console.log(`Deleting shift: ${shiftId}`);
+      await apiService.deleteShift(shiftId);
+      console.log('Delete successful');
+      
+      // Refresh the schedule data
+      console.log(`Refreshing schedule for week: ${selectedWeekId}`);
+      await fetchScheduleForWeek(selectedWeekId);
+      return true;
+    } catch (err: any) {
+      console.error('Error deleting shift:', err);
+      console.error('Error details:', err.response?.data || err.message);
+      setError(`Failed to delete shift: ${err.message}`);
+      return false;
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   const getShiftStatusColor = (status: string): string => {
@@ -239,6 +411,8 @@ export const useSchedule = () => {
     notifications,
     selectedDay,
     selectedShift,
+    isLoading,
+    error,
     handleShiftClick,
     handleDropShift,
     handleSwapShift,
@@ -246,6 +420,10 @@ export const useSchedule = () => {
     approveRequest,
     getShiftStatusColor,
     setSelectedDay,
-    setSelectedShift
+    setSelectedShift,
+    addShift,
+    deleteShift,
+    fetchScheduleForWeek,
+    fetchNotifications
   };
 };

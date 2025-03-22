@@ -192,6 +192,7 @@ CREATE TABLE payroll_records (
 1. Implement week creation and management
 2. Develop payroll report generation
 3. Create future week planning tools
+4. allow edits to add and remove shifts. when i remove a shift it should disiaprea from teh board, and tehn we can add new shifts. I need to be able to set shift times starts and ends. 
 
 ### Phase 4: Notifications & History (Week 5)
 1. Implement local notification system

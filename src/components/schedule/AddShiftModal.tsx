@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { DayName, Caregiver, Week } from '../../types';
+import { logger } from '../../utils/logger';
 
 interface AddShiftModalProps {
   selectedDay: DayName | null;
@@ -94,14 +95,24 @@ const AddShiftModal: React.FC<AddShiftModalProps> = ({
     setIsSubmitting(true);
     setError(null);
     
+    logger.info('Add shift form submitted', {
+      day,
+      caregiver_id: caregiver,
+      weekId,
+      startTime,
+      endTime
+    });
+    
     // Validate input
     if (!caregiver) {
+      logger.warn('Add shift validation failed: no caregiver selected');
       setError('Please select a caregiver');
       setIsSubmitting(false);
       return;
     }
     
     if (!startTime || !endTime) {
+      logger.warn('Add shift validation failed: missing time values', { startTime, endTime });
       setError('Please select both start and end times');
       setIsSubmitting(false);
       return;
@@ -112,31 +123,56 @@ const AddShiftModal: React.FC<AddShiftModalProps> = ({
     const endIndex = timeOptions.indexOf(endTime);
     
     if (startIndex >= endIndex) {
+      logger.warn('Add shift validation failed: invalid time range', { startTime, endTime, startIndex, endIndex });
       setError('End time must be after start time');
+      setIsSubmitting(false);
+      return;
+    }
+
+    // Validate week ID
+    if (!weekId) {
+      logger.warn('Add shift validation failed: no week selected');
+      setError('Please select a week');
       setIsSubmitting(false);
       return;
     }
 
     // Change the current week if needed and onSelectWeek is provided
     if (weekId && weekId !== selectedWeek?.id && onSelectWeek) {
+      logger.info('Changing selected week before adding shift', { 
+        fromWeekId: selectedWeek?.id, 
+        toWeekId: weekId 
+      });
       onSelectWeek(weekId);
     }
 
     try {
-      const success = await onAddShift(day, {
+      logger.info('Calling onAddShift with data', {
+        day,
+        caregiver_id: caregiver,
+        startTime,
+        endTime
+      });
+      
+      const shiftData = {
         caregiver_id: caregiver,
         start: startTime,
         end: endTime,
         status: 'confirmed'
-      });
+      };
+      
+      const success = await onAddShift(day, shiftData);
+      
+      logger.info('Add shift result', { success });
       
       if (success) {
         onClose();
       } else {
+        logger.error('Failed to add shift', { day, shiftData });
         setError('Failed to add shift. Please try again.');
       }
     } catch (err) {
-      console.error('Error adding shift:', err);
+      logger.error('Error adding shift', { error: err, day, caregiver });
       setError('An error occurred while adding the shift.');
     } finally {
       setIsSubmitting(false);

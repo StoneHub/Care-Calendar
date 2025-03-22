@@ -1,7 +1,7 @@
 import { useState } from 'react';
 
 type TabName = 'schedule' | 'notifications' | 'team';
-type ModalType = '' | 'shiftOptions' | 'editTeamMember' | 'addTeamMember' | 'active' | 'history';
+type ModalType = '' | 'shiftOptions' | 'editTeamMember' | 'addTeamMember' | 'active' | 'history' | 'addShift' | 'deleteShift' | 'weekSelector';
 
 export const useUIState = () => {
   const [activeTab, setActiveTab] = useState<TabName>('schedule');

@@ -1,20 +1,50 @@
-import { DayName } from '../types';
+import { DayName, Week } from '../types';
 
-export const formatDayTitle = (day: DayName): { dayName: string, dateStr: number, isToday: boolean } => {
-  const today = new Date().getDay();
-  const dayNames = ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday'];
-  const dayIndex = dayNames.indexOf(day);
-  const isToday = today === dayIndex;
+// Map of DayName to JavaScript day index (0-6, where 0 is Sunday)
+const dayNameToJsDay = {
+  sunday: 0,
+  monday: 1,
+  tuesday: 2,
+  wednesday: 3,
+  thursday: 4,
+  friday: 5,
+  saturday: 6
+};
+
+export const formatDayTitle = (
+  day: DayName, 
+  selectedWeek?: Week | null
+): { dayName: string, dateStr: number, isToday: boolean } => {
+  const today = new Date();
+  const dayOfWeekIndex = dayNameToJsDay[day]; // 0-6, where 0 is Sunday
   
-  // Calculate date for display
-  const currentDate = new Date();
-  const diff = dayIndex - currentDate.getDay();
-  currentDate.setDate(currentDate.getDate() + diff);
-  const dateStr = currentDate.getDate();
+  let dateToShow: Date;
+  
+  // If we have a selected week, use it to calculate the dates
+  if (selectedWeek) {
+    // Start with the week's start date (which should be a Monday)
+    const weekStart = new Date(selectedWeek.start_date);
+    dateToShow = new Date(weekStart);
+    
+    // Calculate how many days to add to the start date (Monday)
+    // If the day is Sunday (0), we need to add 6 days to get from Monday to Sunday
+    // For all other days, just add the difference between the day index and Monday (1)
+    const daysToAdd = dayOfWeekIndex === 0 ? 6 : dayOfWeekIndex - 1;
+    
+    dateToShow.setDate(weekStart.getDate() + daysToAdd);
+  } else {
+    // Fall back to current week calculation
+    dateToShow = new Date(today);
+    const diff = dayOfWeekIndex - today.getDay();
+    dateToShow.setDate(today.getDate() + diff);
+  }
+  
+  // Check if this date is today
+  const isToday = dateToShow.toDateString() === today.toDateString();
   
   return {
     dayName: day.slice(0, 3).toUpperCase(),
-    dateStr,
+    dateStr: dateToShow.getDate(),
     isToday
   };
 };

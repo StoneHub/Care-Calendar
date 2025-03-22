@@ -5,11 +5,11 @@ const scheduleController = require('../controllers/scheduleController');
 // GET all weeks
 router.get('/weeks', scheduleController.getAllWeeks);
 
+// GET current week (must be before the :id route to avoid being treated as an ID parameter)
+router.get('/weeks/current', scheduleController.getCurrentWeek);
+
 // GET a specific week
 router.get('/weeks/:id', scheduleController.getWeekById);
-
-// GET current week
-router.get('/weeks/current', scheduleController.getCurrentWeek);
 
 // POST create a new week
 router.post('/weeks', scheduleController.createWeek);

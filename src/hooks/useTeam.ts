@@ -1,45 +1,168 @@
-import { useState } from 'react';
-import { Caregiver } from '../types';
+import { useState, useEffect } from 'react';
+import { Caregiver, CaregiverBackend } from '../types';
 import { mockCaregivers } from '../services/mockData';
+import { apiService } from '../services/api';
+import { mapCaregiverFromBackend, mapCaregiverToBackend } from '../utils/mappers';
 
 export const useTeam = () => {
   const [caregivers, setCaregivers] = useState<Caregiver[]>(mockCaregivers);
   const [selectedCaregiver, setSelectedCaregiver] = useState<Caregiver | null>(null);
+  const [isLoading, setIsLoading] = useState<boolean>(false);
+  const [error, setError] = useState<string | null>(null);
 
-  const addCaregiver = (caregiver: Omit<Caregiver, 'id'>): void => {
-    const newId = Math.max(0, ...caregivers.map(c => c.id)) + 1;
-    const newCaregiver = {
-      ...caregiver,
-      id: newId
-    };
+  // Fetch team members when the hook is initialized
+  useEffect(() => {
+    fetchTeamMembers();
+  }, []);
+
+  const fetchTeamMembers = async (): Promise<void> => {
+    setIsLoading(true);
+    setError(null);
     
-    setCaregivers([...caregivers, newCaregiver]);
+    try {
+      const teamMembers = await apiService.getTeamMembers();
+      // Map backend format to frontend format
+      const mappedCaregivers = teamMembers.map(member => mapCaregiverFromBackend(member));
+      setCaregivers(mappedCaregivers);
+    } catch (err) {
+      console.error('Error fetching team members:', err);
+      setError('Failed to fetch team members');
+      // Fallback to mock data in case of error
+      setCaregivers(mockCaregivers);
+    } finally {
+      setIsLoading(false);
+    }
   };
 
-  const updateCaregiver = (updatedCaregiver: Caregiver): void => {
-    setCaregivers(
-      caregivers.map(caregiver => 
-        caregiver.id === updatedCaregiver.id ? updatedCaregiver : caregiver
-      )
-    );
+  const addCaregiver = async (caregiver: Omit<Caregiver, 'id'>): Promise<boolean> => {
+    setIsLoading(true);
+    setError(null);
+    
+    try {
+      // Convert to backend format
+      const backendCaregiver = {
+        name: caregiver.name,
+        hours_per_week: caregiver.hours,
+        availability: caregiver.availability,
+        role: caregiver.role
+      };
+      
+      // Call API to create caregiver
+      const result = await apiService.createTeamMember(backendCaregiver);
+      
+      if (result) {
+        // Refresh the team members list
+        await fetchTeamMembers();
+        return true;
+      }
+      
+      return false;
+    } catch (err) {
+      console.error('Error adding caregiver:', err);
+      setError('Failed to add caregiver');
+      return false;
+    } finally {
+      setIsLoading(false);
+    }
   };
 
-  const deleteCaregiver = (id: number): void => {
-    setCaregivers(caregivers.filter(caregiver => caregiver.id !== id));
+  const updateCaregiver = async (updatedCaregiver: Caregiver): Promise<boolean> => {
+    setIsLoading(true);
+    setError(null);
+    
+    try {
+      // Convert to backend format
+      const backendCaregiver = mapCaregiverToBackend(updatedCaregiver);
+      
+      // Call API to update caregiver
+      const result = await apiService.updateTeamMember(backendCaregiver);
+      
+      if (result) {
+        // Refresh the team members list
+        await fetchTeamMembers();
+        
+        // Update selected caregiver if that's what was updated
+        if (selectedCaregiver && selectedCaregiver.id === updatedCaregiver.id) {
+          setSelectedCaregiver(updatedCaregiver);
+        }
+        
+        return true;
+      }
+      
+      return false;
+    } catch (err) {
+      console.error('Error updating caregiver:', err);
+      setError('Failed to update caregiver');
+      return false;
+    } finally {
+      setIsLoading(false);
+    }
   };
 
-  const selectCaregiver = (id: number): void => {
-    const caregiver = caregivers.find(c => c.id === id) || null;
-    setSelectedCaregiver(caregiver);
+  const deleteCaregiver = async (id: number): Promise<boolean> => {
+    setIsLoading(true);
+    setError(null);
+    
+    try {
+      // Call API to delete caregiver
+      await apiService.deleteTeamMember(id);
+      
+      // Refresh the team members list
+      await fetchTeamMembers();
+      
+      // Clear selected caregiver if that's what was deleted
+      if (selectedCaregiver && selectedCaregiver.id === id) {
+        setSelectedCaregiver(null);
+      }
+      
+      return true;
+    } catch (err) {
+      console.error('Error deleting caregiver:', err);
+      setError('Failed to delete caregiver');
+      return false;
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const selectCaregiver = async (id: number): Promise<void> => {
+    setIsLoading(true);
+    setError(null);
+    
+    try {
+      // Try to find caregiver in current list
+      let caregiver = caregivers.find(c => c.id === id) || null;
+      
+      // If not found, fetch from API
+      if (!caregiver) {
+        const fetchedCaregiver = await apiService.getTeamMember(id);
+        if (fetchedCaregiver) {
+          caregiver = mapCaregiverFromBackend(fetchedCaregiver);
+        }
+      }
+      
+      setSelectedCaregiver(caregiver);
+    } catch (err) {
+      console.error('Error selecting caregiver:', err);
+      setError('Failed to select caregiver');
+      // Try to find in local state as fallback
+      const caregiver = caregivers.find(c => c.id === id) || null;
+      setSelectedCaregiver(caregiver);
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   return {
     caregivers,
     selectedCaregiver,
+    isLoading,
+    error,
     addCaregiver,
     updateCaregiver,
     deleteCaregiver,
     selectCaregiver,
-    setSelectedCaregiver
+    setSelectedCaregiver,
+    fetchTeamMembers
   };
 };

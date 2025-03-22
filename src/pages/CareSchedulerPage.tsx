@@ -1,5 +1,6 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useSchedule, useTeam, useUIState, useWeeks } from '../hooks';
+import { logger } from '../utils/logger';
 import Header from '../components/layout/Header';
 import BottomNav from '../components/layout/BottomNav';
 import ScheduleGrid from '../components/schedule/ScheduleGrid';
@@ -100,14 +101,19 @@ const CareSchedulerPage: React.FC = () => {
   };
 
   const handleWeekNavigation = (direction: 'prev' | 'next' | 'today') => {
-    if (!weeks.length) return;
+    if (!weeks.length) {
+      logger.warn('Cannot navigate weeks - no weeks available');
+      return;
+    }
     
     if (direction === 'today' && currentWeek) {
+      logger.info('Navigating to current week', { week_id: currentWeek.id });
       selectWeek(currentWeek.id);
       return;
     }
     
-    // Sort weeks by start date
+    // Weeks should already be sorted by start date in the useWeeks hook
+    // But let's ensure it here to be safe
     const sortedWeeks = [...weeks].sort((a, b) => 
       new Date(a.start_date).getTime() - new Date(b.start_date).getTime()
     );
@@ -117,12 +123,49 @@ const CareSchedulerPage: React.FC = () => {
       ? sortedWeeks.findIndex(w => w.id === selectedWeek.id)
       : -1;
     
-    if (currentIndex === -1) return;
+    if (currentIndex === -1) {
+      logger.warn('Cannot navigate weeks - current week not found in sorted list', {
+        selectedWeekId: selectedWeek?.id,
+        sortedWeekIds: sortedWeeks.map(w => w.id)
+      });
+      return;
+    }
+    
+    // Log for debugging
+    logger.info('Week navigation request', {
+      direction,
+      currentIndex,
+      selectedWeekId: selectedWeek?.id,
+      selectedWeekDates: selectedWeek ? `${selectedWeek.start_date} to ${selectedWeek.end_date}` : 'none',
+      totalWeeks: sortedWeeks.length,
+      prevWeekId: currentIndex > 0 ? sortedWeeks[currentIndex - 1].id : null,
+      nextWeekId: currentIndex < sortedWeeks.length - 1 ? sortedWeeks[currentIndex + 1].id : null
+    });
     
     if (direction === 'prev' && currentIndex > 0) {
-      selectWeek(sortedWeeks[currentIndex - 1].id);
+      // Go to previous week
+      const prevWeek = sortedWeeks[currentIndex - 1];
+      logger.info('Navigating to previous week', { 
+        from_id: selectedWeek?.id,
+        to_id: prevWeek.id,
+        to_dates: `${prevWeek.start_date} to ${prevWeek.end_date}`
+      });
+      selectWeek(prevWeek.id);
     } else if (direction === 'next' && currentIndex < sortedWeeks.length - 1) {
-      selectWeek(sortedWeeks[currentIndex + 1].id);
+      // Go to next week
+      const nextWeek = sortedWeeks[currentIndex + 1];
+      logger.info('Navigating to next week', { 
+        from_id: selectedWeek?.id,
+        to_id: nextWeek.id,
+        to_dates: `${nextWeek.start_date} to ${nextWeek.end_date}`
+      });
+      selectWeek(nextWeek.id);
+    } else {
+      logger.warn('Cannot navigate further in that direction', {
+        direction,
+        currentIndex,
+        totalWeeks: sortedWeeks.length
+      });
     }
   };
   
@@ -211,6 +254,7 @@ const CareSchedulerPage: React.FC = () => {
             {/* Schedule Grid */}
             <ScheduleGrid 
               schedule={schedule}
+              selectedWeek={selectedWeek}
               onShiftClick={handleShiftSelection}
               getShiftStatusColor={getShiftStatusColor}
             />
