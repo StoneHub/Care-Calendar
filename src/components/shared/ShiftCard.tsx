@@ -4,7 +4,7 @@ import { Shift } from '../../types';
 
 interface ShiftCardProps {
   shift: Shift;
-  onClick: () => void;
+  onClick: (e: React.MouseEvent) => void;
   statusColorClass: string;
 }
 

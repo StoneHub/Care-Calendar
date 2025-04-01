@@ -112,21 +112,15 @@ const CareSchedulerPage: React.FC = () => {
       return;
     }
     
-    // Weeks should already be sorted by start date in the useWeeks hook
-    // But let's ensure it here to be safe
-    const sortedWeeks = [...weeks].sort((a, b) => 
-      new Date(a.start_date).getTime() - new Date(b.start_date).getTime()
-    );
-    
-    // Find current index
+    // Directly use weeks array as sorted in useWeeks.ts
     const currentIndex = selectedWeek 
-      ? sortedWeeks.findIndex(w => w.id === selectedWeek.id)
+      ? weeks.findIndex(w => w.id === selectedWeek.id)
       : -1;
     
     if (currentIndex === -1) {
-      logger.warn('Cannot navigate weeks - current week not found in sorted list', {
+      logger.warn('Current week not found in week list', {
         selectedWeekId: selectedWeek?.id,
-        sortedWeekIds: sortedWeeks.map(w => w.id)
+        availableWeekIds: weeks.map(w => w.id)
       });
       return;
     }
@@ -137,23 +131,23 @@ const CareSchedulerPage: React.FC = () => {
       currentIndex,
       selectedWeekId: selectedWeek?.id,
       selectedWeekDates: selectedWeek ? `${selectedWeek.start_date} to ${selectedWeek.end_date}` : 'none',
-      totalWeeks: sortedWeeks.length,
-      prevWeekId: currentIndex > 0 ? sortedWeeks[currentIndex - 1].id : null,
-      nextWeekId: currentIndex < sortedWeeks.length - 1 ? sortedWeeks[currentIndex + 1].id : null
+      totalWeeks: weeks.length,
+      prevWeekId: currentIndex > 0 ? weeks[currentIndex - 1].id : null,
+      nextWeekId: currentIndex < weeks.length - 1 ? weeks[currentIndex + 1].id : null
     });
     
     if (direction === 'prev' && currentIndex > 0) {
       // Go to previous week
-      const prevWeek = sortedWeeks[currentIndex - 1];
+      const prevWeek = weeks[currentIndex - 1];
       logger.info('Navigating to previous week', { 
         from_id: selectedWeek?.id,
         to_id: prevWeek.id,
         to_dates: `${prevWeek.start_date} to ${prevWeek.end_date}`
       });
       selectWeek(prevWeek.id);
-    } else if (direction === 'next' && currentIndex < sortedWeeks.length - 1) {
+    } else if (direction === 'next' && currentIndex < weeks.length - 1) {
       // Go to next week
-      const nextWeek = sortedWeeks[currentIndex + 1];
+      const nextWeek = weeks[currentIndex + 1];
       logger.info('Navigating to next week', { 
         from_id: selectedWeek?.id,
         to_id: nextWeek.id,
@@ -164,7 +158,7 @@ const CareSchedulerPage: React.FC = () => {
       logger.warn('Cannot navigate further in that direction', {
         direction,
         currentIndex,
-        totalWeeks: sortedWeeks.length
+        totalWeeks: weeks.length
       });
     }
   };
@@ -257,6 +251,7 @@ const CareSchedulerPage: React.FC = () => {
               selectedWeek={selectedWeek}
               onShiftClick={handleShiftSelection}
               getShiftStatusColor={getShiftStatusColor}
+              onDayClick={handleOpenAddShift}
             />
           </>
         )}

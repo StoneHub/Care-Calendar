@@ -16,30 +16,40 @@ export const formatDayTitle = (
   selectedWeek?: Week | null
 ): { dayName: string, dateStr: number, isToday: boolean } => {
   const today = new Date();
-  const dayOfWeekIndex = dayNameToJsDay[day]; // 0-6, where 0 is Sunday
-  
   let dateToShow: Date;
-  
-  // If we have a selected week, use it to calculate the dates
+
   if (selectedWeek) {
-    // Start with the week's start date (which should be a Monday)
+    // Assume selectedWeek.start_date is a Monday
     const weekStart = new Date(selectedWeek.start_date);
+    // Map day names to offsets relative to Monday
+    const dayOffsets: Record<DayName, number> = {
+      monday: 0,
+      tuesday: 1,
+      wednesday: 2,
+      thursday: 3,
+      friday: 4,
+      saturday: 5,
+      sunday: 6
+    };
     dateToShow = new Date(weekStart);
-    
-    // Calculate how many days to add to the start date (Monday)
-    // If the day is Sunday (0), we need to add 6 days to get from Monday to Sunday
-    // For all other days, just add the difference between the day index and Monday (1)
-    const daysToAdd = dayOfWeekIndex === 0 ? 6 : dayOfWeekIndex - 1;
-    
-    dateToShow.setDate(weekStart.getDate() + daysToAdd);
+    dateToShow.setDate(weekStart.getDate() + dayOffsets[day]);
   } else {
-    // Fall back to current week calculation
+    // Fallback: use current week calculation
+    const currentDay = today.getDay(); // 0 (Sunday) to 6 (Saturday)
+    const dayOffsetsFallback: Record<DayName, number> = {
+      monday: currentDay <= 1 ? 1 - currentDay : 8 - currentDay,
+      tuesday: currentDay <= 2 ? 2 - currentDay : 9 - currentDay,
+      wednesday: currentDay <= 3 ? 3 - currentDay : 10 - currentDay,
+      thursday: currentDay <= 4 ? 4 - currentDay : 11 - currentDay,
+      friday: currentDay <= 5 ? 5 - currentDay : 12 - currentDay,
+      saturday: currentDay <= 6 ? 6 - currentDay : 13 - currentDay,
+      sunday: currentDay === 0 ? 0 : 7 - currentDay
+    };
     dateToShow = new Date(today);
-    const diff = dayOfWeekIndex - today.getDay();
-    dateToShow.setDate(today.getDate() + diff);
+    dateToShow.setDate(today.getDate() + dayOffsetsFallback[day]);
   }
   
-  // Check if this date is today
+  // Compare full date strings to check if it's today
   const isToday = dateToShow.toDateString() === today.toDateString();
   
   return {

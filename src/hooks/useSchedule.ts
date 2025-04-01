@@ -300,21 +300,46 @@ export const useSchedule = ({ selectedWeek }: UseScheduleProps = {}) => {
     }
   };
   
-  // New function to add a shift
+  // Function to add a shift with improved error handling
   const addShift = async (day: DayName, shift: Omit<Shift, 'id'>) => {
     if (!selectedWeekId) {
-      logger.error('Cannot add shift: missing selectedWeekId');
+      const errorMsg = 'Cannot add shift: No week is selected';
+      logger.error(errorMsg);
+      setError(errorMsg);
+      return false;
+    }
+    
+    // Input validation
+    if (!day) {
+      const errorMsg = 'Cannot add shift: Day is required';
+      logger.error(errorMsg);
+      setError(errorMsg);
+      return false;
+    }
+    
+    if (!shift.caregiver_id) {
+      const errorMsg = 'Cannot add shift: Caregiver selection is required';
+      logger.error(errorMsg);
+      setError(errorMsg);
+      return false;
+    }
+    
+    if (!shift.start || !shift.end) {
+      const errorMsg = 'Cannot add shift: Start and end times are required';
+      logger.error(errorMsg);
+      setError(errorMsg);
       return false;
     }
     
     try {
       setIsLoading(true);
+      setError(null);
       
       // Prepare shift data for the API
       const shiftData = {
         week_id: selectedWeekId,
         day_of_week: day,
-        caregiver_id: shift.caregiver_id || 1, // Default to first caregiver if not provided
+        caregiver_id: shift.caregiver_id,
         start_time: shift.start,
         end_time: shift.end,
         status: shift.status || 'confirmed'
@@ -325,41 +350,68 @@ export const useSchedule = ({ selectedWeek }: UseScheduleProps = {}) => {
       
       try {
         const result = await apiService.createShift(shiftData);
-        logger.info('Add shift API response', result);
         
-        // Update the local data after successful API call
-        if (result) {
-          logger.info(`Refreshing schedule after adding shift`, { 
-            weekId: selectedWeekId, 
-            newShiftId: result.id 
-          });
-          // Refresh the schedule data
-          await fetchScheduleForWeek(selectedWeekId);
-          return true;
-        } else {
-          logger.warn('Add shift returned unexpected result', { result });
+        if (!result) {
+          const errorMsg = 'Failed to add shift: Server returned empty response';
+          logger.warn(errorMsg);
+          setError(errorMsg);
           return false;
         }
+        
+        if (!result.id) {
+          const errorMsg = 'Failed to add shift: Created shift is missing ID';
+          logger.warn(errorMsg, { result });
+          setError(errorMsg);
+          return false;
+        }
+        
+        logger.info('Shift added successfully', { 
+          shiftId: result.id,
+          weekId: selectedWeekId,
+          day,
+          caregiver: shift.caregiver_id,
+          time: `${shift.start}-${shift.end}`
+        });
+        
+        // Refresh the schedule data
+        await fetchScheduleForWeek(selectedWeekId);
+        return true;
       } catch (apiError: any) {
+        // Handle specific API error cases
+        let errorMsg = 'Failed to add shift: ';
+        
+        if (apiError.response?.status === 400) {
+          errorMsg += 'Invalid shift data provided';
+        } else if (apiError.response?.status === 409) {
+          errorMsg += 'This time slot conflicts with an existing shift';
+        } else if (apiError.response?.status === 404) {
+          errorMsg += 'Week or caregiver not found';
+        } else if (apiError.response?.status >= 500) {
+          errorMsg += 'Server error, please try again later';
+        } else {
+          errorMsg += apiError.message || 'Unknown error occurred';
+        }
+        
         logger.error('API error while adding shift', {
           error: apiError.message,
-          stack: apiError.stack,
-          response: apiError.response?.data,
           status: apiError.response?.status,
-          url: apiError.config?.url,
-          method: apiError.config?.method,
-          data: apiError.config?.data
+          data: apiError.response?.data,
+          requestData: shiftData
         });
-        throw apiError; // Re-throw to be caught by outer try/catch
+        
+        setError(errorMsg);
+        return false;
       }
     } catch (err: any) {
-      logger.error('Error adding shift', {
+      const errorMsg = `Failed to add shift: ${err.message || 'Unknown error'}`;
+      logger.error('Unexpected error adding shift', {
         error: err.message,
+        stack: err.stack,
         day,
         caregiver_id: shift.caregiver_id,
         selectedWeekId
       });
-      setError(`Failed to add shift: ${err.message}`);
+      setError(errorMsg);
       return false;
     } finally {
       setIsLoading(false);

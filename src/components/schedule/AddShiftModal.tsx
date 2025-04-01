@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { DayName, Caregiver, Week } from '../../types';
 import { logger } from '../../utils/logger';
+import { formatDayTitle } from '../../utils/dateUtils';
 
 interface AddShiftModalProps {
   selectedDay: DayName | null;
@@ -185,8 +186,11 @@ const AddShiftModal: React.FC<AddShiftModalProps> = ({
         <h3 className="text-lg font-medium mb-4">Add New Shift</h3>
         
         {error && (
-          <div className="mb-4 p-2 bg-red-100 border border-red-300 text-red-800 rounded">
-            {error}
+          <div className="mb-4 p-3 bg-red-100 border border-red-300 text-red-800 rounded flex items-start">
+            <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 mr-2 mt-0.5 flex-shrink-0 text-red-600" viewBox="0 0 20 20" fill="currentColor">
+              <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
+            </svg>
+            <span>{error}</span>
           </div>
         )}
         
@@ -223,11 +227,16 @@ const AddShiftModal: React.FC<AddShiftModalProps> = ({
               onChange={(e) => setDay(e.target.value as DayName)}
               disabled={isSubmitting}
             >
-              {days.map(dayOption => (
-                <option key={dayOption} value={dayOption}>
-                  {dayDisplayNames[dayOption]}
-                </option>
-              ))}
+              {days.map(dayOption => {
+                // Get the date for this day based on the selected week
+                const { dateStr } = formatDayTitle(dayOption, weekId ? weeks.find(w => w.id === weekId) || selectedWeek : selectedWeek);
+                
+                return (
+                  <option key={dayOption} value={dayOption}>
+                    {dayDisplayNames[dayOption]} ({dateStr})
+                  </option>
+                );
+              })}
             </select>
           </div>
           
