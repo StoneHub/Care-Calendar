@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
-import { Caregiver, CaregiverBackend } from '../types';
+import { Caregiver } from '../types';
 import { mockCaregivers } from '../services/mockData';
-import { apiService } from '../services/api';
+import { apiService } from '../services/core/APIService';
 import { mapCaregiverFromBackend, mapCaregiverToBackend } from '../utils/mappers';
 
 export const useTeam = () => {
@@ -22,7 +22,7 @@ export const useTeam = () => {
     try {
       const teamMembers = await apiService.getTeamMembers();
       // Map backend format to frontend format
-      const mappedCaregivers = teamMembers.map(member => mapCaregiverFromBackend(member));
+      const mappedCaregivers = teamMembers.map(member => mapCaregiverFromBackend(member as any));
       setCaregivers(mappedCaregivers);
     } catch (err) {
       console.error('Error fetching team members:', err);
@@ -40,12 +40,13 @@ export const useTeam = () => {
     
     try {
       // Convert to backend format
+      // Map frontend to backend format
       const backendCaregiver = {
         name: caregiver.name,
         hours_per_week: caregiver.hours,
         availability: caregiver.availability,
         role: caregiver.role
-      };
+      } as any; // Type assertion because of mapping mismatch
       
       // Call API to create caregiver
       const result = await apiService.createTeamMember(backendCaregiver);
@@ -72,10 +73,11 @@ export const useTeam = () => {
     
     try {
       // Convert to backend format
-      const backendCaregiver = mapCaregiverToBackend(updatedCaregiver);
+      // Map to backend format
+      const backendCaregiver = mapCaregiverToBackend(updatedCaregiver as any);
       
       // Call API to update caregiver
-      const result = await apiService.updateTeamMember(backendCaregiver);
+      const result = await apiService.updateTeamMember(backendCaregiver as any);
       
       if (result) {
         // Refresh the team members list
@@ -137,7 +139,7 @@ export const useTeam = () => {
       if (!caregiver) {
         const fetchedCaregiver = await apiService.getTeamMember(id);
         if (fetchedCaregiver) {
-          caregiver = mapCaregiverFromBackend(fetchedCaregiver);
+          caregiver = mapCaregiverFromBackend(fetchedCaregiver as any);
         }
       }
       

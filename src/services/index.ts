@@ -1,3 +1,3 @@
 export * from './mockData';
-export * from './api';
+export * from './core/APIService';
 export * from './socket';

@@ -8,6 +8,7 @@ import {
   NotificationBackend,
   WeeklySchedule
 } from '../types';
+import { logger } from './logger';
 
 /**
  * Converts a backend shift to frontend shift format
@@ -90,7 +91,7 @@ export function mapNotificationFromBackend(
 /**
  * Organizes shifts by day to create a weekly schedule
  */
-export function organizeShiftsByDay(shifts: ShiftBackend[]): WeeklySchedule {
+export function organizeShiftsByDay(shifts: Shift[] | ShiftBackend[]): WeeklySchedule {
   const schedule: Partial<WeeklySchedule> = {};
   
   const days: DayName[] = [
@@ -105,23 +106,58 @@ export function organizeShiftsByDay(shifts: ShiftBackend[]): WeeklySchedule {
   
   // If there are no shifts, just return the empty schedule
   if (!shifts || !Array.isArray(shifts) || shifts.length === 0) {
-    console.log('No shifts to organize, returning empty schedule');
+    logger.debug('No shifts to organize, returning empty schedule');
     return schedule as WeeklySchedule;
   }
   
-  // Group shifts by day
-  shifts.forEach(shift => {
-    const frontendShift = mapShiftFromBackend(shift);
-    const day = shift.day_of_week;
+  try {
+    // Group shifts by day
+    shifts.forEach(shift => {
+      // Check if shift is already in frontend format
+      let frontendShift: Shift;
+      let day: DayName;
+      
+      if ('caregiver' in shift) {
+        // Already a frontend shift
+        frontendShift = shift as Shift;
+        day = frontendShift.day as DayName;
+      } else {
+        // Backend shift, convert it
+        const backendShift = shift as ShiftBackend;
+        frontendShift = mapShiftFromBackend(backendShift);
+        day = backendShift.day_of_week;
+      }
+      
+      // Ensure day is valid
+      if (days.includes(day)) {
+        schedule[day]!.push(frontendShift);
+      } else {
+        logger.warn(`Ignoring shift with invalid day: ${day}`, { shift });
+      }
+    });
     
-    // Ensure day is valid
-    if (days.includes(day as DayName)) {
-      schedule[day as DayName]!.push(frontendShift);
-    } else {
-      console.warn(`Ignoring shift with invalid day: ${day}`, shift);
-    }
-  });
+    // Sort shifts by start time within each day
+    days.forEach(day => {
+      schedule[day] = schedule[day]!.sort((a, b) => {
+        const aTime = a.start.replace(/[^0-9:]/g, '');
+        const bTime = b.start.replace(/[^0-9:]/g, '');
+        return aTime.localeCompare(bTime);
+      });
+    });
+    
+    logger.debug('Organized schedule by day', { 
+      totalShifts: shifts.length,
+      shiftsByDay: Object.entries(schedule).reduce((acc, [day, shifts]) => {
+        acc[day] = shifts.length;
+        return acc;
+      }, {} as Record<string, number>)
+    });
+  } catch (error) {
+    logger.error('Error organizing shifts by day', { 
+      error: error instanceof Error ? error.message : String(error),
+      shifts: shifts.length
+    });
+  }
   
-  console.log('Organized schedule:', schedule);
   return schedule as WeeklySchedule;
 }

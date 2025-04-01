@@ -1,8 +1,13 @@
 import React from 'react';
-import CareSchedulerPage from './pages/CareSchedulerPage';
+import { ScheduleProvider } from './context/ScheduleContext';
+import EnhancedCareSchedulerPage from './pages/EnhancedCareSchedulerPage';
 
 const App: React.FC = () => {
-  return <CareSchedulerPage />;
+  return (
+    <ScheduleProvider>
+      <EnhancedCareSchedulerPage />
+    </ScheduleProvider>
+  );
 };
 
 export default App;

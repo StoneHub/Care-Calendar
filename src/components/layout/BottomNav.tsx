@@ -1,6 +1,6 @@
 import React from 'react';
 import { Calendar, MessageSquare, User, Settings } from 'lucide-react';
-import { Notification } from '../../types';
+// import { Notification } from '../../types';
 
 interface BottomNavProps {
   activeTab: string;

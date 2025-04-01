@@ -222,6 +222,55 @@ This logging system is a crucial tool for diagnosing the issues outlined above.
 4. **Accessibility**: The current UI doesn't properly address accessibility concerns.
 5. **Mobile Responsiveness**: The calendar view needs improvement for smaller screens.
 
+## Attempted Fixes
+
+### March 22, 2025 - Fix Attempts
+
+Based on a comprehensive development plan, we attempted the following fixes:
+
+1. **Week Navigation & Date Calculation**:
+   - **What we changed**: Completely rewrote the `formatDayTitle` function in `dateUtils.ts` to use a more reliable approach with direct day-to-offset mapping based on the week's start date.
+   - **Implementation**: Used a record mapping days to offsets (0-6) from the week's start date instead of relying on JavaScript's day index conversion.
+   - **Result**: While the solution logic was sound, issues persist with week navigation. Further testing is needed.
+
+2. **Current Day Highlighting**:
+   - **What we changed**: Enhanced `DayHeader.tsx` to only apply the "today" highlighting when viewing the current week.
+   - **Implementation**: Added an `isCurrentWeek()` function that checks if today's date falls within the selected week's date range.
+   - **Result**: This should prevent incorrect day highlighting when viewing past or future weeks, but needs additional testing.
+
+3. **Add Shift Dialog Improvements**:
+   - **What we changed**: Modified the day selection dropdown to show both day names and corresponding dates.
+   - **Implementation**: Used the `formatDayTitle` function to calculate the actual date for each day based on selected week.
+   - **Result**: Days in the dropdown now show dates, but the actual execution depends on the correct date calculation which may still have issues.
+
+4. **Direct Day Click for Adding Shifts**:
+   - **What we changed**: Enhanced `ScheduleGrid.tsx` to allow clicking directly on a day to add a shift.
+   - **Implementation**: Added an `onDayClick` handler and visual indicators (plus sign) for empty days.
+   - **Result**: The interaction now exists but depends on the proper function of the Add Shift dialog which still has issues.
+
+5. **Enhanced Error Handling**:
+   - **What we changed**: Improved error handling in the `addShift` function of `useSchedule.ts`.
+   - **Implementation**: Added specific validation checks, better error messages, and API error handling with user-friendly messages.
+   - **Result**: Better error
+    visibility but the core API integration issues may still persist.
+
+6. **Removed Redundant Week Sorting**:
+   - **What we changed**: Updated `handleWeekNavigation` in `CareSchedulerPage.tsx` to use the weeks array as already sorted in `useWeeks.ts`.
+   - **Implementation**: Removed the redundant sorting to avoid potential inconsistencies.
+   - **Result**: Should help make week navigation more consistent, but additional testing is needed.
+
+These changes addressed the identified issues in a targeted way, but complete resolution requires thorough testing and possibly additional fixes. In particular, the interplay between week navigation, date calculation, and the various components that depend on these functions needs careful verification.
+
+## Next Steps
+
+Further debugging is recommended to:
+1. Verify that the week sorting in `useWeeks.ts` is consistent throughout the application lifecycle
+2. Confirm that the new date calculation in `formatDayTitle` correctly handles all days of the week
+3. Ensure API integration in `addShift` function properly handles all error cases
+4. Add unit tests for these critical functions
+
 ## Conclusion
 
 The Care Calendar application has several critical issues centered around date handling, week navigation, and API integration. The most immediate concerns are the week navigation inconsistency and the non-functioning add shift dialog. Focus on these issues first, as they directly impact core functionality. The logging system added to the application will help diagnose the exact causes during live operation.
+
+The attempted fixes provide a foundation for resolving these issues, but additional development work is needed to fully address all the problems. Careful testing with the logging tools should be employed to verify the effectiveness of each fix.

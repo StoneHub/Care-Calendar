@@ -1,30 +1,25 @@
 import React, { useEffect } from 'react';
 import { DayName, Week } from '../../types';
-import { formatDayTitle } from '../../utils/dateUtils';
+import { dateService } from '../../services/core/DateService';
 
 interface DayHeaderProps {
   day: DayName;
-  selectedWeek?: Week | null;
+  selectedWeek: Week | null;
 }
 
 const DayHeader: React.FC<DayHeaderProps> = ({ day, selectedWeek }) => {
-  const { dayName, dateStr, isToday } = formatDayTitle(day, selectedWeek);
+  const { dayName, dateStr, isToday } = dateService.getDayInfo(day, selectedWeek);
   
   // Check if this week contains today's date (needed to conditionally show today highlight)
   const isCurrentWeek = (): boolean => {
     if (!selectedWeek) return false;
-    
-    const today = new Date();
-    const weekStart = new Date(selectedWeek.start_date);
-    const weekEnd = new Date(selectedWeek.end_date);
-    
-    return today >= weekStart && today <= weekEnd;
+    return dateService.isDateInWeek(new Date(), selectedWeek);
   };
   
   // Only highlight today if we're viewing the current week
   const shouldHighlightToday = isToday && isCurrentWeek();
   
-  // Debug log when selectedWeek changes
+  // Improved debug logging with more accurate information
   useEffect(() => {
     if (selectedWeek && day === 'monday') {
       console.log(`DayHeader for ${day} rendering with week:`, {
@@ -34,7 +29,8 @@ const DayHeader: React.FC<DayHeaderProps> = ({ day, selectedWeek }) => {
         calculatedDate: dateStr,
         isToday,
         isCurrentWeek: isCurrentWeek(),
-        shouldHighlight: shouldHighlightToday
+        shouldHighlight: shouldHighlightToday,
+        today: new Date().toLocaleDateString()
       });
     }
   }, [selectedWeek, day, dateStr, isToday]);

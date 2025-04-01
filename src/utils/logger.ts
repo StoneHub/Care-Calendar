@@ -7,7 +7,9 @@ const LOG_LEVELS = {
 };
 
 // Default to INFO in production, DEBUG in development
-const DEFAULT_LEVEL = process.env.NODE_ENV === 'production' ? LOG_LEVELS.INFO : LOG_LEVELS.DEBUG;
+const DEFAULT_LEVEL = (typeof process !== 'undefined' && process.env && process.env.NODE_ENV === 'production')
+  ? LOG_LEVELS.INFO 
+  : LOG_LEVELS.DEBUG;
 const CURRENT_LEVEL = DEFAULT_LEVEL;
 
 // Store logs in memory for viewing in debug mode
@@ -22,15 +24,6 @@ interface LogEntry {
 }
 
 class Logger {
-  private formatData(data?: any): string {
-    if (!data) return '';
-    try {
-      return JSON.stringify(data, null, 2);
-    } catch (err) {
-      return `[Unstringifiable data: ${typeof data}]`;
-    }
-  }
-
   private addToHistory(level: string, message: string, data?: any) {
     const entry: LogEntry = {
       timestamp: new Date().toISOString(),

@@ -95,3 +95,4 @@ export interface PayrollRecord {
   date_calculated: string;
   notes?: string;
 }
+
