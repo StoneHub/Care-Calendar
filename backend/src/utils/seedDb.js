@@ -59,10 +59,10 @@ async function seedDatabase() {
 
     // Get caregiver IDs
     const caregivers = await db('team_members').select('id', 'name');
-    const robinId = caregivers.find(c => c.name === 'Robin').id;
-    const scarletId = caregivers.find(c => c.name === 'Scarlet').id;
-    const kellyId = caregivers.find(c => c.name === 'Kelly').id;
-    const joanneId = caregivers.find(c => c.name === 'Joanne').id;
+    const robinId = caregivers.find(c => c.name.trim() === 'Robin').id;
+    const scarletId = caregivers.find(c => c.name.trim() === 'Scarlet').id;
+    const kellyId = caregivers.find(c => c.name.trim() === 'Kellie').id;  // Fixed name from Kelly to Kellie
+    const joanneId = caregivers.find(c => c.name.trim() === 'Joanne').id; // Added trim to handle spaces
 
     // Check if shifts already exist for this week
     const existingShifts = await db('shifts').where('week_id', weekId).count('id as count').first();

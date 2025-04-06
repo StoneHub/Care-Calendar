@@ -1,32 +1,142 @@
-# Care-Calendar
+# Care Calendar
 
 A locally hosted weekly calendar scheduler for coordinating full-time care. This application helps coordinate caregivers, track shifts, and manage schedule changes.
 
-## Current Implementation
+## Project Overview
 
-The project has a structured approach with clear separation of concerns:
+The Care Team Scheduler is a shared, trust-based digital tool for managing a care team's weekly schedule. It allows caregivers to dynamically update shifts, swap responsibilities, and keep everyone informed of changes in real-time. The application will be hosted locally on a dedicated home server (possibly displayed on a fridge or common area device) for easy access by all care team members.
 
-- **Frontend:**
-  - **components/**: UI components organized by feature
-  - **hooks/**: Business logic and state management
-  - **services/**: Data services connecting to the backend API
-  - **types/**: TypeScript type definitions
-  - **utils/**: Helper functions
+## Architecture
 
-- **Backend:**
-  - **Express.js server**: Handling API requests
-  - **SQLite database**: Storing application data
-  - **Knex.js**: SQL query builder
-  - **Socket.io**: Real-time updates
+The application has a well-structured architecture with clear separation of concerns:
 
-## Development
+- **Frontend:** React with TypeScript and Vite
+  - **Context-based State Management:** Uses ScheduleContext for centralized state
+  - **Service Layer:** DateService and APIService provide core functionality
+  - **Component Structure:** Organized by feature (schedule, team, notifications)
+
+- **Backend:** Express.js with SQLite
+  - **RESTful API:** Endpoints for schedule, team, and notifications
+  - **Real-time Updates:** Socket.io for real-time communication
+  - **Database:** SQLite with Knex.js query builder
+
+## Project Structure
+
+```
+Care-Calendar/
+├── backend/                   # Express.js backend
+│   ├── config/                # Configuration files
+│   ├── db/                    # SQLite database files
+│   │   └── care_calendar.sqlite3
+│   ├── knexfile.js            # Knex.js database configuration
+│   ├── src/
+│   │   ├── config/            # Application configuration
+│   │   │   └── database.js    # Database connection settings
+│   │   ├── controllers/       # API route controllers
+│   │   │   ├── notificationController.js
+│   │   │   ├── payrollController.js
+│   │   │   ├── scheduleController.js
+│   │   │   └── teamController.js
+│   │   ├── models/            # Data models
+│   │   ├── routes/            # API route definitions
+│   │   │   ├── index.js       # Route aggregation
+│   │   │   ├── notifications.js
+│   │   │   ├── payroll.js
+│   │   │   ├── schedule.js
+│   │   │   └── team.js 
+│   │   ├── services/          # Business logic services
+│   │   ├── utils/             # Utility functions
+│   │   │   ├── db.js          # Database connection
+│   │   │   ├── generateCalendarWeeks.js
+│   │   │   ├── initializeDb.js
+│   │   │   ├── logger.js
+│   │   │   ├── seedDb.js
+│   │   │   ├── setupDb.js
+│   │   │   └── socket.js
+│   │   └── server.js          # Main Express server entry point
+│   ├── package.json
+│   └── README.md
+├── src/                       # Frontend React application
+│   ├── App.tsx                # Main React component
+│   ├── components/            # UI components
+│   │   ├── layout/            # Page layout components
+│   │   ├── notifications/     # Notification components
+│   │   │   ├── NotificationList.tsx
+│   │   │   └── NotificationsView.tsx
+│   │   ├── schedule/          # Schedule-related components
+│   │   │   ├── CreateWeekModal.tsx
+│   │   │   ├── DayHeader.tsx
+│   │   │   ├── EnhancedAddShiftModal.tsx
+│   │   │   ├── EnhancedScheduleGrid.tsx
+│   │   │   ├── EnhancedWeekSelector.tsx
+│   │   │   └── ShiftOptionsModal.tsx
+│   │   ├── shared/            # Reusable UI components
+│   │   │   ├── ErrorBoundary.tsx
+│   │   │   ├── LogViewer.tsx
+│   │   │   └── ShiftCard.tsx
+│   │   └── team/              # Team management components
+│   │       ├── CaregiverCard.tsx
+│   │       ├── CaregiverModal.tsx
+│   │       └── TeamView.tsx
+│   ├── context/               # React Context providers
+│   │   └── ScheduleContext.tsx
+│   ├── hooks/                 # Custom React hooks
+│   │   └── index.ts
+│   ├── pages/                 # Page components
+│   │   └── EnhancedCareSchedulerPage.tsx
+│   ├── services/              # API services
+│   │   ├── core/
+│   │   │   ├── APIService.ts  # API communication
+│   │   │   ├── DateService.ts # Date manipulation utilities
+│   │   │   └── index.ts
+│   │   ├── index.ts
+│   │   ├── mockData.ts        # Testing data
+│   │   └── socket.ts          # Socket.io client
+│   ├── types/                 # TypeScript type definitions
+│   │   ├── global.d.ts
+│   │   ├── index.ts
+│   │   └── lucide-react.d.ts
+│   └── utils/                 # Utility functions
+│       ├── logger.ts
+│       └── mappers.ts
+├── CLAUDE.md                  # Development guidelines
+├── ROADMAP.md                 # Future development plans
+├── tailwind.config.js         # Tailwind CSS configuration
+├── tsconfig.json              # TypeScript configuration
+├── vite.config.ts             # Vite bundler configuration
+├── package.json
+└── README.md
+```
+
+## Recent Fixes & Changes
+
+The latest updates address several critical issues:
+
+### 1. Week Navigation Fixes
+- Improved date-based navigation instead of array indices
+- More reliable week detection based on date calculations
+   
+### 2. Add Shift Modal Fixes
+- Fixed issue with adding shifts to weeks other than the selected week
+- Improved validation and error handling
+   
+### 3. Current Day Highlighting
+- Fixed to only highlight today when viewing the current week
+- Proper date comparison to determine today
+
+### 4. SQLite Windows Compatibility
+- Fixed SQLite compatibility issues on Windows systems
+- Simplified database connection logic to detect platform
+- Added dedicated Windows compatibility mode
+
+## Setup and Development
 
 ### Prerequisites
 
 - Node.js (v16+)
 - npm or yarn
 
-### Setup
+### Installation
 
 ```bash
 # Install frontend dependencies
@@ -40,7 +150,13 @@ npm run backend:setup-db
 
 # Seed database with initial data
 npm run backend:seed-db
+```
 
+### Development
+
+#### On Linux/macOS
+
+```bash
 # Start both frontend and backend
 npm run dev:all
 
@@ -49,10 +165,28 @@ npm run dev
 
 # Start only backend
 npm run backend:dev
+```
 
+#### On Windows
+
+```bash
+# Recommended: Start everything with one command (simplest option)
+npm run start:windows
+
+# Start only frontend
+npm run dev
+```
+
+### Building
+
+```bash
 # Build for production
 npm run build
+```
 
+### Testing
+
+```bash
 # Type checking
 npm run typecheck
 
@@ -60,168 +194,39 @@ npm run typecheck
 npm run lint
 ```
 
-# Care Team Scheduler - Development Plan
-
-## Project Overview
-
-**GitHub Repository**: [https://github.com/StoneHub/Care-Calendar.git](https://github.com/StoneHub/Care-Calendar.git)
-
-The Care Team Scheduler is a shared, trust-based digital tool for managing a care team's weekly schedule. It allows caregivers to dynamically update shifts, swap responsibilities, and keep everyone informed of changes in real-time. The application will be hosted locally on a dedicated home server (possibly displayed on a fridge or common area device) for easy access by all care team members.
-
-## Technical Approach
-
-### Architecture
-
-Since we're keeping everything local and avoiding cloud services:
-
-1. **Frontend**: React-based web application 
-2. **Backend**: Node.js with Express
-3. **Database**: SQLite (lightweight, file-based database)
-4. **Local Networking**: Application accessible via local IP address
-
-### Core Components
-
-1. **Web Server**: Serves the application and handles API requests
-2. **Database**: Stores schedule, team member, and change history data
-3. **Notification System**: Local notification management (without Firebase)
-4. **Responsive UI**: Works on any device accessing the local network
-5. **Week Navigation**: View and manage past, current, and future weeks
-6. **Historical Data Access**: Archive of past schedules for payroll and reference
-
-## Technology Stack
-
-### Frontend
-- **React**: For component-based UI development
-- **Tailwind CSS**: For styling (already used in prototype)
-- **Lucide React**: For icons
-- **React Router**: For navigation between views
-- **Axios**: For API communication with backend
-
-### Backend
-- **Node.js**: JavaScript runtime
-- **Express**: Web server framework
-- **SQLite3**: Lightweight database
-- **Knex.js**: SQL query builder for database operations
-- **Socket.io**: For real-time updates across devices
-
-### Development Tools
-- **Vite**: Modern build tool and development server
-- **ESLint**: Code quality assurance
-- **Git**: Version control
-
 ## Database Schema
 
-```sql
--- Team Members
-CREATE TABLE team_members (
-  id INTEGER PRIMARY KEY AUTOINCREMENT,
-  name TEXT NOT NULL,
-  role TEXT NOT NULL,
-  availability TEXT NOT NULL,
-  hours_per_week INTEGER NOT NULL
-);
+The application uses the following database schema:
 
--- Weeks
-CREATE TABLE weeks (
-  id INTEGER PRIMARY KEY AUTOINCREMENT,
-  start_date TEXT NOT NULL UNIQUE,
-  end_date TEXT NOT NULL,
-  is_published BOOLEAN DEFAULT 0,
-  notes TEXT
-);
+- **team_members:** Stores caregiver information
+- **weeks:** Stores calendar weeks
+- **shifts:** Stores shifts for each week
+- **notifications:** Stores system notifications and requests
+- **payroll_records:** Stores historical payroll data
 
--- Shifts
-CREATE TABLE shifts (
-  id INTEGER PRIMARY KEY AUTOINCREMENT,
-  week_id INTEGER NOT NULL,
-  day_of_week TEXT NOT NULL,
-  caregiver_id INTEGER NOT NULL,
-  start_time TEXT NOT NULL,
-  end_time TEXT NOT NULL,
-  status TEXT DEFAULT 'confirmed',
-  FOREIGN KEY(caregiver_id) REFERENCES team_members(id),
-  FOREIGN KEY(week_id) REFERENCES weeks(id)
-);
+## Known Issues
 
--- Notifications/History
-CREATE TABLE notifications (
-  id INTEGER PRIMARY KEY AUTOINCREMENT,
-  type TEXT NOT NULL,
-  from_caregiver_id INTEGER NOT NULL,
-  affected_shift_id INTEGER,
-  week_id INTEGER NOT NULL,
-  message TEXT NOT NULL,
-  date TEXT NOT NULL,
-  time TEXT NOT NULL,
-  status TEXT DEFAULT 'pending',
-  FOREIGN KEY(from_caregiver_id) REFERENCES team_members(id),
-  FOREIGN KEY(affected_shift_id) REFERENCES shifts(id),
-  FOREIGN KEY(week_id) REFERENCES weeks(id)
-);
+- When adding shifts, make sure to wait for the operation to complete before making another change
+- The application is designed for local use only and doesn't have authentication 
+- SQLite binary compatibility issues on Windows: SQLite binaries are platform-specific and the native modules may not work correctly on Windows systems. We've implemented several solutions:
+  - Use `npm run dev:all` for Linux/macOS systems
+  - Use `npm run dev:all:windows` or `npm run start:windows` for Windows systems
+  - If you still encounter SQLite errors, try reinstalling with `npm uninstall sqlite3 && npm install sqlite3`
 
--- Payroll Records (for historical reference)
-CREATE TABLE payroll_records (
-  id INTEGER PRIMARY KEY AUTOINCREMENT,
-  caregiver_id INTEGER NOT NULL,
-  week_id INTEGER NOT NULL,
-  total_hours REAL NOT NULL,
-  date_calculated TEXT NOT NULL,
-  notes TEXT,
-  FOREIGN KEY(caregiver_id) REFERENCES team_members(id),
-  FOREIGN KEY(week_id) REFERENCES weeks(id)
-);
-```
+## Deployment
 
-## Development Phases
+The application is intended to be deployed on a local Raspberry Pi 2B for home use:
 
-### Phase 1: Setup (Week 1) - COMPLETED
-1. ✅ Clone the GitHub repository
-2. ✅ Create project structure
-3. ✅ Initialize React frontend with Vite
-4. ✅ Implement component structure and separation of concerns
+1. Build the frontend (`npm run build`)
+2. Copy the backend and frontend build to the Raspberry Pi
+3. Set up a process manager (e.g., PM2) to keep the application running
+4. Configure local networking to access the application from other devices
 
-### Phase 2: Backend & Database (Weeks 2-3) - COMPLETED
-1. ✅ Set up Node.js/Express backend
-2. ✅ Configure SQLite database with Knex.js
-3. ✅ Implement database schema for team members, shifts, weeks, notifications, and payroll
-4. ✅ Create API endpoints for data operations
-5. ✅ Add Socket.io for real-time updates
-6. ✅ Connect frontend to backend via API services
+## Contributing
 
-### Phase 3: Historical Data & Future Planning (Week 4)
-1. Implement week creation and management
-2. Develop payroll report generation
-3. Create future week planning tools
-4. allow edits to add and remove shifts. when i remove a shift it should disiaprea from teh board, and tehn we can add new shifts. I need to be able to set shift times starts and ends. 
+To contribute to the project:
 
-### Phase 4: Notifications & History (Week 5)
-1. Implement local notification system
-2. Create notification display
-3. Develop history tracking
-4. Build timeline view of changes
-
-### Phase 5: Integration & Polish (Week 6)
-1. Connect all components
-2. Implement real-time updates with Socket.io
-3. Optimize for responsive display
-4. Add application settings
-
-### Phase 6: Testing & Deployment (Week 7)
-1. Test on various devices on local network
-2. Fix bugs and performance issues
-3. Set up the dedicated computer as a server
-4. Create startup scripts and documentation
-5. Deploy to the local server
-
-## Initial Data Setup
-
-The application will be initialized with the current care team structure:
-
-- **Weekdays (Mon – Fri):**
-  - **Robin:** 9 AM – 4 PM
-  - **Scarlet:** 4 PM – 9 PM
-- **Weekends (Sat – Sun):**
-  - **Kelly:** 9 AM – 3 PM
-  - **Joanne:** 3 PM – 9 PM
-
-This will be part of the database seeding process during setup.
+1. Familiarize yourself with the architecture and code style
+2. Follow the development guidelines in the CLAUDE.md file
+3. Test your changes locally before committing
+4. Make sure to run linting and type checking before submitting changes

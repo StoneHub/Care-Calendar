@@ -43,6 +43,35 @@ npm run seed-db
 npm run dev
 ```
 
+### Windows Compatibility
+
+If you're experiencing SQLite compatibility issues on Windows, use the Windows-specific script:
+
+```bash
+npm run dev:windows
+```
+
+Or from the project root:
+
+```bash
+npm run backend:dev:windows
+```
+
+To run both frontend and backend:
+
+```bash
+npm run dev:all:windows
+```
+
+### Troubleshooting SQLite Issues on Windows
+
+If you encounter SQLite compatibility issues on Windows (error: `not a valid Win32 application`), try these solutions:
+
+1. Use the Windows-specific scripts mentioned above
+2. Reinstall the SQLite packages: `npm uninstall sqlite3 better-sqlite3 && npm install better-sqlite3 sqlite3`
+
+The application includes a Windows compatibility mode that uses `better-sqlite3` instead of `sqlite3` when running on Windows systems.
+
 ## API Endpoints
 
 ### Team Management
