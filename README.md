@@ -20,7 +20,7 @@ The application has a well-structured architecture with clear separation of conc
   - **Real-time Updates:** Socket.io for real-time communication
   - **Database:** SQLite with Knex.js query builder
 
-## Recent Fixes
+## Recent Fixes and Improvements
 
 The latest updates address several critical issues:
 
@@ -30,9 +30,15 @@ The latest updates address several critical issues:
    
 2. **Add Shift Modal Fixes:**
    - Fixed issue with adding shifts to weeks other than the selected week
+   - Corrected backend data format for shift organization
    - Improved validation and error handling
    
-3. **Current Day Highlighting:**
+3. **Delete Shift Fixes:**
+   - Added cascading deletion of related notifications to prevent errors
+   - Fixed issue with deleting dropped shifts
+   - Improved error handling and logging
+   
+4. **Current Day Highlighting:**
    - Fixed to only highlight today when viewing the current week
    - Proper date comparison to determine today
 

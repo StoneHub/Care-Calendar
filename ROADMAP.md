@@ -2,7 +2,7 @@
 
 This roadmap outlines the planned improvements and new features for the Care Calendar application.
 
-## Phase 1: Core Stability (Current)
+## Phase 1: Core Stability (Completed)
 
 ### High Priority
 
@@ -20,10 +20,15 @@ This roadmap outlines the planned improvements and new features for the Care Cal
    - Improved validation and error handling
    - Added loading states and double submission prevention
    
-4. **Debug Add Shift Functionality**
-   - Investigate why shifts aren't being added when submit is clicked
-   - Check for silent API errors in both frontend and backend logs
-   - Verify correct data is being sent to the backend API
+4. ✅ **Debug Add Shift Functionality**
+   - Fixed issue with backend returning shifts as an object instead of array
+   - Added enhanced logging for troubleshooting
+   - Ensured correct data flow between frontend and backend
+   
+5. ✅ **Fix Delete Shift Functionality**
+   - Fixed issue with deleting dropped shifts
+   - Added cascading deletion of related notifications
+   - Improved error handling and logging
 
 ### Medium Priority
 
@@ -48,27 +53,39 @@ This roadmap outlines the planned improvements and new features for the Care Cal
    - Use transactions for multi-step operations
    - Improve query performance
 
-## Phase 2: UI/UX Improvements
+## Phase 2: Team Management and UX (Current)
+
+### High Priority
+
+1. **Team Management Core**
+   - Develop Team management tab UI with CRUD operations
+   - Add caregiver profile pages showing assigned shifts and history
+   - Implement caregiver availability settings
+   - Integrate team member search/filtering
+
+2. **Simplified Shift Actions**
+   - Remove "swap" functionality as it's unnecessary complexity
+   - Focus on refining "drop shift" workflow so other caregivers can claim/cover
+   - Add "claim dropped shift" functionality to the UI
+   - Implement notifications for dropped shifts
+
+3. **Team Dashboard**
+   - Create caregiver availability visualization
+   - Show upcoming shifts per caregiver
+   - Add visual workload balancing indicators
+   - Implement shift coverage gaps highlighting
+
+### Medium Priority
 
 1. **Mobile Responsiveness**
    - Optimize for portrait view on tablets/phones
-   - Ensure adequate tap targets
    - Implement responsive grid layout
+   - Create touch-friendly controls
 
 2. **Usability Enhancements**
-   - Add click-to-add-shift functionality
-   - Implement drag-and-drop for shift management
+   - Add shift coloring by caregiver
+   - Implement drag-and-drop for easier shift management
    - Add visual indicators for real-time updates
-
-3. **Team Features**
-   - Improve team display in the UI
-   - Add team management page
-   - Implement team availability visualization
-
-4. **Accessibility**
-   - Add ARIA attributes
-   - Ensure keyboard navigation
-   - Implement proper focus management
 
 ## Phase 3: Advanced Features
 
