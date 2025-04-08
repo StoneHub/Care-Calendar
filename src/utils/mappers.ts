@@ -105,8 +105,21 @@ export function organizeShiftsByDay(shifts: Shift[] | ShiftBackend[]): WeeklySch
   });
   
   // If there are no shifts, just return the empty schedule
-  if (!shifts || !Array.isArray(shifts) || shifts.length === 0) {
-    logger.debug('No shifts to organize, returning empty schedule');
+  if (!shifts) {
+    logger.debug('No shifts to organize (shifts is null/undefined), returning empty schedule');
+    return schedule as WeeklySchedule;
+  }
+
+  // Log what we received
+  logger.debug('Received shifts to organize', {
+    isArray: Array.isArray(shifts),
+    length: Array.isArray(shifts) ? shifts.length : 'not an array',
+    sample: Array.isArray(shifts) && shifts.length > 0 ? shifts[0] : null,
+    type: Array.isArray(shifts) && shifts.length > 0 ? (typeof shifts[0]) : 'unknown'
+  });
+  
+  if (!Array.isArray(shifts) || shifts.length === 0) {
+    logger.debug('No valid shifts array to organize, returning empty schedule');
     return schedule as WeeklySchedule;
   }
   

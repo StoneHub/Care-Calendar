@@ -15,10 +15,15 @@ This roadmap outlines the planned improvements and new features for the Care Cal
    - Only highlight today when viewing the current week
    - Ensure proper date comparison
 
-3. ✅ **Fix Add Shift Dialog**
-   - Fix the issue with adding shifts to different weeks
-   - Improve validation and error handling
-   - Add loading states and prevent double submission
+3. ✅ **Fix Add Shift Dialog UI**
+   - Fixed the UI for the add shift dialog
+   - Improved validation and error handling
+   - Added loading states and double submission prevention
+   
+4. **Debug Add Shift Functionality**
+   - Investigate why shifts aren't being added when submit is clicked
+   - Check for silent API errors in both frontend and backend logs
+   - Verify correct data is being sent to the backend API
 
 ### Medium Priority
 
@@ -55,7 +60,12 @@ This roadmap outlines the planned improvements and new features for the Care Cal
    - Implement drag-and-drop for shift management
    - Add visual indicators for real-time updates
 
-3. **Accessibility**
+3. **Team Features**
+   - Improve team display in the UI
+   - Add team management page
+   - Implement team availability visualization
+
+4. **Accessibility**
    - Add ARIA attributes
    - Ensure keyboard navigation
    - Implement proper focus management

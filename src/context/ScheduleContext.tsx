@@ -170,8 +170,11 @@ export const ScheduleProvider: React.FC<{children: ReactNode}> = ({ children }) 
       
       const shiftsData = await apiService.getScheduleForWeek(weekId);
       
-      logger.debug('Schedule data received', { 
-        count: shiftsData.length
+      logger.debug('Schedule data received from API', { 
+        count: shiftsData?.length || 0,
+        type: typeof shiftsData,
+        isArray: Array.isArray(shiftsData),
+        sample: Array.isArray(shiftsData) && shiftsData.length > 0 ? shiftsData[0] : null
       });
       
       // Organize shifts by day

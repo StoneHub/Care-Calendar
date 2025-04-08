@@ -184,7 +184,16 @@ exports.getShiftsByWeek = async (req, res) => {
       return acc;
     }, {});
     
-    res.status(200).json(shiftsByDay);
+    // Log what we're sending back to client
+    logger.debug('Returning shifts for week', {
+      weekId,
+      totalShifts: shifts.length,
+      format: 'grouped by day',
+      data: shiftsByDay
+    });
+    
+    // Return the shifts as a flat array instead of grouped by day
+    res.status(200).json(shifts);
   } catch (error) {
     console.error(`Error fetching shifts for week ${req.params.weekId}:`, error);
     res.status(500).json({ error: 'Failed to fetch shifts' });
