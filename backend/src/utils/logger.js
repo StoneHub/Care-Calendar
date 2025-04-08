@@ -9,6 +9,7 @@ if (!fs.existsSync(logsDir)) {
 
 // Define log file paths
 const logFilePath = path.join(logsDir, 'app.log');
+const debugLogFilePath = path.join(logsDir, 'debug.log');
 const errorLogFilePath = path.join(logsDir, 'error.log');
 
 // Configure log rotation - limit file size to 5MB
@@ -99,7 +100,20 @@ const logger = {
     if (process.env.NODE_ENV !== 'production') {
       const entry = formatLogEntry('DEBUG', message, meta);
       console.debug(entry);
-      writeLog(logFilePath, entry);
+      writeLog(debugLogFilePath, entry);
+      
+      // Always start with a fresh debug log when server starts
+      // This only happens during initialization, not during runtime
+      if (!logger._debugInitialized) {
+        try {
+          if (fs.existsSync(debugLogFilePath)) {
+            fs.writeFileSync(debugLogFilePath, '');
+          }
+          logger._debugInitialized = true;
+        } catch (err) {
+          console.error(`Failed to clear debug log: ${err.message}`);
+        }
+      }
     }
   },
   

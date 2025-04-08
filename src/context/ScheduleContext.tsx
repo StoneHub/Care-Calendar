@@ -1,7 +1,7 @@
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import { apiService } from '../services/core/APIService';
 import { dateService } from '../services/core/DateService';
-import { Week, Shift, DayName, Caregiver, Notification, WeeklySchedule } from '../types';
+import { Week, Shift, DayName, Caregiver, Notification, WeeklySchedule, NewShiftData } from '../types';
 import { logger } from '../utils/logger';
 import { organizeShiftsByDay } from '../utils/mappers';
 
@@ -29,7 +29,7 @@ interface ScheduleContextState {
   goToPreviousWeek: () => void;
   goToCurrentWeek: () => void;
   refreshSchedule: () => Promise<void>;
-  addShift: (day: DayName, shift: Omit<Shift, 'id'>) => Promise<boolean>;
+  addShift: (day: DayName, shift: NewShiftData, targetWeekId?: number) => Promise<boolean>;
   deleteShift: (shiftId: number) => Promise<boolean>;
   dropShift: (shiftId: number, reason?: string) => Promise<boolean>;
   adjustShift: (shiftId: number, newStartTime?: string, newEndTime?: string) => Promise<boolean>;
@@ -276,70 +276,86 @@ export const ScheduleProvider: React.FC<{children: ReactNode}> = ({ children }) 
     }
   };
   
-  // Navigate to next week
+  // Navigate to next week - FIXED to use date calculation instead of array index
   const goToNextWeek = (): void => {
     if (!weeks.length || !selectedWeek) {
       logger.warn('Cannot navigate to next week - no weeks available or no week selected');
       return;
     }
     
-    // Ensure weeks are sorted by start date
-    const sortedWeeks = dateService.sortWeeksByDate(weeks);
-    
-    // Find index of currently selected week
-    const currentIndex = sortedWeeks.findIndex(w => w.id === selectedWeek.id);
-    
-    if (currentIndex === -1 || currentIndex >= sortedWeeks.length - 1) {
-      logger.warn('Cannot navigate to next week - already at last week or week not found', {
-        currentIndex,
-        totalWeeks: sortedWeeks.length
-      });
-      return;
+    try {
+      // Parse the current selected week's start date
+      const currentStartDate = dateService.parseISO(selectedWeek.start_date);
+      
+      // Calculate the next week's start date (current start + 7 days)
+      const nextWeekStartDate = dateService.addDays(currentStartDate, 7);
+      
+      // Format the date to match the format in the weeks array
+      const nextStartDateStr = dateService.formatISO(nextWeekStartDate);
+      
+      // Find the week with this start date
+      const targetWeek = weeks.find(w => w.start_date === nextStartDateStr);
+      
+      if (targetWeek) {
+        logger.debug('goToNextWeek: Navigating', { 
+          currentId: selectedWeek.id, 
+          nextWeekId: targetWeek.id,
+          from_dates: `${selectedWeek.start_date} to ${selectedWeek.end_date}`,
+          to_dates: `${targetWeek.start_date} to ${targetWeek.end_date}`
+        });
+        
+        selectWeek(targetWeek.id);
+      } else {
+        logger.warn('Cannot navigate to next week - no week found with start date', {
+          nextStartDate: nextStartDateStr,
+          availableWeeks: weeks.map(w => w.start_date)
+        });
+      }
+    } catch (error) {
+      logger.error('Error navigating to next week', error);
+      setError('Could not navigate to the next week.');
     }
-    
-    // Select the next week
-    const nextWeek = sortedWeeks[currentIndex + 1];
-    
-    logger.info('Navigating to next week', { 
-      from_id: selectedWeek.id,
-      to_id: nextWeek.id,
-      to_dates: `${nextWeek.start_date} to ${nextWeek.end_date}`
-    });
-    
-    selectWeek(nextWeek.id);
   };
   
-  // Navigate to previous week
+  // Navigate to previous week - FIXED to use date calculation instead of array index
   const goToPreviousWeek = (): void => {
     if (!weeks.length || !selectedWeek) {
       logger.warn('Cannot navigate to previous week - no weeks available or no week selected');
       return;
     }
     
-    // Ensure weeks are sorted by start date
-    const sortedWeeks = dateService.sortWeeksByDate(weeks);
-    
-    // Find index of currently selected week
-    const currentIndex = sortedWeeks.findIndex(w => w.id === selectedWeek.id);
-    
-    if (currentIndex <= 0) {
-      logger.warn('Cannot navigate to previous week - already at first week or week not found', {
-        currentIndex,
-        totalWeeks: sortedWeeks.length
-      });
-      return;
+    try {
+      // Parse the current selected week's start date
+      const currentStartDate = dateService.parseISO(selectedWeek.start_date);
+      
+      // Calculate the previous week's start date (current start - 7 days)
+      const prevWeekStartDate = dateService.addDays(currentStartDate, -7);
+      
+      // Format the date to match the format in the weeks array
+      const prevStartDateStr = dateService.formatISO(prevWeekStartDate);
+      
+      // Find the week with this start date
+      const targetWeek = weeks.find(w => w.start_date === prevStartDateStr);
+      
+      if (targetWeek) {
+        logger.debug('goToPreviousWeek: Navigating', { 
+          currentId: selectedWeek.id, 
+          prevWeekId: targetWeek.id,
+          from_dates: `${selectedWeek.start_date} to ${selectedWeek.end_date}`,
+          to_dates: `${targetWeek.start_date} to ${targetWeek.end_date}`
+        });
+        
+        selectWeek(targetWeek.id);
+      } else {
+        logger.warn('Cannot navigate to previous week - no week found with start date', {
+          prevStartDate: prevStartDateStr,
+          availableWeeks: weeks.map(w => w.start_date)
+        });
+      }
+    } catch (error) {
+      logger.error('Error navigating to previous week', error);
+      setError('Could not navigate to the previous week.');
     }
-    
-    // Select the previous week
-    const prevWeek = sortedWeeks[currentIndex - 1];
-    
-    logger.info('Navigating to previous week', { 
-      from_id: selectedWeek.id,
-      to_id: prevWeek.id,
-      to_dates: `${prevWeek.start_date} to ${prevWeek.end_date}`
-    });
-    
-    selectWeek(prevWeek.id);
   };
   
   // Navigate to current week
@@ -385,9 +401,16 @@ export const ScheduleProvider: React.FC<{children: ReactNode}> = ({ children }) 
     }
   };
   
-  // Add a new shift
-  const addShift = async (day: DayName, shift: Omit<Shift, 'id'>): Promise<boolean> => {
-    if (!selectedWeek) {
+  // Add a new shift - FIXED to accept target week ID
+  const addShift = async (
+    day: DayName, 
+    shift: NewShiftData, 
+    targetWeekId?: number
+  ): Promise<boolean> => {
+    // Use provided target week or fall back to selected week
+    const weekId = targetWeekId || selectedWeek?.id;
+    
+    if (!weekId) {
       const errorMsg = 'Cannot add shift: No week is selected';
       logger.error(errorMsg);
       setError(errorMsg);
@@ -400,7 +423,7 @@ export const ScheduleProvider: React.FC<{children: ReactNode}> = ({ children }) 
     try {
       // Prepare shift data for the API
       const shiftData = {
-        week_id: selectedWeek.id,
+        week_id: weekId,
         day_of_week: day,
         caregiver_id: shift.caregiver_id,
         start_time: shift.start,
@@ -411,7 +434,7 @@ export const ScheduleProvider: React.FC<{children: ReactNode}> = ({ children }) 
       // Log the request data
       logger.info('Adding new shift', {
         shiftData,
-        selectedWeekId: selectedWeek.id,
+        weekId,
         day,
         requestTime: new Date().toISOString()
       });
@@ -421,39 +444,35 @@ export const ScheduleProvider: React.FC<{children: ReactNode}> = ({ children }) 
       
       logger.info('Shift added successfully', { 
         shiftId: result.id,
-        weekId: selectedWeek.id,
+        weekId,
         day,
         caregiver: shift.caregiver_id,
         time: `${shift.start}-${shift.end}`
       });
       
       // Refresh the schedule to include the new shift
-      await fetchScheduleForWeek(selectedWeek.id);
+      // Only refresh if it's the currently selected week to avoid unnecessary API calls
+      if (selectedWeek?.id === weekId) {
+        await fetchScheduleForWeek(weekId);
+      }
       
       return true;
     } catch (err: any) {
-      let errorMsg = `Failed to add shift: ${err.message}`;
+      // The error message from apiService is already normalized with user-friendly messages
+      const normalizedError = err;
       
-      // More user-friendly error messages based on error type
-      if (err.status === 400) {
-        errorMsg = 'Invalid shift data provided. Please check your inputs.';
-      } else if (err.status === 409) {
-        errorMsg = 'This time slot conflicts with an existing shift.';
-      } else if (err.status === 404) {
-        errorMsg = 'The selected week or caregiver was not found.';
-      } else if (err.isNetworkError) {
-        errorMsg = 'Network error. Please check your connection and try again.';
-      }
-      
-      logger.error('Error adding shift', {
-        error: err.message,
-        status: err.status,
-        day,
-        caregiverId: shift.caregiver_id,
-        selectedWeekId: selectedWeek.id
+      logger.error('Context: Failed to add shift', { 
+        error: normalizedError,
+        originalPayload: {
+          day,
+          caregiverId: shift.caregiver_id,
+          weekId,
+          startTime: shift.start,
+          endTime: shift.end
+        }
       });
       
-      setError(errorMsg);
+      setError(normalizedError.message);
       return false;
     } finally {
       setIsLoading(false);
@@ -485,16 +504,16 @@ export const ScheduleProvider: React.FC<{children: ReactNode}> = ({ children }) 
       
       return true;
     } catch (err: any) {
-      const errorMsg = `Failed to delete shift: ${err.message}`;
+      // The error message from apiService is already normalized with user-friendly messages
+      const normalizedError = err;
       
-      logger.error('Error deleting shift', {
-        error: err.message,
-        status: err.status,
+      logger.error('Context: Failed to delete shift', {
+        error: normalizedError,
         shiftId,
         selectedWeekId: selectedWeek.id
       });
       
-      setError(errorMsg);
+      setError(normalizedError.message);
       return false;
     } finally {
       setIsLoading(false);
@@ -533,16 +552,17 @@ export const ScheduleProvider: React.FC<{children: ReactNode}> = ({ children }) 
       
       return true;
     } catch (err: any) {
-      const errorMsg = `Failed to drop shift: ${err.message}`;
+      // The error message from apiService is already normalized with user-friendly messages
+      const normalizedError = err;
       
-      logger.error('Error dropping shift', {
-        error: err.message,
-        status: err.status,
+      logger.error('Context: Failed to drop shift', {
+        error: normalizedError,
         shiftId,
+        reason,
         selectedWeekId: selectedWeek.id
       });
       
-      setError(errorMsg);
+      setError(normalizedError.message);
       return false;
     } finally {
       setIsLoading(false);
@@ -585,16 +605,18 @@ export const ScheduleProvider: React.FC<{children: ReactNode}> = ({ children }) 
       
       return true;
     } catch (err: any) {
-      const errorMsg = `Failed to adjust shift: ${err.message}`;
+      // The error message from apiService is already normalized with user-friendly messages
+      const normalizedError = err;
       
-      logger.error('Error adjusting shift', {
-        error: err.message,
-        status: err.status,
+      logger.error('Context: Failed to adjust shift', {
+        error: normalizedError,
         shiftId,
+        newStartTime,
+        newEndTime,
         selectedWeekId: selectedWeek.id
       });
       
-      setError(errorMsg);
+      setError(normalizedError.message);
       return false;
     } finally {
       setIsLoading(false);
@@ -637,17 +659,17 @@ export const ScheduleProvider: React.FC<{children: ReactNode}> = ({ children }) 
       
       return true;
     } catch (err: any) {
-      const errorMsg = `Failed to swap shifts: ${err.message}`;
+      // The error message from apiService is already normalized with user-friendly messages
+      const normalizedError = err;
       
-      logger.error('Error swapping shifts', {
-        error: err.message,
-        status: err.status,
+      logger.error('Context: Failed to swap shifts', {
+        error: normalizedError,
         shiftId,
         swapWithId,
         selectedWeekId: selectedWeek.id
       });
       
-      setError(errorMsg);
+      setError(normalizedError.message);
       return false;
     } finally {
       setIsLoading(false);
@@ -675,15 +697,15 @@ export const ScheduleProvider: React.FC<{children: ReactNode}> = ({ children }) 
       
       return true;
     } catch (err: any) {
-      const errorMsg = `Failed to approve request: ${err.message}`;
+      // The error message from apiService is already normalized with user-friendly messages
+      const normalizedError = err;
       
-      logger.error('Error approving notification', {
-        error: err.message,
-        status: err.status,
+      logger.error('Context: Failed to approve notification', {
+        error: normalizedError,
         notificationId
       });
       
-      setError(errorMsg);
+      setError(normalizedError.message);
       return false;
     } finally {
       setIsLoading(false);
@@ -723,15 +745,15 @@ export const ScheduleProvider: React.FC<{children: ReactNode}> = ({ children }) 
       
       return createdWeek;
     } catch (err: any) {
-      const errorMsg = `Failed to create week: ${err.message}`;
+      // The error message from apiService is already normalized with user-friendly messages
+      const normalizedError = err;
       
-      logger.error('Error creating week', {
-        error: err.message,
-        status: err.status,
+      logger.error('Context: Failed to create week', {
+        error: normalizedError,
         startDate
       });
       
-      setError(errorMsg);
+      setError(normalizedError.message);
       return null;
     } finally {
       setIsLoading(false);

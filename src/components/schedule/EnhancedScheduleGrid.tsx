@@ -2,6 +2,7 @@ import React from 'react';
 import { DayName, Shift } from '../../types';
 import { useScheduleContext } from '../../context/ScheduleContext';
 import { dateService } from '../../services/core/DateService';
+import ShiftCard from '../shared/ShiftCard';
 
 interface EnhancedScheduleGridProps {
   onDayClick?: (day: DayName) => void;
@@ -30,25 +31,7 @@ const EnhancedScheduleGrid: React.FC<EnhancedScheduleGridProps> = ({
     }
   };
 
-  // Render a single shift card
-  const renderShiftCard = (shift: Shift, day: DayName) => (
-    <div 
-      key={shift.id} 
-      className={`p-2 mb-2 rounded border ${getShiftStatusColor(shift.status)} hover:shadow-md transition-all cursor-pointer`}
-      onClick={(e) => {
-        e.stopPropagation();
-        if (onShiftClick) onShiftClick(day, shift);
-      }}
-    >
-      <div className="font-medium">{shift.caregiver}</div>
-      <div className="text-sm text-gray-600">{shift.start} - {shift.end}</div>
-      {shift.status !== 'confirmed' && (
-        <div className="mt-1 text-xs inline-block px-1.5 py-0.5 rounded bg-white">
-          {shift.status.replace('-', ' ')}
-        </div>
-      )}
-    </div>
-  );
+  // No longer need the renderShiftCard function as we're using the ShiftCard component
   
   // If loading, show a skeleton UI
   if (isLoading) {
@@ -99,13 +82,15 @@ const EnhancedScheduleGrid: React.FC<EnhancedScheduleGridProps> = ({
         {orderedDays.map((day) => {
           // Get day info from the date service
           const dayInfo = dateService.getDayInfo(day, selectedWeek);
-          const isToday = dayInfo.isToday && dateService.isDateInWeek(new Date(), selectedWeek!);
+          const isActuallyToday = dayInfo.isToday; // Does the calculated date match today?
+          const isCurrentWeekSelected = selectedWeek ? dateService.isCurrentWeek(selectedWeek) : false; // Is the currently viewed week the real current week?
+          const shouldHighlightToday = isActuallyToday && isCurrentWeekSelected;
           
           return (
-            <div key={day} className={`p-2 border-r last:border-r-0 text-center ${isToday ? 'bg-blue-50' : ''}`}>
+            <div key={day} className={`p-2 border-r last:border-r-0 text-center ${shouldHighlightToday ? 'bg-blue-50' : ''}`}>
               <div className="font-medium">{dayInfo.dayName}</div>
-              <div className={`text-lg ${isToday ? 'font-bold text-blue-700' : ''}`}>{dayInfo.dateStr}</div>
-              {isToday && <div className="text-xs text-blue-500">Today</div>}
+              <div className={`text-lg ${shouldHighlightToday ? 'font-bold text-blue-700' : ''}`}>{dayInfo.dateStr}</div>
+              {shouldHighlightToday && <div className="text-xs text-blue-500">Today</div>}
             </div>
           );
         })}
@@ -136,7 +121,17 @@ const EnhancedScheduleGrid: React.FC<EnhancedScheduleGridProps> = ({
             )}
             
             {/* Render shifts */}
-            {(schedule[day] || []).map((shift) => renderShiftCard(shift, day))}
+            {(schedule[day] || []).map((shift) => (
+              <ShiftCard 
+                key={shift.id}
+                shift={shift}
+                statusColorClass={getShiftStatusColor(shift.status)}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  if (onShiftClick) onShiftClick(day, shift);
+                }}
+              />
+            ))}
           </div>
         ))}
       </div>

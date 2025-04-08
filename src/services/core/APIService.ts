@@ -86,15 +86,13 @@ class APIService {
   }
   
   /**
-   * Response error interceptor - handle API errors with retry logic
+   * Response error interceptor - handle API errors
    */
   private async handleResponseError(error: AxiosError): Promise<any> {
     const config = error.config;
     if (!config) return Promise.reject(this.normalizeError(error));
     
     const requestId = config.headers?.['X-Request-ID'] || 'unknown';
-    const currentRetry = config.headers?.['X-Retry-Count'] ? 
-      parseInt(config.headers['X-Retry-Count'] as string) : 0;
     
     // Log the error
     logger.error('API Response Error', {
@@ -103,55 +101,17 @@ class APIService {
       method: config.method?.toUpperCase(),
       status: error.response?.status,
       data: error.response?.data,
-      message: error.message,
-      retryCount: currentRetry
+      message: error.message
     });
     
-    // Check if we should retry the request
-    if (this.shouldRetry(error, currentRetry)) {
-      logger.info('Retrying request', {
-        id: requestId,
-        url: config.url,
-        method: config.method?.toUpperCase(),
-        retryCount: currentRetry + 1
-      });
-      
-      // Increment retry count
-      config.headers = config.headers || {};
-      config.headers['X-Retry-Count'] = (currentRetry + 1).toString();
-      
-      // Delay before retry
-      await this.delay(this.retryDelay * Math.pow(2, currentRetry));
-      
-      // Retry the request
-      return this.api.request(config);
-    }
-    
-    // Cannot retry, reject with normalized error
+    // Always reject with normalized error to simplify error handling
     return Promise.reject(this.normalizeError(error));
   }
   
-  /**
-   * Decides if a request should be retried
-   */
-  private shouldRetry(error: AxiosError, currentRetry: number): boolean {
-    // Don't retry if we've hit the retry limit
-    if (currentRetry >= this.retryLimit) {
-      return false;
-    }
-    
-    // Only retry specific status codes or network errors
-    if (error.response) {
-      // Retry 5xx errors (server errors)
-      return error.response.status >= 500 && error.response.status < 600;
-    } else {
-      // Retry network errors (ECONNRESET, ETIMEDOUT, etc.)
-      return error.code !== 'ECONNABORTED'; // Don't retry timeout errors
-    }
-  }
+  // Removed shouldRetry as it's no longer needed with simplified error handling
   
   /**
-   * Normalizes various error types into a standard format
+   * Normalizes various error types into a standard format with user-friendly messages
    */
   private normalizeError(error: any): Error {
     if (error.response) {
@@ -169,6 +129,21 @@ class APIService {
         message = data.error;
       }
       
+      // Make error messages more user-friendly
+      if (status === 400) {
+        message = 'Invalid request data. Please check your inputs and try again.';
+      } else if (status === 401) {
+        message = 'Authentication required. Please log in again.';
+      } else if (status === 403) {
+        message = 'You do not have permission to perform this action.';
+      } else if (status === 404) {
+        message = 'The requested resource was not found.';
+      } else if (status === 409) {
+        message = 'This operation conflicts with the current state. The resource may have been modified.';
+      } else if (status >= 500) {
+        message = 'A server error occurred. Please try again later.';
+      }
+      
       const normalizedError = new Error(message);
       Object.assign(normalizedError, {
         status,
@@ -180,7 +155,8 @@ class APIService {
       return normalizedError;
     } else if (error.request) {
       // Request was made but no response received
-      const normalizedError = new Error('No response from server');
+      const message = 'Cannot connect to server. Please check your network connection.';
+      const normalizedError = new Error(message);
       Object.assign(normalizedError, {
         isNetworkError: true,
         originalError: error
@@ -189,7 +165,12 @@ class APIService {
       return normalizedError;
     } else {
       // Error setting up the request
-      return error;
+      const normalizedError = new Error(error.message || 'An unexpected error occurred');
+      Object.assign(normalizedError, {
+        isRequestError: true,
+        originalError: error
+      });
+      return normalizedError;
     }
   }
   

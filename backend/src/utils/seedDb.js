@@ -1,10 +1,11 @@
 const db = require('./db');
+const logger = require('./logger');
 
 // Run the initializer first
 require('./initializeDb');
 
 async function seedDatabase() {
-  console.log('Seeding database with initial data...');
+  logger.info('Seeding database with initial data...');
 
   try {
     // Check if team_members already has data
@@ -17,9 +18,9 @@ async function seedDatabase() {
         { name: 'Scarlet', role: 'Evening Shift', availability: 'Weekdays', hours_per_week: 25 },
         { name: 'Kelly', role: 'Day Shift', availability: 'Weekends', hours_per_week: 12 },
         { name: 'Joanne', role: 'Evening Shift', availability: 'Weekends', hours_per_week: 12 }
-      ]).then(() => console.log('Seeded team_members'));
+      ]).then(() => logger.info('Seeded team_members'));
     } else {
-      console.log('team_members already contains data, skipping seed');
+      logger.info('team_members already contains data, skipping seed');
     }
 
     // Create a current week if it doesn't exist
@@ -47,15 +48,15 @@ async function seedDatabase() {
       
       // Get the inserted week
       week = await db('weeks').where('start_date', startDateStr).first();
-      console.log('Created new week');
+      logger.info('Created new week');
     } else {
-      console.log('Week already exists');
+      logger.info('Week already exists');
     }
     
     // Get the week ID
     const weekId = week.id;
     
-    console.log(`Seeded weeks with id: ${weekId}`);
+    logger.info(`Seeded weeks with id: ${weekId}`);
 
     // Get caregiver IDs
     const caregivers = await db('team_members').select('id', 'name');
@@ -116,9 +117,9 @@ async function seedDatabase() {
         );
       }
       
-      await db('shifts').insert(shifts).then(() => console.log('Seeded shifts'));
+      await db('shifts').insert(shifts).then(() => logger.info('Seeded shifts'));
     } else {
-      console.log('Shifts already exist for this week, skipping seed');
+      logger.info('Shifts already exist for this week, skipping seed');
     }
 
     // Check if notifications exist
@@ -162,14 +163,14 @@ async function seedDatabase() {
           time: '17:22',
           status: 'pending'
         }
-      ]).then(() => console.log('Seeded notifications'));
+      ]).then(() => logger.info('Seeded notifications'));
     } else {
-      console.log('Notifications already exist, skipping seed');
+      logger.info('Notifications already exist, skipping seed');
     }
 
-    console.log('Database seeding completed successfully');
+    logger.info('Database seeding completed successfully');
   } catch (error) {
-    console.error('Error seeding database:', error);
+    logger.error('Error seeding database', { error: error.message, stack: error.stack });
     process.exit(1);
   } finally {
     // Close the database connection
@@ -177,5 +178,13 @@ async function seedDatabase() {
   }
 }
 
-// Run the seeding
-seedDatabase();
+// Only run the seeding if this file is executed directly
+if (require.main === module) {
+  seedDatabase().catch(error => {
+    logger.error('Unhandled error in database seeding', { error: error.message, stack: error.stack });
+    process.exit(1);
+  });
+}
+
+// Export the function for use in other modules
+module.exports = { seedDatabase };

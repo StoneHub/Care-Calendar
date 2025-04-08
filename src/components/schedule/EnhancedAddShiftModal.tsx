@@ -32,6 +32,7 @@ const EnhancedAddShiftModal: React.FC<EnhancedAddShiftModalProps> = ({
   const [weekId, setWeekId] = useState<number | null>(selectedWeek?.id || null);
   const [localError, setLocalError] = useState<string | null>(null);
   const [formTouched, setFormTouched] = useState<boolean>(false);
+  const [submitting, setSubmitting] = useState<boolean>(false);
   
   // Generate time options using the date service
   const timeOptions = dateService.generateTimeOptions(60); // 1 hour intervals
@@ -84,16 +85,11 @@ const EnhancedAddShiftModal: React.FC<EnhancedAddShiftModalProps> = ({
     setWeekId(newWeekId);
     setFormTouched(true);
     
-    // Check if we need to change the selected week
-    if (newWeekId !== selectedWeek?.id) {
-      const selectedWeekObj = weeks.find(w => w.id === newWeekId);
-      if (selectedWeekObj) {
-        logger.info('Changing selected week in add shift modal', {
-          from: selectedWeek?.id,
-          to: newWeekId
-        });
-      }
-    }
+    // Just log the selection, but don't change the context's selectedWeek
+    logger.info('Week selected in add shift modal', {
+      weekId: newWeekId,
+      currentContextWeek: selectedWeek?.id
+    });
   };
   
   // Form validation
@@ -134,9 +130,16 @@ const EnhancedAddShiftModal: React.FC<EnhancedAddShiftModalProps> = ({
     setFormTouched(true);
     
     // Validate form
-    if (!validateForm()) {
+    if (!validateForm() || !weekId) {
       return;
     }
+    
+    // Prevent double submission
+    if (isLoading || submitting) {
+      return;
+    }
+    
+    setSubmitting(true);
     
     logger.info('Add shift form validated successfully', {
       day,
@@ -146,21 +149,7 @@ const EnhancedAddShiftModal: React.FC<EnhancedAddShiftModalProps> = ({
       endTime
     });
     
-    // If the selected week is different from the form week, update it first
-    if (weekId && weekId !== selectedWeek?.id) {
-      logger.info('Updating selected week before adding shift', {
-        fromWeekId: selectedWeek?.id,
-        toWeekId: weekId
-      });
-      
-      selectWeek(weekId);
-      
-      // Set an informational message
-      setLocalError('Changing to selected week. Please try submitting again in a moment.');
-      return;
-    }
-    
-    // Add the shift
+    // Prepare shift data
     const shiftData = {
       caregiver_id: caregiver,
       start: startTime,
@@ -169,7 +158,9 @@ const EnhancedAddShiftModal: React.FC<EnhancedAddShiftModalProps> = ({
     };
     
     try {
-      const success = await addShift(day, shiftData as any);
+      // FIXED: Now passing the selected weekId directly to addShift
+      // No need to first select the week, which could cause race conditions
+      const success = await addShift(day, shiftData, weekId);
       
       if (success) {
         logger.info('Shift added successfully');
@@ -183,6 +174,8 @@ const EnhancedAddShiftModal: React.FC<EnhancedAddShiftModalProps> = ({
         error: err.message
       });
       setLocalError(`Error: ${err.message}`);
+    } finally {
+      setSubmitting(false);
     }
   };
 
@@ -228,7 +221,7 @@ const EnhancedAddShiftModal: React.FC<EnhancedAddShiftModalProps> = ({
               className={`w-full p-2 border ${!weekId && formTouched ? 'border-red-500' : 'border-gray-300'} rounded focus:ring-blue-500 focus:border-blue-500`}
               value={weekId || ''}
               onChange={handleWeekChange}
-              disabled={isLoading}
+              disabled={isLoading || submitting}
             >
               <option value="" disabled>Select a week</option>
               {dateService.sortWeeksByDate(weeks).map(week => (
@@ -255,7 +248,7 @@ const EnhancedAddShiftModal: React.FC<EnhancedAddShiftModalProps> = ({
                 setDay(e.target.value as DayName);
                 setFormTouched(true);
               }}
-              disabled={isLoading}
+              disabled={isLoading || submitting}
             >
               {days.map(dayOption => {
                 // Get the date for this day based on the selected week
@@ -283,7 +276,7 @@ const EnhancedAddShiftModal: React.FC<EnhancedAddShiftModalProps> = ({
                 setCaregiver(Number(e.target.value));
                 setFormTouched(true);
               }}
-              disabled={isLoading}
+              disabled={isLoading || submitting}
             >
               <option value={0} disabled>Select a caregiver</option>
               {caregivers.map(c => (
@@ -310,7 +303,7 @@ const EnhancedAddShiftModal: React.FC<EnhancedAddShiftModalProps> = ({
                   setStartTime(e.target.value);
                   setFormTouched(true);
                 }}
-                disabled={isLoading}
+                disabled={isLoading || submitting}
               >
                 {timeOptions.map(time => (
                   <option key={`start-${time}`} value={time}>
@@ -331,7 +324,7 @@ const EnhancedAddShiftModal: React.FC<EnhancedAddShiftModalProps> = ({
                   setEndTime(e.target.value);
                   setFormTouched(true);
                 }}
-                disabled={isLoading}
+                disabled={isLoading || submitting}
               >
                 {timeOptions.map(time => (
                   <option key={`end-${time}`} value={time}>
@@ -353,16 +346,16 @@ const EnhancedAddShiftModal: React.FC<EnhancedAddShiftModalProps> = ({
               type="button"
               onClick={onClose}
               className="px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 hover:bg-gray-200 rounded focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-500"
-              disabled={isLoading}
+              disabled={isLoading || submitting}
             >
               Cancel
             </button>
             <button 
               type="submit"
               className="px-4 py-2 text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 rounded focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed"
-              disabled={isLoading}
+              disabled={isLoading || submitting}
             >
-              {isLoading ? (
+              {(isLoading || submitting) ? (
                 <span className="flex items-center">
                   <svg className="animate-spin -ml-1 mr-2 h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
                     <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>

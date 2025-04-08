@@ -365,6 +365,37 @@ class DateService {
     
     return options;
   }
+  
+  /**
+   * Find a week by its start date
+   * This is used for more reliable week navigation
+   */
+  findWeekByStartDate(weeks: Week[], targetStartDate: string): Week | undefined {
+    return weeks.find(week => week.start_date === targetStartDate);
+  }
+  
+  /**
+   * Add days to a date
+   */
+  addDays(date: Date, days: number): Date {
+    const result = new Date(date);
+    result.setDate(date.getDate() + days);
+    return result;
+  }
+  
+  /**
+   * Parse ISO date string to Date object
+   */
+  parseISO(dateString: string): Date {
+    return new Date(dateString);
+  }
+  
+  /**
+   * Format Date as ISO string
+   */
+  formatISO(date: Date): string {
+    return this.formatDateForAPI(date);
+  }
 }
 
 // Create and export a singleton instance

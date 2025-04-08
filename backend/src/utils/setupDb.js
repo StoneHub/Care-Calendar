@@ -1,12 +1,13 @@
 const db = require('./db');
 const fs = require('fs');
 const path = require('path');
+const logger = require('./logger');
 
 // Run the initializer first
 require('./initializeDb');
 
 async function setupDatabase() {
-  console.log('Setting up database...');
+  logger.info('Setting up database...');
 
   try {
     // Create team_members table if it doesn't exist
@@ -19,9 +20,9 @@ async function setupDatabase() {
         table.string('availability').notNullable();
         table.integer('hours_per_week').notNullable();
         table.timestamps(true, true);
-      }).then(() => console.log('Created team_members table'));
+      }).then(() => logger.info('Created team_members table'));
     } else {
-      console.log('team_members table already exists');
+      logger.info('team_members table already exists');
     }
 
     // Create weeks table if it doesn't exist
@@ -34,9 +35,9 @@ async function setupDatabase() {
         table.boolean('is_published').defaultTo(false);
         table.text('notes');
         table.timestamps(true, true);
-      }).then(() => console.log('Created weeks table'));
+      }).then(() => logger.info('Created weeks table'));
     } else {
-      console.log('weeks table already exists');
+      logger.info('weeks table already exists');
     }
 
     // Create shifts table if it doesn't exist
@@ -51,9 +52,9 @@ async function setupDatabase() {
         table.string('end_time').notNullable();
         table.string('status').defaultTo('confirmed');
         table.timestamps(true, true);
-      }).then(() => console.log('Created shifts table'));
+      }).then(() => logger.info('Created shifts table'));
     } else {
-      console.log('shifts table already exists');
+      logger.info('shifts table already exists');
     }
 
     // Create notifications table if it doesn't exist
@@ -70,9 +71,9 @@ async function setupDatabase() {
         table.string('time').notNullable();
         table.string('status').defaultTo('pending');
         table.timestamps(true, true);
-      }).then(() => console.log('Created notifications table'));
+      }).then(() => logger.info('Created notifications table'));
     } else {
-      console.log('notifications table already exists');
+      logger.info('notifications table already exists');
     }
 
     // Create payroll_records table if it doesn't exist
@@ -86,14 +87,14 @@ async function setupDatabase() {
         table.string('date_calculated').notNullable();
         table.text('notes');
         table.timestamps(true, true);
-      }).then(() => console.log('Created payroll_records table'));
+      }).then(() => logger.info('Created payroll_records table'));
     } else {
-      console.log('payroll_records table already exists');
+      logger.info('payroll_records table already exists');
     }
 
-    console.log('Database setup completed successfully');
+    logger.info('Database setup completed successfully');
   } catch (error) {
-    console.error('Error setting up database:', error);
+    logger.error('Error setting up database', { error: error.message, stack: error.stack });
     process.exit(1);
   } finally {
     // Close the database connection
@@ -101,5 +102,13 @@ async function setupDatabase() {
   }
 }
 
-// Run the setup
-setupDatabase();
+// Only run setup if this file is executed directly
+if (require.main === module) {
+  setupDatabase().catch(error => {
+    logger.error('Unhandled error in database setup', { error: error.message, stack: error.stack });
+    process.exit(1);
+  });
+}
+
+// Export the function to be used in other modules
+module.exports = { setupDatabase };

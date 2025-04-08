@@ -11,23 +11,15 @@ interface ShiftCardProps {
 const ShiftCard: React.FC<ShiftCardProps> = ({ shift, onClick, statusColorClass }) => {
   return (
     <div 
-      className={`p-3 border-b cursor-pointer ${statusColorClass}`}
+      className={`p-2 mb-2 rounded border ${statusColorClass} hover:shadow-md transition-all cursor-pointer`}
       onClick={onClick}
     >
       <div className="font-medium">{shift.caregiver}</div>
-      <div className="text-xs text-gray-600">{shift.start} - {shift.end}</div>
+      <div className="text-sm text-gray-600">{shift.start} - {shift.end}</div>
       
-      {shift.status === 'requested-off' && (
-        <div className="mt-1 text-xs flex items-center text-amber-700">
-          <AlertTriangle size={12} className="mr-1" />
-          Time off requested
-        </div>
-      )}
-      
-      {shift.status === 'swap-proposed' && (
-        <div className="mt-1 text-xs flex items-center text-purple-700">
-          <Clock size={12} className="mr-1" />
-          Swap with {shift.swapWith}
+      {shift.status !== 'confirmed' && (
+        <div className="mt-1 text-xs inline-block px-1.5 py-0.5 rounded bg-white">
+          {shift.status.replace('-', ' ')}
         </div>
       )}
     </div>

@@ -6,6 +6,22 @@ const { Server } = require('socket.io');
 const socketUtil = require('./utils/socket');
 const routes = require('./routes');
 const logger = require('./utils/logger');
+const path = require('path');
+
+// Check if database reset is needed
+const args = process.argv.slice(2);
+if (args.includes('--reset-db')) {
+  logger.info('Database reset requested via command line');
+  const resolveDb = require('./utils/resolveDb');
+  resolveDb.main(true)
+    .then(() => {
+      logger.info('Database reset completed, continuing with server startup');
+    })
+    .catch(error => {
+      logger.error('Failed to reset database', { error: error.message });
+      // Continue starting the server anyway
+    });
+}
 
 const app = express();
 const port = process.env.PORT || 3001;

@@ -1,5 +1,5 @@
-export * from './useTeam';
 // The following hooks have been replaced by ScheduleContext:
+// export * from './useTeam';
 // export * from './useSchedule';
 // export * from './useUIState';
 // export * from './useWeeks';

@@ -41,6 +41,13 @@ export interface Shift {
   droppedBy?: string;
 }
 
+export interface NewShiftData {
+  caregiver_id: number;
+  start: string;
+  end: string;
+  status?: ShiftStatus;
+}
+
 export type WeeklySchedule = Record<DayName, Shift[]>;
 
 export interface Caregiver {
