@@ -335,6 +335,13 @@ exports.deleteShift = async (req, res) => {
       return res.status(404).json({ error: 'Shift not found' });
     }
     
+    // Delete any related notifications first
+    await db('notifications')
+      .where({ affected_shift_id: id })
+      .delete();
+    
+    logger.debug('Deleting shift', { id, status: shift.status });
+    
     // Delete the shift
     await db('shifts')
       .where({ id })
@@ -342,7 +349,10 @@ exports.deleteShift = async (req, res) => {
     
     res.status(200).json({ message: 'Shift deleted successfully' });
   } catch (error) {
-    console.error(`Error deleting shift with ID ${req.params.id}:`, error);
+    logger.error(`Error deleting shift with ID ${req.params.id}:`, { 
+      error: error.message,
+      stack: error.stack 
+    });
     res.status(500).json({ error: 'Failed to delete shift' });
   }
 };
