@@ -255,15 +255,49 @@ class APIService {
   }
   
   async createTeamMember(caregiver: Omit<Caregiver, 'id'>): Promise<Caregiver> {
-    return this.request<Caregiver>('POST', '/team', { data: caregiver });
+    // Map frontend field names to backend field names
+    const payload = {
+      name: caregiver.name,
+      role: caregiver.role,
+      availability: caregiver.availability,
+      hours_per_week: caregiver.hours
+    };
+    
+    return this.request<Caregiver>('POST', '/team', { data: payload });
   }
   
   async updateTeamMember(caregiver: Caregiver): Promise<Caregiver> {
-    return this.request<Caregiver>('PUT', `/team/${caregiver.id}`, { data: caregiver });
+    if (!caregiver.id || typeof caregiver.id !== 'number' || isNaN(caregiver.id)) {
+      throw new Error('Invalid caregiver ID. Cannot update team member.');
+    }
+    
+    // Map fields to match the expected backend format
+    const payload = {
+      name: caregiver.name,
+      role: caregiver.role,
+      availability: caregiver.availability,
+      hours_per_week: caregiver.hours
+    };
+    
+    return this.request<Caregiver>('PUT', `/team/${caregiver.id}`, { data: payload });
   }
   
-  async deleteTeamMember(id: number): Promise<void> {
-    return this.request<void>('DELETE', `/team/${id}`);
+  async deleteTeamMember(id: number, forceDelete: boolean = false): Promise<void> {
+    if (!id || typeof id !== 'number' || isNaN(id)) {
+      throw new Error('Invalid team member ID. Cannot delete.');
+    }
+    
+    try {
+      return await this.request<void>('DELETE', `/team/${id}?force=${forceDelete ? 'true' : 'false'}`);
+    } catch (error: any) {
+      // Add specific error handling for foreign key constraints
+      if (error.status === 500) {
+        const enhancedError = new Error('Cannot delete team member with assigned shifts');
+        Object.assign(enhancedError, { status: 500, originalError: error });
+        throw enhancedError;
+      }
+      throw error;
+    }
   }
   
   // Weeks

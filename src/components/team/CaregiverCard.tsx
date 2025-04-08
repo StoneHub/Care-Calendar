@@ -4,9 +4,10 @@ import { Caregiver } from '../../types';
 interface CaregiverCardProps {
   caregiver: Caregiver;
   onEdit: (caregiver: Caregiver) => void;
+  onDelete: (caregiverId: number) => void;
 }
 
-const CaregiverCard: React.FC<CaregiverCardProps> = ({ caregiver, onEdit }) => {
+const CaregiverCard: React.FC<CaregiverCardProps> = ({ caregiver, onEdit, onDelete }) => {
   return (
     <div className="p-4 flex justify-between items-center">
       <div>
@@ -20,12 +21,20 @@ const CaregiverCard: React.FC<CaregiverCardProps> = ({ caregiver, onEdit }) => {
             {caregiver.hours > 30 ? 'Full Time' : 'Part Time'}
           </div>
         </div>
-        <button 
-          onClick={() => onEdit(caregiver)}
-          className="text-blue-600 px-2 py-2 rounded"
-        >
-          Edit
-        </button>
+        <div className="flex space-x-1">
+          <button 
+            onClick={() => onEdit(caregiver)}
+            className="text-blue-600 px-2 py-2 rounded hover:bg-blue-50"
+          >
+            Edit
+          </button>
+          <button 
+            onClick={() => onDelete(caregiver.id)}
+            className="text-red-600 px-2 py-2 rounded hover:bg-red-50"
+          >
+            Delete
+          </button>
+        </div>
       </div>
     </div>
   );

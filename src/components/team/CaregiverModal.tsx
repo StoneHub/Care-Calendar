@@ -19,16 +19,35 @@ const CaregiverModal: React.FC<CaregiverModalProps> = ({
   const [availability, setAvailability] = useState(caregiver?.availability || 'Weekdays');
   const [hours, setHours] = useState(caregiver?.hours || 0);
 
-  const handleSubmit = () => {
-    const updatedCaregiver = {
-      id: caregiver?.id,
-      name,
-      role,
-      availability,
-      hours
-    };
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
     
-    onSave(mode === 'edit' ? updatedCaregiver as Caregiver : updatedCaregiver);
+    // Validate the form
+    if (!name.trim()) {
+      alert('Name is required');
+      return;
+    }
+    
+    if (mode === 'edit' && caregiver) {
+      // Ensure ID is correctly passed for updates
+      const updatedCaregiver: Caregiver = {
+        id: caregiver.id,
+        name,
+        role,
+        availability,
+        hours
+      };
+      onSave(updatedCaregiver);
+    } else {
+      // For new caregivers
+      const newCaregiver = {
+        name,
+        role,
+        availability,
+        hours
+      };
+      onSave(newCaregiver);
+    }
     onClose();
   };
 
@@ -38,7 +57,7 @@ const CaregiverModal: React.FC<CaregiverModalProps> = ({
         <h3 className="text-lg font-medium mb-4">
           {mode === 'add' ? 'Add New Team Member' : 'Edit Team Member'}
         </h3>
-        <div className="space-y-4">
+        <form onSubmit={handleSubmit} className="space-y-4">
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">Name</label>
             <input 
@@ -47,6 +66,7 @@ const CaregiverModal: React.FC<CaregiverModalProps> = ({
               placeholder="Enter name"
               value={name}
               onChange={(e) => setName(e.target.value)}
+              required
             />
           </div>
           <div>
@@ -55,6 +75,7 @@ const CaregiverModal: React.FC<CaregiverModalProps> = ({
               className="w-full p-2 border rounded"
               value={role}
               onChange={(e) => setRole(e.target.value)}
+              required
             >
               <option>Day Shift</option>
               <option>Evening Shift</option>
@@ -67,6 +88,7 @@ const CaregiverModal: React.FC<CaregiverModalProps> = ({
               className="w-full p-2 border rounded"
               value={availability}
               onChange={(e) => setAvailability(e.target.value)}
+              required
             >
               <option>Weekdays</option>
               <option>Weekends</option>
@@ -81,23 +103,26 @@ const CaregiverModal: React.FC<CaregiverModalProps> = ({
               placeholder="Enter hours"
               value={hours}
               onChange={(e) => setHours(parseInt(e.target.value) || 0)}
+              required
+              min="1"
             />
           </div>
-        </div>
-        <div className="mt-6 flex justify-end space-x-3">
-          <button 
-            onClick={onClose}
-            className="text-gray-600 px-4 py-2"
-          >
-            Cancel
-          </button>
-          <button 
-            onClick={handleSubmit}
-            className="bg-blue-600 text-white px-4 py-2 rounded"
-          >
-            {mode === 'add' ? 'Add Member' : 'Save Changes'}
-          </button>
-        </div>
+          <div className="mt-6 flex justify-end space-x-3">
+            <button 
+              type="button"
+              onClick={onClose}
+              className="text-gray-600 px-4 py-2"
+            >
+              Cancel
+            </button>
+            <button 
+              type="submit"
+              className="bg-blue-600 text-white px-4 py-2 rounded"
+            >
+              {mode === 'add' ? 'Add Member' : 'Save Changes'}
+            </button>
+          </div>
+        </form>
       </div>
     </div>
   );

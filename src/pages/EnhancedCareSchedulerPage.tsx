@@ -1,9 +1,10 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { DayName, Shift } from '../types';
 import { useScheduleContext } from '../context/ScheduleContext';
 import EnhancedWeekSelector from '../components/schedule/EnhancedWeekSelector';
 import EnhancedScheduleGrid from '../components/schedule/EnhancedScheduleGrid';
 import EnhancedAddShiftModal from '../components/schedule/EnhancedAddShiftModal';
+import TeamManagementPage from './TeamManagementPage';
 import { logger } from '../utils/logger';
 
 // Enum to track the active tab
@@ -34,10 +35,26 @@ const EnhancedCareSchedulerPage: React.FC = () => {
     deleteShift
   } = useScheduleContext();
   
+  // Get active tab from local storage or default to Schedule
+  const getInitialActiveTab = (): TabType => {
+    if (typeof window !== 'undefined') {
+      const savedTab = localStorage.getItem('careCalendarActiveTab');
+      if (savedTab && Object.values(TabType).includes(savedTab as TabType)) {
+        return savedTab as TabType;
+      }
+    }
+    return TabType.Schedule;
+  };
+  
   // Local state
-  const [activeTab, setActiveTab] = useState<TabType>(TabType.Schedule);
+  const [activeTab, setActiveTab] = useState<TabType>(getInitialActiveTab());
   const [activeModal, setActiveModal] = useState<ModalType>(ModalType.None);
   const [showLogs, setShowLogs] = useState<boolean>(false);
+  
+  // Save active tab to local storage whenever it changes
+  useEffect(() => {
+    localStorage.setItem('careCalendarActiveTab', activeTab);
+  }, [activeTab]);
   
   // Open a modal
   const openModal = (type: ModalType, day?: DayName) => {
@@ -268,10 +285,7 @@ const EnhancedCareSchedulerPage: React.FC = () => {
         )}
         
         {activeTab === TabType.Team && (
-          <div className="bg-white shadow rounded-lg p-6">
-            <h2 className="text-lg font-medium mb-4">Team Management</h2>
-            <p className="text-gray-500">Team management features coming soon.</p>
-          </div>
+          <TeamManagementPage />
         )}
         
         {activeTab === TabType.Notifications && (

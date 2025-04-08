@@ -101,6 +101,7 @@ exports.updateTeamMember = async (req, res) => {
 exports.deleteTeamMember = async (req, res) => {
   try {
     const { id } = req.params;
+    const forceDelete = req.query.force === 'true';
     
     // Check if team member exists
     const teamMember = await db('team_members')
@@ -111,10 +112,32 @@ exports.deleteTeamMember = async (req, res) => {
       return res.status(404).json({ error: 'Team member not found' });
     }
     
-    // Delete the team member
-    await db('team_members')
-      .where({ id })
-      .delete();
+    // Begin transaction for potentially multiple operations
+    await db.transaction(async trx => {
+      // If force delete is true, delete all shifts for this caregiver first
+      if (forceDelete) {
+        // Check if member has shifts
+        const shiftsCount = await trx('shifts')
+          .where({ caregiver_id: id })
+          .count('id as count')
+          .first();
+        
+        const hasShifts = shiftsCount && shiftsCount.count > 0;
+        
+        if (hasShifts) {
+          console.log(`Force deleting ${shiftsCount.count} shifts for caregiver ${id}`);
+          // Delete all shifts for this caregiver
+          await trx('shifts')
+            .where({ caregiver_id: id })
+            .delete();
+        }
+      }
+      
+      // Now delete the team member
+      await trx('team_members')
+        .where({ id })
+        .delete();
+    });
     
     res.status(200).json({ message: 'Team member deleted successfully' });
   } catch (error) {

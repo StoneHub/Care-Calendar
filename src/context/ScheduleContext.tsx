@@ -38,6 +38,12 @@ interface ScheduleContextState {
   setSelectedDay: (day: DayName | null) => void;
   setSelectedShift: (shift: Shift | null) => void;
   createWeek: (startDate: string) => Promise<Week | null>;
+  
+  // Team operations
+  addTeamMember: (caregiver: Omit<Caregiver, 'id'>) => Promise<boolean>;
+  updateTeamMember: (caregiver: Caregiver) => Promise<boolean>;
+  deleteTeamMember: (caregiverId: number) => Promise<boolean>;
+  refreshTeamMembers: () => Promise<void>;
 }
 
 // Create the context with a default value
@@ -763,6 +769,120 @@ export const ScheduleProvider: React.FC<{children: ReactNode}> = ({ children }) 
     }
   };
 
+  // Team operations
+  const addTeamMember = async (caregiverData: Omit<Caregiver, 'id'>): Promise<boolean> => {
+    setIsLoading(true);
+    setError(null);
+    
+    try {
+      logger.info('Adding new team member', { name: caregiverData.name });
+      
+      await apiService.createTeamMember(caregiverData);
+      
+      logger.info('Team member added successfully');
+      
+      // Refresh team members
+      await fetchCaregivers();
+      
+      return true;
+    } catch (err: any) {
+      logger.error('Failed to add team member', {
+        error: err.message,
+        stack: err.stack
+      });
+      
+      setError(`Failed to add team member: ${err.message}`);
+      return false;
+    } finally {
+      setIsLoading(false);
+    }
+  };
+  
+  const updateTeamMember = async (caregiver: Caregiver): Promise<boolean> => {
+    setIsLoading(true);
+    setError(null);
+    
+    try {
+      // Validate ID
+      if (!caregiver.id || typeof caregiver.id !== 'number' || isNaN(caregiver.id)) {
+        throw new Error('Invalid team member ID');
+      }
+      
+      logger.info('Updating team member', { id: caregiver.id, name: caregiver.name });
+      
+      await apiService.updateTeamMember(caregiver);
+      
+      logger.info('Team member updated successfully', { id: caregiver.id });
+      
+      // Refresh team members
+      await fetchCaregivers();
+      
+      return true;
+    } catch (err: any) {
+      logger.error('Failed to update team member', {
+        error: err.message,
+        stack: err.stack,
+        caregiverId: caregiver?.id
+      });
+      
+      setError(`Failed to update team member: ${err.message}`);
+      return false;
+    } finally {
+      setIsLoading(false);
+    }
+  };
+  
+  const deleteTeamMember = async (caregiverId: number): Promise<boolean> => {
+    setIsLoading(true);
+    setError(null);
+    
+    try {
+      logger.info('Deleting team member', { id: caregiverId });
+      
+      await apiService.deleteTeamMember(caregiverId);
+      
+      logger.info('Team member deleted successfully');
+      
+      // Refresh team members
+      await fetchCaregivers();
+      
+      return true;
+    } catch (err: any) {
+      logger.error('Failed to delete team member', {
+        error: err.message,
+        stack: err.stack
+      });
+      
+      setError(`Failed to delete team member: ${err.message}`);
+      return false;
+    } finally {
+      setIsLoading(false);
+    }
+  };
+  
+  const refreshTeamMembers = async (): Promise<void> => {
+    setIsLoading(true);
+    setError(null);
+    
+    try {
+      logger.info('Refreshing team members');
+      
+      await fetchCaregivers();
+      
+      logger.info('Team members refreshed');
+    } catch (err: any) {
+      logger.error('Failed to refresh team members', {
+        error: err.message,
+        stack: err.stack
+      });
+      
+      setError(`Failed to refresh team members: ${err.message}`);
+      throw err;
+    } finally {
+      setIsLoading(false);
+    }
+  };
+  
   // Construct the context value
   const contextValue: ScheduleContextState = {
     // Data
@@ -795,7 +915,13 @@ export const ScheduleProvider: React.FC<{children: ReactNode}> = ({ children }) 
     approveRequest,
     setSelectedDay,
     setSelectedShift,
-    createWeek
+    createWeek,
+    
+    // Team operations
+    addTeamMember,
+    updateTeamMember,
+    deleteTeamMember,
+    refreshTeamMembers
   };
 
   return (
