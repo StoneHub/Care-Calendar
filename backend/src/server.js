@@ -7,6 +7,7 @@ const socketUtil = require('./utils/socket');
 const routes = require('./routes');
 const logger = require('./utils/logger');
 const path = require('path');
+const discovery = require('./utils/discovery');
 
 // Check if database reset is needed
 const args = process.argv.slice(2);
@@ -97,8 +98,9 @@ const generateCalendarWeeks = require('./utils/generateCalendarWeeks');
 const setupHistoryTable = require('../db/setup_history');
 
 // Start server
-server.listen(port, async () => {
-  logger.info(`Server running on port ${port}`);
+const HOST = '0.0.0.0';
+server.listen(port, HOST, async () => {
+  logger.info(`Server running on http://${HOST}:${port}`);
   
   try {
     // Set up history table
@@ -108,6 +110,9 @@ server.listen(port, async () => {
     // Auto-generate calendar weeks on server start
     await generateCalendarWeeks(4, 12); // 4 weeks back, 12 weeks forward
     logger.info('Calendar weeks generated successfully');
+    
+    // Initialize mDNS discovery service for local network access
+    discovery.initDiscovery(5173, port);
   } catch (error) {
     logger.error('Server initialization error', { 
       error: error.message,

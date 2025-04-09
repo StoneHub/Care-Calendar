@@ -2,6 +2,18 @@
 
 A locally hosted weekly calendar scheduler for coordinating full-time care. This application helps coordinate caregivers, track shifts, and manage schedule changes.
 
+## Coming Soon
+
+We're working on several exciting enhancements:
+
+1. **Local Network Access** - View the calendar on your smart fridge and other devices
+2. **Dark Mode** - Automatic switching based on time of day
+3. **Team Member Unavailability** - Mark days out directly on the calendar
+4. **Enhanced Reporting** - Detailed HTML reports for payroll management
+5. **Google Calendar Integration** - Sync schedules to team members' phones
+
+See `ROADMAP.md` for the complete development plan.
+
 ## Project Overview
 
 The Care Team Scheduler is a shared, trust-based digital tool for managing a care team's weekly schedule. It allows caregivers to dynamically update shifts, swap responsibilities, and keep everyone informed of changes in real-time. The application will be hosted locally on a dedicated home server (possibly displayed on a fridge or common area device) for easy access by all care team members.
@@ -22,32 +34,53 @@ The application has a well-structured architecture with clear separation of conc
 
 ## Recent Fixes and Improvements
 
-The latest updates address several critical issues:
+The latest updates address several critical issues and implement new features:
 
-1. **Team Management:**
+**Local Network Access:**
+- Added ability to access Calendar from any device on local network
+- Implemented mDNS discovery service for easy access via "care-calendar.local"
+- Optimized display for smart fridges and tablets
+- Added documentation for network access in docs/local-network-access.md
+
+1. **History System:**
+   - Added comprehensive history tracking of all changes
+   - Replaced Notifications tab with History view
+   - Implemented filtering by action type, entity type, and week
+
+2. **Data Preservation:**
+   - Added transaction support for all database operations
+   - Enhanced error handling and recovery
+   - Improved data integrity across system restarts
+
+3. **UI Improvements:**
+   - Removed unused Settings button
+   - Added version information in header
+
+4. **Team Management:**
    - Implemented full team management functionality
    - Added ability to add, edit, and delete team members
    - Implemented force delete option to remove caregivers and their assigned shifts
    - Enhanced error handling for dependent records
    - Improved UI with real-time updates without page refreshes
 
-2. **Week Navigation Fixes:** 
-   - Improved date-based navigation instead of array indices
-   - More reliable week detection based on date calculations
+5. **Previous Updates:**
+   - **Week Navigation Fixes:** 
+     - Improved date-based navigation instead of array indices
+     - More reliable week detection based on date calculations
    
-3. **Add Shift Modal Fixes:**
-   - Fixed issue with adding shifts to weeks other than the selected week
-   - Corrected backend data format for shift organization
-   - Improved validation and error handling
+   - **Add Shift Modal Fixes:**
+     - Fixed issue with adding shifts to weeks other than the selected week
+     - Corrected backend data format for shift organization
+     - Improved validation and error handling
    
-4. **Delete Shift Fixes:**
-   - Added cascading deletion of related notifications to prevent errors
-   - Fixed issue with deleting dropped shifts
-   - Improved error handling and logging
+   - **Delete Shift Fixes:**
+     - Added cascading deletion of related notifications to prevent errors
+     - Fixed issue with deleting dropped shifts
+     - Improved error handling and logging
    
-5. **Current Day Highlighting:**
-   - Fixed to only highlight today when viewing the current week
-   - Proper date comparison to determine today
+   - **Current Day Highlighting:**
+     - Fixed to only highlight today when viewing the current week
+     - Proper date comparison to determine today
 
 ## Setup and Development
 
@@ -109,6 +142,7 @@ The application uses the following database schema:
 - **team_members:** Stores caregiver information
 - **weeks:** Stores calendar weeks
 - **shifts:** Stores shifts for each week
+- **history_records:** Tracks all changes to the system
 - **notifications:** Stores system notifications and requests
 - **payroll_records:** Stores historical payroll data
 
@@ -141,6 +175,7 @@ Available endpoints for troubleshooting:
 - `npm run seed-db`: Seed the database with test data  
 - `npm run reset-db`: Reset and rebuild the database
 - `npm run debug-db`: Manual database reset utility
+- `npm run setup-history`: Initialize history tracking table
 
 ## Deployment
 

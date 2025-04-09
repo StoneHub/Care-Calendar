@@ -7,13 +7,13 @@ This roadmap outlines the planned improvements and new features for the Care Cal
 ### High Priority
 
 1. ✅ **Fix Week Navigation Logic**
-   - Implement robust date-based navigation
-   - Ensure consistent 7-day jumps
-   - Fix week selection issues
+   - Implemented robust date-based navigation
+   - Ensured consistent 7-day jumps
+   - Fixed week selection issues
 
 2. ✅ **Fix Current Day Highlighting**
    - Only highlight today when viewing the current week
-   - Ensure proper date comparison
+   - Ensured proper date comparison
 
 3. ✅ **Fix Add Shift Dialog UI**
    - Fixed the UI for the add shift dialog
@@ -33,8 +33,8 @@ This roadmap outlines the planned improvements and new features for the Care Cal
 ### Medium Priority
 
 1. ✅ **Enhanced Error Handling**
-   - Implement consistent error handling across the application
-   - Add better user feedback for failed operations
+   - Implemented consistent error handling across the application
+   - Added better user feedback for failed operations
    - Improved error logging with separate debug log file
 
 2. ✅ **Database Stability**
@@ -43,32 +43,64 @@ This roadmap outlines the planned improvements and new features for the Care Cal
    - Added debug endpoints to check database status
    - Improved SQLite compatibility for Windows systems
 
-3. **Backend Validation**
+3. **Backend Validation** (Planned)
    - Add express-validator for input validation
    - Ensure proper data types and formats
    - Validate foreign key relationships
 
-4. **Database Optimization**
+4. **Database Optimization** (Planned)
    - Add indices to frequently queried columns
    - Use transactions for multi-step operations
    - Improve query performance
 
-## Phase 2: History System and Data Preservation (Current)
+## Phase 2: History System and Data Preservation (Completed)
 
 ### High Priority
 
-1. **History System Implementation**
-   - Create history database table for tracking all changes
-   - Implement backend APIs for recording and retrieving history
-   - Replace Notifications tab with comprehensive History view
-   - Remove Settings button from UI
+1. ✅ **History System Implementation**
+   - Created history database table for tracking all changes
+   - Implemented backend APIs for recording and retrieving history
+   - Replaced Notifications tab with comprehensive History view
+   - Removed Settings button from UI
 
-2. **Data Preservation**
-   - Implement proper transaction handling for critical operations
-   - Enhance database validation and integrity checks
-   - Improve error recovery
+2. ✅ **Data Preservation**
+   - Implemented proper transaction handling for critical operations
+   - Enhanced database validation and integrity checks
+   - Improved error recovery
 
-## Phase 3: Team Management and UX
+## Phase 3: Enhanced Experience & Accessibility (Current)
+
+### High Priority
+
+1. ✅ **Local Network Access**
+   - Added custom hostname via mDNS for local network access
+   - Made application discoverable on local network using Bonjour
+   - Enabled Smart Fridge & tablet display optimization with viewport meta tags
+   - Created documentation for network access in docs/local-network-access.md
+
+2. **Dark Mode & Theming**
+   - Implement dark mode theme for Greenville, SC location
+   - Add automatic theme switching based on fixed sunrise/sunset times
+   - Simple color scheme with dark background and light text for night viewing
+
+3. **Days Out/Unavailability Feature**
+   - Add ability for team members to mark unavailable days
+   - Display unavailability as colored blocks on calendar
+   - Add repeating weekly option (until end of year)
+
+4. **Enhanced Team Management**
+   - Remove hours requirements for team members
+   - Add active/inactive status for team members
+   - Implement HTML reporting with charts for 1099 tax preparation
+   - Add report export button that emails to alexsaero56@gmail.com
+
+5. **Google Calendar Integration**
+   - Use single account (alexsaero56@gmail.com) for calendar management
+   - Create shared calendar that team members can subscribe to
+   - Include all shifts and unavailability in calendar
+   - Daily automated updates
+
+## Phase 4: Additional Features & Optimizations
 
 ### High Priority
 
@@ -103,7 +135,7 @@ This roadmap outlines the planned improvements and new features for the Care Cal
    - Implement drag-and-drop for easier shift management
    - Add visual indicators for real-time updates
 
-## Phase 4: Advanced Features
+## Phase 5: Advanced Features
 
 1. **Payroll Reporting**
    - Implement weekly hours calculation
@@ -120,7 +152,7 @@ This roadmap outlines the planned improvements and new features for the Care Cal
    - Add notification preferences
    - Implement notification history
 
-## Phase 5: Deployment & Beyond
+## Phase 6: Deployment & Beyond
 
 1. **Raspberry Pi Optimization**
    - Performance tuning for RPi 2B
