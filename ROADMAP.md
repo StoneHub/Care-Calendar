@@ -53,7 +53,22 @@ This roadmap outlines the planned improvements and new features for the Care Cal
    - Use transactions for multi-step operations
    - Improve query performance
 
-## Phase 2: Team Management and UX (Current)
+## Phase 2: History System and Data Preservation (Current)
+
+### High Priority
+
+1. **History System Implementation**
+   - Create history database table for tracking all changes
+   - Implement backend APIs for recording and retrieving history
+   - Replace Notifications tab with comprehensive History view
+   - Remove Settings button from UI
+
+2. **Data Preservation**
+   - Implement proper transaction handling for critical operations
+   - Enhance database validation and integrity checks
+   - Improve error recovery
+
+## Phase 3: Team Management and UX
 
 ### High Priority
 
@@ -88,7 +103,7 @@ This roadmap outlines the planned improvements and new features for the Care Cal
    - Implement drag-and-drop for easier shift management
    - Add visual indicators for real-time updates
 
-## Phase 3: Advanced Features
+## Phase 4: Advanced Features
 
 1. **Payroll Reporting**
    - Implement weekly hours calculation
@@ -105,7 +120,7 @@ This roadmap outlines the planned improvements and new features for the Care Cal
    - Add notification preferences
    - Implement notification history
 
-## Phase 4: Deployment & Beyond
+## Phase 5: Deployment & Beyond
 
 1. **Raspberry Pi Optimization**
    - Performance tuning for RPi 2B
@@ -138,3 +153,8 @@ This roadmap outlines the planned improvements and new features for the Care Cal
    - Update dependencies regularly
    - Remove unused dependencies
    - Consider security implications
+
+4. **Database Management**
+   - Implement database export/import for version control
+   - Create database backup and restore utilities
+   - Add database maintenance scripts

@@ -103,3 +103,19 @@ export interface PayrollRecord {
   notes?: string;
 }
 
+export type ActionType = 'create' | 'update' | 'delete' | 'drop' | 'adjust' | 'swap';
+export type EntityType = 'shift' | 'week' | 'caregiver' | 'notification';
+
+export interface HistoryRecord {
+  id: number;
+  timestamp: string;
+  action_type: ActionType;
+  entity_type: EntityType;
+  entity_id: number;
+  caregiver_id?: number;
+  caregiver_name?: string;
+  week_id?: number;
+  description: string;
+  details?: string;
+}
+

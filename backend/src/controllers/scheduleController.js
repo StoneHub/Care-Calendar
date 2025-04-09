@@ -1,6 +1,8 @@
 const db = require('../utils/db');
 const io = require('../utils/socket');
 const logger = require('../utils/logger');
+const { recordHistory } = require('../utils/history');
+const { withTransaction } = require('../utils/transaction');
 
 // GET all weeks
 exports.getAllWeeks = async (req, res) => {
@@ -242,17 +244,49 @@ exports.createShift = async (req, res) => {
       return res.status(400).json({ error: 'Missing required fields' });
     }
     
-    const [id] = await db('shifts')
-      .insert({
-        week_id,
-        day_of_week,
-        caregiver_id,
-        start_time,
-        end_time,
-        status: status || 'confirmed'
-      })
-      .returning('id');
+    // Get caregiver name for history recording
+    const caregiver = await db('team_members')
+      .where({ id: caregiver_id })
+      .first();
     
+    if (!caregiver) {
+      return res.status(400).json({ error: 'Invalid caregiver ID' });
+    }
+    
+    // Use transaction to ensure data integrity
+    const id = await withTransaction(async (trx) => {
+      // Insert shift
+      const [shiftId] = await trx('shifts')
+        .insert({
+          week_id,
+          day_of_week,
+          caregiver_id,
+          start_time,
+          end_time,
+          status: status || 'confirmed'
+        })
+        .returning('id');
+      
+      // Record history
+      await trx('history_records').insert({
+        action_type: 'create',
+        entity_type: 'shift',
+        entity_id: shiftId,
+        caregiver_id,
+        week_id,
+        description: `Created shift for ${caregiver.name} on ${day_of_week} (${start_time}-${end_time})`,
+        details: JSON.stringify({
+          day_of_week,
+          start_time,
+          end_time,
+          status: status || 'confirmed'
+        })
+      });
+      
+      return shiftId;
+    });
+    
+    // Get complete shift data to return
     const newShift = await db('shifts')
       .join('team_members', 'shifts.caregiver_id', 'team_members.id')
       .select(
@@ -269,9 +303,20 @@ exports.createShift = async (req, res) => {
       .where('shifts.id', id)
       .first();
     
+    logger.info('Shift created successfully', { 
+      shift_id: id,
+      caregiver: caregiver.name,
+      day: day_of_week,
+      time: `${start_time}-${end_time}`
+    });
+    
     res.status(201).json(newShift);
   } catch (error) {
-    console.error('Error creating shift:', error);
+    logger.error('Error creating shift:', {
+      error: error.message,
+      stack: error.stack,
+      body: req.body
+    });
     res.status(500).json({ error: 'Failed to create shift' });
   }
 };
@@ -326,26 +371,55 @@ exports.deleteShift = async (req, res) => {
   try {
     const { id } = req.params;
     
-    // Check if shift exists
+    // Check if shift exists and get details for history
     const shift = await db('shifts')
-      .where({ id })
+      .join('team_members', 'shifts.caregiver_id', 'team_members.id')
+      .select(
+        'shifts.*',
+        'team_members.name as caregiver_name'
+      )
+      .where('shifts.id', id)
       .first();
     
     if (!shift) {
       return res.status(404).json({ error: 'Shift not found' });
     }
     
-    // Delete any related notifications first
-    await db('notifications')
-      .where({ affected_shift_id: id })
-      .delete();
+    // Use transaction to ensure data integrity
+    await withTransaction(async (trx) => {
+      // Delete any related notifications first
+      await trx('notifications')
+        .where({ affected_shift_id: id })
+        .delete();
+      
+      // Delete the shift
+      await trx('shifts')
+        .where({ id })
+        .delete();
+      
+      // Record history
+      await trx('history_records').insert({
+        action_type: 'delete',
+        entity_type: 'shift',
+        entity_id: id,
+        caregiver_id: shift.caregiver_id,
+        week_id: shift.week_id,
+        description: `Deleted shift for ${shift.caregiver_name} on ${shift.day_of_week} (${shift.start_time}-${shift.end_time})`,
+        details: JSON.stringify({
+          day_of_week: shift.day_of_week,
+          start_time: shift.start_time,
+          end_time: shift.end_time,
+          status: shift.status
+        })
+      });
+    });
     
-    logger.debug('Deleting shift', { id, status: shift.status });
-    
-    // Delete the shift
-    await db('shifts')
-      .where({ id })
-      .delete();
+    logger.info('Shift deleted successfully', { 
+      shift_id: id,
+      caregiver: shift.caregiver_name,
+      day: shift.day_of_week,
+      time: `${shift.start_time}-${shift.end_time}`
+    });
     
     res.status(200).json({ message: 'Shift deleted successfully' });
   } catch (error) {

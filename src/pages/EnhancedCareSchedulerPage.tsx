@@ -5,13 +5,14 @@ import EnhancedWeekSelector from '../components/schedule/EnhancedWeekSelector';
 import EnhancedScheduleGrid from '../components/schedule/EnhancedScheduleGrid';
 import EnhancedAddShiftModal from '../components/schedule/EnhancedAddShiftModal';
 import TeamManagementPage from './TeamManagementPage';
+import { HistoryView } from '../components/history';
 import { logger } from '../utils/logger';
 
 // Enum to track the active tab
 enum TabType {
   Schedule = 'schedule',
   Team = 'team',
-  Notifications = 'notifications'
+  History = 'history'
 }
 
 // Enum to track modal types
@@ -182,14 +183,9 @@ const EnhancedCareSchedulerPage: React.FC = () => {
           <div className="flex justify-between items-center">
             <h1 className="text-xl font-bold text-gray-900">Care Calendar</h1>
             
-            {/* User menu placeholder */}
-            <div className="flex items-center">
-              <button className="p-2 text-gray-500 hover:text-gray-700">
-                <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-                </svg>
-              </button>
+            {/* Version information */}
+            <div className="text-sm text-gray-500">
+              v0.2.0
             </div>
           </div>
         </div>
@@ -224,14 +220,14 @@ const EnhancedCareSchedulerPage: React.FC = () => {
               Team
             </button>
             <button
-              onClick={() => setActiveTab(TabType.Notifications)}
+              onClick={() => setActiveTab(TabType.History)}
               className={`py-4 px-1 border-b-2 font-medium text-sm ${
-                activeTab === TabType.Notifications
+                activeTab === TabType.History
                   ? 'border-blue-500 text-blue-600'
                   : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
               }`}
             >
-              Notifications
+              History
             </button>
           </nav>
         </div>
@@ -288,11 +284,8 @@ const EnhancedCareSchedulerPage: React.FC = () => {
           <TeamManagementPage />
         )}
         
-        {activeTab === TabType.Notifications && (
-          <div className="bg-white shadow rounded-lg p-6">
-            <h2 className="text-lg font-medium mb-4">Notifications</h2>
-            <p className="text-gray-500">Notification features coming soon.</p>
-          </div>
+        {activeTab === TabType.History && (
+          <HistoryView />
         )}
       </main>
       

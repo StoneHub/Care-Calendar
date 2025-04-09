@@ -1,5 +1,5 @@
 import axios, { AxiosInstance, AxiosRequestConfig, AxiosResponse, AxiosError } from 'axios';
-import { Caregiver, Shift, Notification, Week } from '../../types';
+import { Caregiver, Shift, Notification, Week, HistoryRecord } from '../../types';
 import { logger } from '../../utils/logger';
 
 /**
@@ -379,6 +379,35 @@ class APIService {
       `/notifications/${id}/approve`, 
       { data: { action_by_caregiver_id: caregiverId } }
     );
+  }
+  
+  // History Records
+  async getHistoryRecords(filters?: {
+    actionType?: string,
+    entityType?: string,
+    weekId?: number,
+    limit?: number,
+    offset?: number
+  }): Promise<HistoryRecord[]> {
+    const params: Record<string, string> = {};
+    
+    if (filters) {
+      if (filters.actionType) params.action_type = filters.actionType;
+      if (filters.entityType) params.entity_type = filters.entityType;
+      if (filters.weekId) params.week_id = filters.weekId.toString();
+      if (filters.limit) params.limit = filters.limit.toString();
+      if (filters.offset) params.offset = filters.offset.toString();
+    }
+    
+    return this.request<HistoryRecord[]>('GET', '/history', { params });
+  }
+  
+  async getEntityHistory(entityType: string, entityId: number): Promise<HistoryRecord[]> {
+    return this.request<HistoryRecord[]>('GET', `/history/entity/${entityType}/${entityId}`);
+  }
+  
+  async getWeekHistory(weekId: number): Promise<HistoryRecord[]> {
+    return this.request<HistoryRecord[]>('GET', `/history/week/${weekId}`);
   }
 }
 

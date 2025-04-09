@@ -9,12 +9,14 @@ const teamRoutes = require('./team');
 const scheduleRoutes = require('./schedule');
 const notificationRoutes = require('./notifications');
 const payrollRoutes = require('./payroll');
+const historyRoutes = require('./historyRoutes');
 
 // Mount the routes on the router
 router.use('/team', teamRoutes);
 router.use('/schedule', scheduleRoutes);
 router.use('/notifications', notificationRoutes);
 router.use('/payroll', payrollRoutes);
+router.use('/history', historyRoutes);
 
 // Debug routes - only available in development
 if (process.env.NODE_ENV !== 'production') {
@@ -47,19 +49,21 @@ if (process.env.NODE_ENV !== 'production') {
       const db = require('../utils/db');
       
       // Get table counts
-      const [teamCount, weekCount, shiftCount, notificationCount] = await Promise.all([
+      const [teamCount, weekCount, shiftCount, notificationCount, historyCount] = await Promise.all([
         db('team_members').count('id as count').first(),
         db('weeks').count('id as count').first(),
         db('shifts').count('id as count').first(),
-        db('notifications').count('id as count').first()
+        db('notifications').count('id as count').first(),
+        db('history_records').count('id as count').catch(() => ({ count: 0 })).then(r => r || { count: 0 })
       ]);
       
       // Get most recent records
-      const [latestTeamMember, latestWeek, latestShift, latestNotification] = await Promise.all([
+      const [latestTeamMember, latestWeek, latestShift, latestNotification, latestHistory] = await Promise.all([
         db('team_members').orderBy('id', 'desc').first(),
         db('weeks').orderBy('id', 'desc').first(),
         db('shifts').orderBy('id', 'desc').first(),
-        db('notifications').orderBy('id', 'desc').first()
+        db('notifications').orderBy('id', 'desc').first(),
+        db('history_records').orderBy('id', 'desc').first().catch(() => null)
       ]);
       
       res.status(200).json({
@@ -68,7 +72,8 @@ if (process.env.NODE_ENV !== 'production') {
           team_members: { count: teamCount?.count || 0, latest: latestTeamMember || null },
           weeks: { count: weekCount?.count || 0, latest: latestWeek || null },
           shifts: { count: shiftCount?.count || 0, latest: latestShift || null },
-          notifications: { count: notificationCount?.count || 0, latest: latestNotification || null }
+          notifications: { count: notificationCount?.count || 0, latest: latestNotification || null },
+          history_records: { count: historyCount?.count || 0, latest: latestHistory || null }
         },
         timestamp: new Date().toISOString()
       });

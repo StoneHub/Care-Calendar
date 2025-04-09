@@ -12,6 +12,7 @@
     "backend:dev": "cd backend && npm run dev",
     "backend:setup-db": "cd backend && npm run setup-db",
     "backend:seed-db": "cd backend && npm run seed-db",
+    "backend:setup-history": "cd backend && npm run setup-history",
     "dev:all": "concurrently \"npm run dev\" \"npm run backend:dev\"",
     "start:windows": "node start-windows.js"
   },

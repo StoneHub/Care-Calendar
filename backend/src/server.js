@@ -92,18 +92,26 @@ app.use((err, req, res, next) => {
   });
 });
 
-// Import calendar week generator
+// Import utilities
 const generateCalendarWeeks = require('./utils/generateCalendarWeeks');
+const setupHistoryTable = require('../db/setup_history');
 
 // Start server
 server.listen(port, async () => {
   logger.info(`Server running on port ${port}`);
   
-  // Auto-generate calendar weeks on server start
   try {
+    // Set up history table
+    await setupHistoryTable();
+    logger.info('History table setup completed');
+    
+    // Auto-generate calendar weeks on server start
     await generateCalendarWeeks(4, 12); // 4 weeks back, 12 weeks forward
     logger.info('Calendar weeks generated successfully');
   } catch (error) {
-    logger.error('Failed to generate calendar weeks', { error: error.message });
+    logger.error('Server initialization error', { 
+      error: error.message,
+      stack: error.stack 
+    });
   }
 });
