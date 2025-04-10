@@ -45,10 +45,10 @@ const HistoryView: React.FC = () => {
   };
 
   return (
-    <div className="bg-white rounded-lg shadow">
-      <div className="p-4 border-b">
-        <h2 className="text-xl font-semibold">Activity History</h2>
-        <p className="text-sm text-gray-500 mt-1">
+    <div className="bg-white dark:bg-gray-800 rounded-lg shadow">
+      <div className="p-4 border-b dark:border-gray-700">
+        <h2 className="text-xl font-semibold dark:text-white">Activity History</h2>
+        <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
           View all changes made to the schedule
         </p>
         
@@ -59,14 +59,14 @@ const HistoryView: React.FC = () => {
       </div>
       
       {error && (
-        <div className="p-4 my-2 bg-red-50 text-red-700 border-l-4 border-red-500">
+        <div className="p-4 my-2 bg-red-50 dark:bg-red-900/30 text-red-700 dark:text-red-300 border-l-4 border-red-500 dark:border-red-700">
           {error}
         </div>
       )}
       
       {loading ? (
-        <div className="p-8 text-center text-gray-500">
-          <div className="animate-spin inline-block w-6 h-6 border-2 border-gray-300 border-t-blue-600 rounded-full mr-2"></div>
+        <div className="p-8 text-center text-gray-500 dark:text-gray-400">
+          <div className="animate-spin inline-block w-6 h-6 border-2 border-gray-300 dark:border-gray-600 border-t-blue-600 dark:border-t-blue-500 rounded-full mr-2"></div>
           Loading history...
         </div>
       ) : (

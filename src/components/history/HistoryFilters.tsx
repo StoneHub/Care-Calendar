@@ -58,13 +58,13 @@ const HistoryFilters: React.FC<HistoryFiltersProps> = ({
   return (
     <div className="mt-4 grid grid-cols-1 sm:grid-cols-3 gap-4">
       <div>
-        <label className="block text-sm font-medium text-gray-700 mb-1">
+        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
           Action Type
         </label>
         <select
           value={filters.actionType}
           onChange={(e) => onFilterChange({ actionType: e.target.value })}
-          className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
+          className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:text-white"
         >
           {actionTypes.map((type) => (
             <option key={type.value} value={type.value}>
@@ -75,13 +75,13 @@ const HistoryFilters: React.FC<HistoryFiltersProps> = ({
       </div>
 
       <div>
-        <label className="block text-sm font-medium text-gray-700 mb-1">
+        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
           Entity Type
         </label>
         <select
           value={filters.entityType}
           onChange={(e) => onFilterChange({ entityType: e.target.value })}
-          className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
+          className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:text-white"
         >
           {entityTypes.map((type) => (
             <option key={type.value} value={type.value}>
@@ -92,13 +92,13 @@ const HistoryFilters: React.FC<HistoryFiltersProps> = ({
       </div>
 
       <div>
-        <label className="block text-sm font-medium text-gray-700 mb-1">
+        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
           Week
         </label>
         <select
           value={filters.weekId}
           onChange={(e) => onFilterChange({ weekId: parseInt(e.target.value, 10) })}
-          className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
+          className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:text-white"
         >
           {weekOptions.map((option) => (
             <option key={option.value} value={option.value}>

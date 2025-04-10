@@ -20,6 +20,8 @@ This development plan outlines the implementation of five key enhancements to th
 - Fixed component inconsistencies for dark mode across the application
 - Fixed modal components with white backgrounds in dark mode (CaregiverModal, CreateWeekModal, ShiftOptionsModal)
 - Improved main calendar interface with proper dark styling for calendar grid, week selector, and shift cards
+- Updated Team and History components for better dark mode visuals
+- Completed dark mode support for all remaining UI components
 
 ### ✅ Feature 3: Days Out/Unavailability Feature  
 **Status: COMPLETED**
@@ -29,7 +31,9 @@ This development plan outlines the implementation of five key enhancements to th
 - Integrated with schedule display
 
 ### 🔄 Feature 4: Enhanced Team Management
-**Status: PENDING**
+**Status: IN PROGRESS**
+- ✅ Implemented force delete option for team members with assigned shifts
+- ✅ Fixed history tracking for team member deletions 
 - Will remove hours requirements for team members
 - Will add active/inactive status for team members
 - Will implement HTML reporting with tax information
@@ -43,5 +47,7 @@ This development plan outlines the implementation of five key enhancements to th
 1. ✅ Local Network Access (COMPLETED)
 2. ✅ Days Out/Unavailability feature (COMPLETED)
 3. ✅ Dark Mode theme (COMPLETED)
-4. Enhanced Team Management with active/inactive status (NEXT)
-5. Google Calendar integration
+4. 🔄 Enhanced Team Management (CURRENT)
+   * ✅ Fix history logging for team member deletions (COMPLETED)
+   * Complete remaining team management features
+5. 🔄 Google Calendar Integration (NEXT)

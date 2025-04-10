@@ -43,6 +43,8 @@ The latest updates address several critical issues and implement new features:
 - Fixed component inconsistencies reported by Greenville users
 - Fixed modal components with stark white backgrounds in dark mode (CaregiverModal, CreateWeekModal, ShiftOptionsModal)
 - Updated main interface components (calendar grid, week selector, shift cards) with proper dark mode styling to reduce eye strain
+- Fixed Team and History components for proper dark mode display
+- Ensured "Team Management" title and "Team Unavailability" component properly adapt to dark mode
 
 **Team Member Unavailability:**
 - Added ability to mark days team members are unavailable

@@ -1,4 +1,6 @@
 const db = require('../utils/db');
+const { recordHistory } = require('../utils/history');
+const logger = require('../utils/logger');
 
 // GET all team members
 exports.getAllTeamMembers = async (req, res) => {
@@ -112,36 +114,114 @@ exports.deleteTeamMember = async (req, res) => {
       return res.status(404).json({ error: 'Team member not found' });
     }
     
-    // Begin transaction for potentially multiple operations
-    await db.transaction(async trx => {
-      // If force delete is true, delete all shifts for this caregiver first
+    // Check for related shifts before starting transaction
+    if (!forceDelete) {
+      const shiftsCount = await db('shifts')
+        .where({ caregiver_id: id })
+        .count('id as count')
+        .first();
+      
+      const hasShifts = shiftsCount && parseInt(shiftsCount.count) > 0;
+      
+      if (hasShifts) {
+        return res.status(409).json({ 
+          error: `Cannot delete team member with ${shiftsCount.count} assigned shifts. Use force delete or reassign shifts first.` 
+        });
+      }
+    }
+    
+    // Handle deletion with all potential foreign key constraints
+    try {
+      // Store the team member data for history records before deletion
+      const name = teamMember.name;
+      const role = teamMember.role;
+      
+      // Force delete handles all relations
       if (forceDelete) {
-        // Check if member has shifts
-        const shiftsCount = await trx('shifts')
+        // Check for shifts
+        const shiftsCount = await db('shifts')
           .where({ caregiver_id: id })
           .count('id as count')
           .first();
         
-        const hasShifts = shiftsCount && shiftsCount.count > 0;
+        const hasShifts = shiftsCount && parseInt(shiftsCount.count) > 0;
         
         if (hasShifts) {
-          console.log(`Force deleting ${shiftsCount.count} shifts for caregiver ${id}`);
-          // Delete all shifts for this caregiver
-          await trx('shifts')
+          logger.info(`Force deleting ${shiftsCount.count} shifts for caregiver ${id} (${name})`);
+          
+          // Delete shifts
+          await db('shifts')
             .where({ caregiver_id: id })
+            .delete();
+        }
+        
+        // Check and delete unavailability records
+        const unavailabilityCount = await db('unavailability')
+          .where({ caregiver_id: id })
+          .count('id as count')
+          .first();
+          
+        if (unavailabilityCount && parseInt(unavailabilityCount.count) > 0) {
+          logger.info(`Force deleting ${unavailabilityCount.count} unavailability records for caregiver ${id}`);
+          
+          await db('unavailability')
+            .where({ caregiver_id: id })
+            .delete();
+        }
+        
+        // Check and delete notifications related to this caregiver
+        const notificationsCount = await db('notifications')
+          .where({ from_caregiver_id: id })
+          .orWhere({ to_caregiver_id: id })
+          .count('id as count')
+          .first();
+          
+        if (notificationsCount && parseInt(notificationsCount.count) > 0) {
+          logger.info(`Force deleting ${notificationsCount.count} notifications related to caregiver ${id}`);
+          
+          await db('notifications')
+            .where({ from_caregiver_id: id })
+            .orWhere({ to_caregiver_id: id })
             .delete();
         }
       }
       
-      // Now delete the team member
-      await trx('team_members')
+      // Now delete the team member - this is done outside any transaction
+      // to avoid complex transaction handling with potential cascades
+      await db('team_members')
         .where({ id })
         .delete();
-    });
-    
-    res.status(200).json({ message: 'Team member deleted successfully' });
+      
+      // Record history after successful deletion
+      await recordHistory(
+        'delete',
+        'team_member',
+        id,
+        `Deleted team member: ${name}`,
+        { 
+          details: { 
+            name,
+            role,
+            forceDelete
+          }
+        }
+      );
+      
+      // Return success
+      res.status(200).json({ message: 'Team member deleted successfully' });
+    } catch (error) {
+      logger.error(`Error in delete operation for team member ${id}:`, error);
+      
+      if (error.code === 'SQLITE_CONSTRAINT') {
+        return res.status(409).json({ 
+          error: 'Cannot delete team member due to database constraints. This may be due to history records or other dependencies.' 
+        });
+      }
+      
+      throw error; // Re-throw for outer catch block
+    }
   } catch (error) {
-    console.error(`Error deleting team member with ID ${req.params.id}:`, error);
+    logger.error(`Error deleting team member with ID ${req.params.id}:`, error);
     res.status(500).json({ error: 'Failed to delete team member' });
   }
 };

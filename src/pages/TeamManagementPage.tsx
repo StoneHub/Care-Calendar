@@ -139,7 +139,7 @@ const TeamManagementPage: React.FC = () => {
   
   return (
     <div className="container mx-auto p-4">
-      <h1 className="text-2xl font-semibold mb-6">Team Management</h1>
+      <h1 className="text-2xl font-semibold mb-6 dark:text-white">Team Management</h1>
       
       <div className="mb-8">
         <TeamView 
@@ -153,9 +153,9 @@ const TeamManagementPage: React.FC = () => {
         />
       </div>
       
-      <div className="mb-8 bg-white p-4 rounded-lg shadow">
+      <div className="mb-8 bg-white dark:bg-gray-800 p-4 rounded-lg shadow">
         <div className="flex justify-between items-center mb-4">
-          <h2 className="text-lg font-medium">
+          <h2 className="text-lg font-medium dark:text-white">
             {selectedCaregiverId ? 
               `Time Off for ${caregivers.find(c => c.id === selectedCaregiverId)?.name || 'Team Member'}` : 
               'Team Unavailability'}
@@ -163,7 +163,7 @@ const TeamManagementPage: React.FC = () => {
           {selectedCaregiverId && (
             <button
               onClick={() => setSelectedCaregiverId(null)}
-              className="text-blue-600 px-2 py-1 rounded hover:bg-blue-50 text-sm"
+              className="text-blue-600 dark:text-blue-400 px-2 py-1 rounded hover:bg-blue-50 dark:hover:bg-blue-900/30 text-sm"
             >
               View All
             </button>
@@ -179,11 +179,11 @@ const TeamManagementPage: React.FC = () => {
           onClick={() => setConfirmDelete(null)}
         >
           <div 
-            className="bg-white rounded-lg shadow-lg max-w-md w-full p-6 animate-fade-in"
+            className="bg-white dark:bg-gray-800 rounded-lg shadow-lg max-w-md w-full p-6 animate-fade-in"
             onClick={(e) => e.stopPropagation()}
           >
-            <h3 className="text-lg font-medium mb-4">Confirm Delete</h3>
-            <p className="mb-4">
+            <h3 className="text-lg font-medium mb-4 dark:text-white">Confirm Delete</h3>
+            <p className="mb-4 dark:text-gray-300">
               Are you sure you want to delete this team member? This action cannot be undone.
             </p>
             
@@ -195,7 +195,7 @@ const TeamManagementPage: React.FC = () => {
                   checked={forceDelete}
                   onChange={(e) => setForceDelete(e.target.checked)}
                 />
-                <span className="ml-2 text-sm text-gray-700">
+                <span className="ml-2 text-sm text-gray-700 dark:text-gray-300">
                   Force delete (will also remove all shifts assigned to this team member)
                 </span>
               </label>
@@ -204,13 +204,13 @@ const TeamManagementPage: React.FC = () => {
             <div className="flex justify-end space-x-3">
               <button 
                 onClick={() => setConfirmDelete(null)}
-                className="px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 hover:bg-gray-200 rounded"
+                className="px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 rounded"
               >
                 Cancel
               </button>
               <button 
                 onClick={() => handleDeleteMember(confirmDelete)}
-                className="px-4 py-2 text-sm font-medium text-white bg-red-600 hover:bg-red-700 rounded"
+                className="px-4 py-2 text-sm font-medium text-white bg-red-600 dark:bg-red-700 hover:bg-red-700 dark:hover:bg-red-600 rounded"
               >
                 Delete
               </button>
