@@ -239,7 +239,16 @@ exports.getShiftById = async (req, res) => {
 // POST create a new shift
 exports.createShift = async (req, res) => {
   try {
-    const { week_id, day_of_week, caregiver_id, start_time, end_time, status } = req.body;
+    const { 
+      week_id, 
+      day_of_week, 
+      caregiver_id, 
+      start_time, 
+      end_time, 
+      status,
+      isRecurring,
+      recurringEndDate
+    } = req.body;
     
     // Basic validation
     if (!week_id || !day_of_week || !caregiver_id || !start_time || !end_time) {
@@ -262,15 +271,17 @@ exports.createShift = async (req, res) => {
     
     // Use transaction to ensure data integrity
     const id = await withTransaction(async (trx) => {
-      // Insert shift
-      const [shiftId] = await trx('shifts')
+      // Insert original shift
+      const [originalShiftId] = await trx('shifts')
         .insert({
           week_id,
           day_of_week,
           caregiver_id,
           start_time,
           end_time,
-          status: status || 'confirmed'
+          status: status || 'confirmed',
+          is_recurring: isRecurring || false,
+          recurring_end_date: isRecurring ? recurringEndDate : null
         })
         .returning('id');
       
@@ -278,19 +289,110 @@ exports.createShift = async (req, res) => {
       await trx('history_records').insert({
         action_type: 'create',
         entity_type: 'shift',
-        entity_id: shiftId,
+        entity_id: originalShiftId,
         caregiver_id,
         week_id,
-        description: `Created shift for ${caregiver.name} on ${day_of_week} (${start_time}-${end_time})`,
+        description: `Created shift for ${caregiver.name} on ${day_of_week} (${start_time}-${end_time})${isRecurring ? ' (recurring weekly)' : ''}`,
         details: JSON.stringify({
           day_of_week,
           start_time,
           end_time,
-          status: status || 'confirmed'
+          status: status || 'confirmed',
+          is_recurring: isRecurring || false,
+          recurring_end_date: isRecurring ? recurringEndDate : null
         })
       });
       
-      return shiftId;
+      // If recurring, create future shifts
+      if (isRecurring) {
+        logger.info('Creating recurring shifts', {
+          caregiver_id,
+          day_of_week,
+          end_date: recurringEndDate
+        });
+        
+        // Get the current week's info to calculate dates
+        const currentWeek = await trx('weeks').where({ id: week_id }).first();
+        
+        // Calculate the day index (0 = Monday, 6 = Sunday)
+        const dayIndex = ['monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday'].indexOf(day_of_week);
+        if (dayIndex === -1) {
+          throw new Error(`Invalid day of week: ${day_of_week}`);
+        }
+        
+        // Calculate the date of the first shift
+        const firstShiftDate = new Date(currentWeek.start_date);
+        firstShiftDate.setDate(firstShiftDate.getDate() + dayIndex);
+        
+        // Calculate end date (use end of year if not specified)
+        const endDate = recurringEndDate 
+          ? new Date(recurringEndDate) 
+          : new Date(new Date().getFullYear(), 11, 31); // Dec 31 of current year
+        
+        // Generate future dates (weekly)
+        let currentDate = new Date(firstShiftDate);
+        currentDate.setDate(currentDate.getDate() + 7); // Start from next week
+        
+        while (currentDate <= endDate) {
+          // Find or create the week for this date
+          const weekStart = new Date(currentDate);
+          weekStart.setDate(weekStart.getDate() - dayIndex); // Go back to Monday
+          
+          const weekEnd = new Date(weekStart);
+          weekEnd.setDate(weekEnd.getDate() + 6); // 6 days after start = Sunday
+          
+          // Format dates for DB
+          const formattedStart = weekStart.toISOString().split('T')[0];
+          const formattedEnd = weekEnd.toISOString().split('T')[0];
+          
+          // Find existing week or create new one
+          let weekRow = await trx('weeks')
+            .where('start_date', formattedStart)
+            .first();
+            
+          let futureWeekId;
+          
+          if (weekRow) {
+            futureWeekId = weekRow.id;
+          } else {
+            // Create a new week
+            const [newWeekId] = await trx('weeks')
+              .insert({
+                start_date: formattedStart,
+                end_date: formattedEnd,
+                is_published: false,
+                notes: `Auto-generated for recurring shift`
+              })
+              .returning('id');
+            futureWeekId = newWeekId;
+          }
+          
+          // Create the recurring shift for this week
+          const [recurringShiftId] = await trx('shifts')
+            .insert({
+              week_id: futureWeekId,
+              day_of_week,
+              caregiver_id,
+              start_time,
+              end_time,
+              status: status || 'confirmed',
+              parent_shift_id: originalShiftId
+            })
+            .returning('id');
+          
+          logger.debug('Created recurring shift', {
+            original_id: originalShiftId,
+            recurring_id: recurringShiftId,
+            week_id: futureWeekId,
+            date: currentDate.toISOString().split('T')[0]
+          });
+          
+          // Move to next week
+          currentDate.setDate(currentDate.getDate() + 7);
+        }
+      }
+      
+      return originalShiftId;
     });
     
     // Get complete shift data to return
@@ -410,14 +512,39 @@ exports.deleteShift = async (req, res) => {
     
     // Use transaction to ensure data integrity
     await withTransaction(async (trx) => {
+      // Check if this is a recurring shift
+      let shiftsToDelete = [id];
+      let isRecurring = false;
+      
+      if (shift.is_recurring || shift.parent_shift_id) {
+        isRecurring = true;
+        // This is part of a recurring series
+        // If it's a child shift, get its parent
+        const parentId = shift.parent_shift_id || shift.id;
+        
+        // Get all shifts in this series (parent and all children)
+        const seriesShifts = await trx('shifts')
+          .where({ id: parentId }) // The parent
+          .orWhere({ parent_shift_id: parentId }) // All children
+          .select('id');
+          
+        shiftsToDelete = seriesShifts.map(s => s.id);
+        
+        logger.info('Deleting recurring shift series', { 
+          shift_id: id,
+          parent_id: parentId,
+          total_shifts: shiftsToDelete.length
+        });
+      }
+      
       // Delete any related notifications first
       await trx('notifications')
-        .where({ affected_shift_id: id })
+        .whereIn('affected_shift_id', shiftsToDelete)
         .delete();
       
-      // Delete the shift
+      // Delete all the shifts
       await trx('shifts')
-        .where({ id })
+        .whereIn('id', shiftsToDelete)
         .delete();
       
       // Record history
@@ -427,12 +554,14 @@ exports.deleteShift = async (req, res) => {
         entity_id: id,
         caregiver_id: shift.caregiver_id,
         week_id: shift.week_id,
-        description: `Deleted shift for ${shift.caregiver_name} on ${shift.day_of_week} (${shift.start_time}-${shift.end_time})`,
+        description: `Deleted ${isRecurring ? 'recurring ' : ''}shift for ${shift.caregiver_name} on ${shift.day_of_week} (${shift.start_time}-${shift.end_time})`,
         details: JSON.stringify({
           day_of_week: shift.day_of_week,
           start_time: shift.start_time,
           end_time: shift.end_time,
-          status: shift.status
+          status: shift.status,
+          is_recurring: isRecurring,
+          deleted_count: shiftsToDelete.length
         })
       });
     });

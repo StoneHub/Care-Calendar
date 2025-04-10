@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { DayName } from '../../types';
+import { DayName, ShiftStatus } from '../../types';
 import { logger } from '../../utils/logger';
 import { dateService } from '../../services/core/DateService';
 import { useScheduleContext } from '../../context/ScheduleContext';
@@ -143,6 +143,17 @@ const EnhancedAddShiftModal: React.FC<EnhancedAddShiftModalProps> = ({
     return true;
   };
   
+  // Get the selected date string in YYYY-MM-DD format
+  const getSelectedDate = (): string => {
+    if (!weekId) return '';
+    
+    const selectedWeekObj = weeks.find(w => w.id === weekId);
+    if (!selectedWeekObj) return '';
+    
+    const dayDate = dateService.getDayDate(day, selectedWeekObj);
+    return dayDate.toISOString().split('T')[0];
+  };
+  
   // Handle form submission
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -208,7 +219,9 @@ const EnhancedAddShiftModal: React.FC<EnhancedAddShiftModalProps> = ({
           caregiver_id: caregiver,
           start: startTime,
           end: endTime,
-          status: 'confirmed'
+          status: 'confirmed' as ShiftStatus,
+          isRecurring,
+          recurringEndDate: isRecurring ? recurringEndDate : undefined
         };
         
         // FIXED: Now passing the selected weekId directly to addShift
@@ -231,17 +244,6 @@ const EnhancedAddShiftModal: React.FC<EnhancedAddShiftModalProps> = ({
     } finally {
       setSubmitting(false);
     }
-  };
-
-  // Get the selected date string in YYYY-MM-DD format
-  const getSelectedDate = (): string => {
-    if (!weekId) return '';
-    
-    const selectedWeekObj = weeks.find(w => w.id === weekId);
-    if (!selectedWeekObj) return '';
-    
-    const dayDate = dateService.getDayDate(day, selectedWeekObj);
-    return dayDate.toISOString().split('T')[0];
   };
 
   return (
@@ -309,14 +311,16 @@ const EnhancedAddShiftModal: React.FC<EnhancedAddShiftModalProps> = ({
           </div>
           {/* Week Selection */}
           <div>
-            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+            <label htmlFor="weekSelect" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
               Week
             </label>
             <select 
+              id="weekSelect"
               className={`w-full p-2 border ${!weekId && formTouched ? 'border-red-500' : 'border-gray-300 dark:border-gray-600'} rounded focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:text-white`}
               value={weekId || ''}
               onChange={handleWeekChange}
               disabled={isLoading || submitting}
+              aria-label="Select Week"
             >
               <option value="" disabled>Select a week</option>
               {dateService.sortWeeksByDate(weeks).map(week => (
@@ -333,10 +337,11 @@ const EnhancedAddShiftModal: React.FC<EnhancedAddShiftModalProps> = ({
 
           {/* Day Selection */}
           <div>
-            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+            <label htmlFor="daySelect" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
               Day
             </label>
             <select 
+              id="daySelect"
               className="w-full p-2 border border-gray-300 dark:border-gray-600 rounded focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:text-white"
               value={day}
               onChange={(e) => {
@@ -344,6 +349,7 @@ const EnhancedAddShiftModal: React.FC<EnhancedAddShiftModalProps> = ({
                 setFormTouched(true);
               }}
               disabled={isLoading || submitting}
+              aria-label="Select Day"
             >
               {days.map(dayOption => {
                 // Get the date for this day based on the selected week
@@ -361,10 +367,11 @@ const EnhancedAddShiftModal: React.FC<EnhancedAddShiftModalProps> = ({
           
           {/* Caregiver Selection */}
           <div>
-            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+            <label htmlFor="caregiverSelect" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
               Caregiver
             </label>
             <select 
+              id="caregiverSelect"
               className={`w-full p-2 border ${!caregiver && formTouched ? 'border-red-500' : 'border-gray-300 dark:border-gray-600'} rounded focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:text-white`}
               value={caregiver}
               onChange={(e) => {
@@ -372,6 +379,7 @@ const EnhancedAddShiftModal: React.FC<EnhancedAddShiftModalProps> = ({
                 setFormTouched(true);
               }}
               disabled={isLoading || submitting}
+              aria-label="Select Caregiver"
             >
               <option value={0} disabled>Select a caregiver</option>
               {caregivers.map(c => (
@@ -385,53 +393,55 @@ const EnhancedAddShiftModal: React.FC<EnhancedAddShiftModalProps> = ({
             )}
           </div>
           
-          {/* Recurring Option (for Time Off) */}
-          {isTimeOff && (
-            <div>
-              <div className="flex items-center mb-2">
-                <input
-                  type="checkbox"
-                  id="isRecurring"
-                  checked={isRecurring}
-                  onChange={(e) => setIsRecurring(e.target.checked)}
-                  className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 dark:border-gray-600 rounded"
-                  disabled={isLoading || submitting}
-                />
-                <label htmlFor="isRecurring" className="ml-2 block text-sm text-gray-700 dark:text-gray-300">
-                  Repeats Weekly
-                </label>
-              </div>
-              
-              {isRecurring && (
-                <div className="mt-2">
-                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                    Repeat Until
-                  </label>
-                  <input
-                    type="date"
-                    value={recurringEndDate}
-                    onChange={(e) => setRecurringEndDate(e.target.value)}
-                    min={getSelectedDate()}
-                    className="w-full p-2 border border-gray-300 dark:border-gray-600 rounded focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:text-white"
-                    disabled={isLoading || submitting}
-                  />
-                  <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
-                    If blank, will repeat until end of year
-                  </p>
-                </div>
-              )}
+          {/* Recurring Option */}
+          <div>
+            <div className="flex items-center mb-2">
+              <input
+                type="checkbox"
+                id="isRecurring"
+                checked={isRecurring}
+                onChange={(e) => setIsRecurring(e.target.checked)}
+                className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 dark:border-gray-600 rounded"
+                disabled={isLoading || submitting}
+                aria-label="Repeats Weekly"
+              />
+              <label htmlFor="isRecurring" className="ml-2 block text-sm text-gray-700 dark:text-gray-300">
+                Repeats Weekly
+              </label>
             </div>
-          )}
+            
+            {isRecurring && (
+              <div className="mt-2">
+                <label htmlFor="recurringEndDate" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                  Repeat Until
+                </label>
+                <input
+                  id="recurringEndDate"
+                  type="date"
+                  value={recurringEndDate}
+                  onChange={(e) => setRecurringEndDate(e.target.value)}
+                  min={getSelectedDate()}
+                  className="w-full p-2 border border-gray-300 dark:border-gray-600 rounded focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:text-white"
+                  disabled={isLoading || submitting}
+                  aria-label="Repeat Until Date"
+                />
+                <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
+                  If blank, will repeat until end of year
+                </p>
+              </div>
+            )}
+          </div>
           
           {/* Time Selection Section */}
           {!isTimeOff && (
             <React.Fragment>
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                  <label htmlFor="startTimeSelect" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
                     Start Time
                   </label>
                   <select 
+                    id="startTimeSelect"
                     className="w-full p-2 border border-gray-300 dark:border-gray-600 rounded focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:text-white"
                     value={startTime}
                     onChange={(e) => {
@@ -439,6 +449,7 @@ const EnhancedAddShiftModal: React.FC<EnhancedAddShiftModalProps> = ({
                       setFormTouched(true);
                     }}
                     disabled={isLoading || submitting}
+                    aria-label="Select Start Time"
                   >
                     {timeOptions.map(time => (
                       <option key={`start-${time}`} value={time}>
@@ -449,10 +460,11 @@ const EnhancedAddShiftModal: React.FC<EnhancedAddShiftModalProps> = ({
                 </div>
                 
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                  <label htmlFor="endTimeSelect" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
                     End Time
                   </label>
                   <select 
+                    id="endTimeSelect"
                     className="w-full p-2 border border-gray-300 dark:border-gray-600 rounded focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:text-white"
                     value={endTime}
                     onChange={(e) => {
@@ -460,6 +472,7 @@ const EnhancedAddShiftModal: React.FC<EnhancedAddShiftModalProps> = ({
                       setFormTouched(true);
                     }}
                     disabled={isLoading || submitting}
+                    aria-label="Select End Time"
                   >
                     {timeOptions.map(time => (
                       <option key={`end-${time}`} value={time}>

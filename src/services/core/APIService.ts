@@ -338,7 +338,18 @@ class APIService {
   }
   
   async createShift(shift: any): Promise<Shift> {
-    return this.request<Shift>('POST', '/schedule/shifts', { data: shift });
+    // Map frontend isRecurring and recurringEndDate to backend is_recurring and recurring_end_date
+    const payload = {
+      ...shift,
+      is_recurring: shift.isRecurring,
+      recurring_end_date: shift.recurringEndDate
+    };
+    
+    // Remove frontend-specific properties
+    if ('isRecurring' in payload) delete payload.isRecurring;
+    if ('recurringEndDate' in payload) delete payload.recurringEndDate;
+    
+    return this.request<Shift>('POST', '/schedule/shifts', { data: payload });
   }
   
   async updateShift(shift: Shift): Promise<Shift> {

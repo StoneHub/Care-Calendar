@@ -46,6 +46,8 @@ export interface NewShiftData {
   start: string;
   end: string;
   status?: ShiftStatus;
+  isRecurring?: boolean;
+  recurringEndDate?: string;
 }
 
 export type WeeklySchedule = Record<DayName, Shift[]>;
@@ -122,4 +124,3 @@ export interface HistoryRecord {
 }
 
 export * from './unavailability';
-

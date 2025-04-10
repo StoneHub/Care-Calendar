@@ -19,6 +19,7 @@ async function setupDatabase() {
         table.string('role').notNullable();
         table.string('availability').notNullable();
         table.integer('hours_per_week').notNullable();
+        table.boolean('is_active').defaultTo(true);
         table.timestamps(true, true);
       }).then(() => logger.info('Created team_members table'));
     } else {
@@ -51,8 +52,12 @@ async function setupDatabase() {
         table.string('start_time').notNullable();
         table.string('end_time').notNullable();
         table.string('status').defaultTo('confirmed');
+        // Add recurring columns
+        table.boolean('is_recurring').defaultTo(false);
+        table.date('recurring_end_date').nullable();
+        table.integer('parent_shift_id').nullable().references('id').inTable('shifts');
         table.timestamps(true, true);
-      }).then(() => logger.info('Created shifts table'));
+      }).then(() => logger.info('Created shifts table with recurring columns'));
     } else {
       logger.info('shifts table already exists');
     }

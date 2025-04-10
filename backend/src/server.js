@@ -95,8 +95,8 @@ app.use((err, req, res, next) => {
 
 // Import utilities
 const generateCalendarWeeks = require('./utils/generateCalendarWeeks');
-const setupHistoryTable = require('../db/setup_history');
-const setupUnavailabilityTable = require('../db/setup_unavailability');
+const { setupHistoryTable } = require('../db/setup_history');
+const { setupUnavailabilityTable } = require('../db/setup_unavailability');
 
 // Start server
 const HOST = '0.0.0.0';
