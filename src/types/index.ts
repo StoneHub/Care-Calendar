@@ -119,3 +119,5 @@ export interface HistoryRecord {
   details?: string;
 }
 
+export * from './unavailability';
+

@@ -9,6 +9,7 @@ interface TeamViewProps {
   onAddMember: () => void;
   onEditMember: (caregiver: Caregiver) => void;
   onDeleteMember: (caregiverId: number) => void;
+  onViewUnavailability?: (caregiver: Caregiver) => void;
 }
 
 const TeamView: React.FC<TeamViewProps> = ({
@@ -17,7 +18,8 @@ const TeamView: React.FC<TeamViewProps> = ({
   error = null,
   onAddMember,
   onEditMember,
-  onDeleteMember
+  onDeleteMember,
+  onViewUnavailability
 }) => {
   return (
     <div className="bg-white rounded-lg shadow">
@@ -55,6 +57,7 @@ const TeamView: React.FC<TeamViewProps> = ({
               caregiver={caregiver}
               onEdit={onEditMember}
               onDelete={onDeleteMember}
+              onViewUnavailability={onViewUnavailability}
             />
           ))}
         </div>

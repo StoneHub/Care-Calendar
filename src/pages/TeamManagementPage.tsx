@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useScheduleContext } from '../context/ScheduleContext';
 import TeamView from '../components/team/TeamView';
 import CaregiverModal from '../components/team/CaregiverModal';
+import UnavailabilityList from '../components/unavailability/UnavailabilityList';
 import { Caregiver } from '../types';
 import { apiService } from '../services/core/APIService';
 import { logger } from '../utils/logger';
@@ -24,6 +25,7 @@ const TeamManagementPage: React.FC = () => {
   const [error, setError] = useState<string | null>(null);
   const [confirmDelete, setConfirmDelete] = useState<number | null>(null);
   const [forceDelete, setForceDelete] = useState<boolean>(false);
+  const [selectedCaregiverId, setSelectedCaregiverId] = useState<number | null>(null);
   
   // Open add modal
   const handleAddMember = () => {
@@ -123,6 +125,11 @@ const TeamManagementPage: React.FC = () => {
   
   // We can remove this effect as we handle clicks in the dialog overlay now
   
+  // Handle viewing caregiver's unavailability
+  const handleViewUnavailability = (caregiver: Caregiver) => {
+    setSelectedCaregiverId(caregiver.id);
+  };
+  
   // Reset error on context change
   useEffect(() => {
     if (contextError) {
@@ -142,7 +149,27 @@ const TeamManagementPage: React.FC = () => {
           onAddMember={handleAddMember}
           onEditMember={handleEditMember}
           onDeleteMember={handleDeleteMember}
+          onViewUnavailability={handleViewUnavailability}
         />
+      </div>
+      
+      <div className="mb-8 bg-white p-4 rounded-lg shadow">
+        <div className="flex justify-between items-center mb-4">
+          <h2 className="text-lg font-medium">
+            {selectedCaregiverId ? 
+              `Time Off for ${caregivers.find(c => c.id === selectedCaregiverId)?.name || 'Team Member'}` : 
+              'Team Unavailability'}
+          </h2>
+          {selectedCaregiverId && (
+            <button
+              onClick={() => setSelectedCaregiverId(null)}
+              className="text-blue-600 px-2 py-1 rounded hover:bg-blue-50 text-sm"
+            >
+              View All
+            </button>
+          )}
+        </div>
+        <UnavailabilityList caregiverId={selectedCaregiverId || undefined} />
       </div>
       
       {/* Deletion confirmation dialog */}

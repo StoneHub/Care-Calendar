@@ -35,7 +35,7 @@ const EnhancedWeekSelector: React.FC = () => {
   const formattedWeekRange = selectedWeek ? dateService.formatWeekRangeForDisplay(selectedWeek) : 'No week selected';
   
   return (
-    <div className="bg-white rounded-lg shadow p-4 mb-6">
+    <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-4 mb-6">
       {/* Week navigation controls */}
       <div className="flex items-center justify-between mb-4">
         {/* Previous week button */}
@@ -60,7 +60,7 @@ const EnhancedWeekSelector: React.FC = () => {
             value={selectedWeek?.id || ''}
             onChange={handleWeekChange}
             disabled={isLoading}
-            className="block w-full py-2 px-3 border border-gray-300 bg-white rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
+            className="block w-full py-2 px-3 border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 dark:text-white rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
           >
             <option value="" disabled>Select a week</option>
             {sortedWeeks.map(week => (
@@ -74,9 +74,9 @@ const EnhancedWeekSelector: React.FC = () => {
         
         {/* Week display (for desktop) */}
         <div className="hidden md:flex items-center space-x-4">
-          <h2 className="text-lg font-medium text-gray-900">
+          <h2 className="text-lg font-medium text-gray-900 dark:text-white">
             {isLoading ? (
-              <div className="h-6 w-40 bg-gray-200 rounded animate-pulse"></div>
+              <div className="h-6 w-40 bg-gray-200 dark:bg-gray-700 rounded animate-pulse"></div>
             ) : (
               formattedWeekRange
             )}
@@ -84,7 +84,7 @@ const EnhancedWeekSelector: React.FC = () => {
           
           {/* Current week indicator */}
           {isCurrentWeekSelected && (
-            <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
+            <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 dark:bg-green-900/40 text-green-800 dark:text-green-300">
               Current Week
             </span>
           )}
@@ -120,8 +120,8 @@ const EnhancedWeekSelector: React.FC = () => {
       
       {/* Week selection tabs (for desktop) */}
       <div className="hidden md:block">
-        <div className="border-b border-gray-200">
-          <nav className="-mb-px flex space-x-4 overflow-x-auto pb-1">
+        <div className="border-b border-gray-200 dark:border-gray-700">
+          <nav className="-mb-px flex space-x-4 overflow-x-auto pb-1 dark:text-gray-300">
             {sortedWeeks.slice(0, 10).map(week => {
               const isSelected = selectedWeek?.id === week.id;
               const isCurrent = currentWeek?.id === week.id;
@@ -133,13 +133,13 @@ const EnhancedWeekSelector: React.FC = () => {
                   disabled={isLoading}
                   className={`whitespace-nowrap py-2 px-3 border-b-2 text-sm font-medium ${
                     isSelected
-                      ? 'border-blue-500 text-blue-600'
-                      : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+                      ? 'border-blue-500 text-blue-600 dark:text-blue-400'
+                      : 'border-transparent text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300 hover:border-gray-300 dark:hover:border-gray-600'
                   } ${isCurrent ? 'font-bold' : ''}`}
                 >
                   Week of {new Date(week.start_date).toLocaleDateString(undefined, { month: 'short', day: 'numeric' })}
                   {isCurrent && (
-                    <span className="ml-1.5 inline-flex items-center px-1.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
+                    <span className="ml-1.5 inline-flex items-center px-1.5 py-0.5 rounded-full text-xs font-medium bg-green-100 dark:bg-green-900/40 text-green-800 dark:text-green-300">
                       Current
                     </span>
                   )}
@@ -153,7 +153,7 @@ const EnhancedWeekSelector: React.FC = () => {
                 <select
                   value={selectedWeek && sortedWeeks.findIndex(w => w.id === selectedWeek.id) >= 10 ? selectedWeek.id : ''}
                   onChange={handleWeekChange}
-                  className="py-2 px-3 border-b-2 border-transparent text-sm font-medium text-gray-500 hover:text-gray-700 hover:border-gray-300 bg-transparent"
+                  className="py-2 px-3 border-b-2 border-transparent text-sm font-medium text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300 hover:border-gray-300 dark:hover:border-gray-600 bg-transparent dark:bg-transparent"
                   disabled={isLoading}
                 >
                   <option value="" disabled>More Weeks...</option>

@@ -1,12 +1,15 @@
 import React from 'react';
 import { ScheduleProvider } from './context/ScheduleContext';
+import { ThemeProvider } from './context/ThemeContext';
 import EnhancedCareSchedulerPage from './pages/EnhancedCareSchedulerPage';
 
 const App: React.FC = () => {
   return (
-    <ScheduleProvider>
-      <EnhancedCareSchedulerPage />
-    </ScheduleProvider>
+    <ThemeProvider>
+      <ScheduleProvider>
+        <EnhancedCareSchedulerPage />
+      </ScheduleProvider>
+    </ThemeProvider>
   );
 };
 

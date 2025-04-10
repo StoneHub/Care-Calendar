@@ -143,6 +143,13 @@ class DateService {
   }
   
   /**
+   * Gets the date for a specific day in a week - alternate name for getDateForDayInWeek
+   */
+  getDayDate(day: DayName, week: Week): Date {
+    return this.getDateForDayInWeek(day, week);
+  }
+  
+  /**
    * Gets information about a day in a week (for rendering)
    */
   getDayInfo(day: DayName, week: Week | null): { 

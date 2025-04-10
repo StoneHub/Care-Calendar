@@ -1,5 +1,5 @@
 import axios, { AxiosInstance, AxiosRequestConfig, AxiosResponse, AxiosError } from 'axios';
-import { Caregiver, Shift, Notification, Week, HistoryRecord } from '../../types';
+import { Caregiver, Shift, Notification, Week, HistoryRecord, Unavailability, NewUnavailabilityData, UnavailabilityBackend } from '../../types';
 import { logger } from '../../utils/logger';
 
 /**
@@ -408,6 +408,95 @@ class APIService {
   
   async getWeekHistory(weekId: number): Promise<HistoryRecord[]> {
     return this.request<HistoryRecord[]>('GET', `/history/week/${weekId}`);
+  }
+
+  // Unavailability
+  async getUnavailability(): Promise<Unavailability[]> {
+    const response = await this.request<UnavailabilityBackend[]>('GET', '/unavailability');
+    
+    // Map backend format to frontend format
+    return response.map(item => ({
+      id: item.id,
+      caregiverId: item.caregiver_id,
+      caregiverName: item.caregiver_name || '',
+      startDate: item.start_date,
+      endDate: item.end_date,
+      reason: item.reason,
+      isRecurring: item.is_recurring,
+      recurringEndDate: item.recurring_end_date
+    }));
+  }
+
+  async getCaregiverUnavailability(caregiverId: number): Promise<Unavailability[]> {
+    const response = await this.request<UnavailabilityBackend[]>('GET', `/unavailability/caregiver/${caregiverId}`);
+    
+    // Map backend format to frontend format
+    return response.map(item => ({
+      id: item.id,
+      caregiverId: item.caregiver_id,
+      caregiverName: item.caregiver_name || '',
+      startDate: item.start_date,
+      endDate: item.end_date,
+      reason: item.reason,
+      isRecurring: item.is_recurring,
+      recurringEndDate: item.recurring_end_date
+    }));
+  }
+
+  async createUnavailability(unavailability: NewUnavailabilityData): Promise<Unavailability> {
+    // Map frontend format to backend format
+    const payload = {
+      caregiver_id: unavailability.caregiverId,
+      start_date: unavailability.startDate,
+      end_date: unavailability.endDate,
+      reason: unavailability.reason,
+      is_recurring: unavailability.isRecurring,
+      recurring_end_date: unavailability.recurringEndDate
+    };
+    
+    const response = await this.request<UnavailabilityBackend>('POST', '/unavailability', { data: payload });
+    
+    // Map response back to frontend format
+    return {
+      id: response.id,
+      caregiverId: response.caregiver_id,
+      caregiverName: response.caregiver_name || '',
+      startDate: response.start_date,
+      endDate: response.end_date,
+      reason: response.reason,
+      isRecurring: response.is_recurring,
+      recurringEndDate: response.recurring_end_date
+    };
+  }
+
+  async updateUnavailability(id: number, unavailability: NewUnavailabilityData): Promise<Unavailability> {
+    // Map frontend format to backend format
+    const payload = {
+      caregiver_id: unavailability.caregiverId,
+      start_date: unavailability.startDate,
+      end_date: unavailability.endDate,
+      reason: unavailability.reason,
+      is_recurring: unavailability.isRecurring,
+      recurring_end_date: unavailability.recurringEndDate
+    };
+    
+    const response = await this.request<UnavailabilityBackend>('PUT', `/unavailability/${id}`, { data: payload });
+    
+    // Map response back to frontend format
+    return {
+      id: response.id,
+      caregiverId: response.caregiver_id,
+      caregiverName: response.caregiver_name || '',
+      startDate: response.start_date,
+      endDate: response.end_date,
+      reason: response.reason,
+      isRecurring: response.is_recurring,
+      recurringEndDate: response.recurring_end_date
+    };
+  }
+
+  async deleteUnavailability(id: number): Promise<void> {
+    return this.request<void>('DELETE', `/unavailability/${id}`);
   }
 }
 

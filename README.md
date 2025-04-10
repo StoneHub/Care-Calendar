@@ -6,9 +6,9 @@ A locally hosted weekly calendar scheduler for coordinating full-time care. This
 
 We're working on several exciting enhancements:
 
-1. **Local Network Access** - View the calendar on your smart fridge and other devices
-2. **Dark Mode** - Automatic switching based on time of day
-3. **Team Member Unavailability** - Mark days out directly on the calendar
+1. ✅ **Local Network Access** - View the calendar on your smart fridge and other devices
+2. ✅ **Dark Mode** - Automatic switching based on time of day (6am-7pm)
+3. ✅ **Team Member Unavailability** - Mark days out directly on the calendar
 4. **Enhanced Reporting** - Detailed HTML reports for payroll management
 5. **Google Calendar Integration** - Sync schedules to team members' phones
 
@@ -35,6 +35,20 @@ The application has a well-structured architecture with clear separation of conc
 ## Recent Fixes and Improvements
 
 The latest updates address several critical issues and implement new features:
+
+**Dark Mode & Theme Consistency:**
+- Implemented simple 6am-7pm fixed times for Greenville, SC auto-switching
+- Added consistent theming across all components using standardized utility classes
+- Enhanced accessibility with proper ARIA attributes
+- Fixed component inconsistencies reported by Greenville users
+- Fixed modal components with stark white backgrounds in dark mode (CaregiverModal, CreateWeekModal, ShiftOptionsModal)
+- Updated main interface components (calendar grid, week selector, shift cards) with proper dark mode styling to reduce eye strain
+
+**Team Member Unavailability:**
+- Added ability to mark days team members are unavailable
+- Implemented weekly recurring unavailability patterns
+- Added visual indicators on the calendar for unavailable team members
+- Created dedicated UI for managing time off in Team Management
 
 **Local Network Access:**
 - Added ability to access Calendar from any device on local network
@@ -142,6 +156,7 @@ The application uses the following database schema:
 - **team_members:** Stores caregiver information
 - **weeks:** Stores calendar weeks
 - **shifts:** Stores shifts for each week
+- **unavailability:** Stores team member time off records
 - **history_records:** Tracks all changes to the system
 - **notifications:** Stores system notifications and requests
 - **payroll_records:** Stores historical payroll data

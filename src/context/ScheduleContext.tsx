@@ -1,7 +1,7 @@
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import { apiService } from '../services/core/APIService';
 import { dateService } from '../services/core/DateService';
-import { Week, Shift, DayName, Caregiver, Notification, WeeklySchedule, NewShiftData } from '../types';
+import { Week, Shift, DayName, Caregiver, Notification, WeeklySchedule, NewShiftData, Unavailability, NewUnavailabilityData } from '../types';
 import { logger } from '../utils/logger';
 import { organizeShiftsByDay } from '../utils/mappers';
 
@@ -14,6 +14,7 @@ interface ScheduleContextState {
   schedule: WeeklySchedule;
   notifications: Notification[];
   caregivers: Caregiver[];
+  unavailability: Unavailability[];
   
   // UI state
   selectedDay: DayName | null;
@@ -44,6 +45,12 @@ interface ScheduleContextState {
   updateTeamMember: (caregiver: Caregiver) => Promise<boolean>;
   deleteTeamMember: (caregiverId: number) => Promise<boolean>;
   refreshTeamMembers: () => Promise<void>;
+  
+  // Unavailability operations
+  getUnavailability: () => Promise<void>;
+  addUnavailability: (unavailability: NewUnavailabilityData) => Promise<boolean>;
+  updateUnavailability: (id: number, unavailability: NewUnavailabilityData) => Promise<boolean>;
+  deleteUnavailability: (id: number) => Promise<boolean>;
 }
 
 // Create the context with a default value
@@ -70,6 +77,7 @@ export const ScheduleProvider: React.FC<{children: ReactNode}> = ({ children }) 
   const [selectedShift, setSelectedShift] = useState<Shift | null>(null);
   const [isLoading, setIsLoading] = useState<boolean>(false);
   const [error, setError] = useState<string | null>(null);
+  const [unavailability, setUnavailability] = useState<Unavailability[]>([]);
 
   // Initialize data
   useEffect(() => {
@@ -84,7 +92,8 @@ export const ScheduleProvider: React.FC<{children: ReactNode}> = ({ children }) 
         await Promise.all([
           fetchWeeks(),
           fetchCaregivers(),
-          fetchNotifications()
+          fetchNotifications(),
+          fetchUnavailability()
         ]);
         
         logger.info('Schedule data initialized');
@@ -378,6 +387,28 @@ export const ScheduleProvider: React.FC<{children: ReactNode}> = ({ children }) 
     selectWeek(currentWeek.id);
   };
   
+  // Fetch unavailability
+  const fetchUnavailability = async (): Promise<void> => {
+    try {
+      logger.info('Fetching unavailability records');
+      
+      const unavailabilityData = await apiService.getUnavailability();
+      
+      logger.debug('Unavailability records received', { 
+        count: unavailabilityData.length
+      });
+      
+      setUnavailability(unavailabilityData);
+    } catch (err: any) {
+      logger.error('Error fetching unavailability records', {
+        error: err.message,
+        stack: err.stack
+      });
+      
+      throw err;
+    }
+  };
+
   // Refresh all schedule data
   const refreshSchedule = async (): Promise<void> => {
     setIsLoading(true);
@@ -389,7 +420,8 @@ export const ScheduleProvider: React.FC<{children: ReactNode}> = ({ children }) 
       // Reload all data
       await Promise.all([
         fetchWeeks(),
-        fetchNotifications()
+        fetchNotifications(),
+        fetchUnavailability()
       ]);
       
       // Reload schedule for the selected week
@@ -883,6 +915,114 @@ export const ScheduleProvider: React.FC<{children: ReactNode}> = ({ children }) 
     }
   };
   
+  // Unavailability operations
+  const getUnavailability = async (): Promise<void> => {
+    setIsLoading(true);
+    setError(null);
+    
+    try {
+      await fetchUnavailability();
+    } catch (err: any) {
+      logger.error('Failed to get unavailability records', {
+        error: err.message,
+        stack: err.stack
+      });
+      
+      setError(`Failed to get unavailability records: ${err.message}`);
+      throw err;
+    } finally {
+      setIsLoading(false);
+    }
+  };
+  
+  const addUnavailability = async (unavailabilityData: NewUnavailabilityData): Promise<boolean> => {
+    setIsLoading(true);
+    setError(null);
+    
+    try {
+      logger.info('Adding new unavailability record', { 
+        caregiverId: unavailabilityData.caregiverId,
+        startDate: unavailabilityData.startDate,
+        endDate: unavailabilityData.endDate
+      });
+      
+      await apiService.createUnavailability(unavailabilityData);
+      
+      logger.info('Unavailability record added successfully');
+      
+      // Refresh unavailability records
+      await fetchUnavailability();
+      
+      return true;
+    } catch (err: any) {
+      logger.error('Failed to add unavailability record', {
+        error: err.message,
+        stack: err.stack
+      });
+      
+      setError(`Failed to add unavailability record: ${err.message}`);
+      return false;
+    } finally {
+      setIsLoading(false);
+    }
+  };
+  
+  const updateUnavailability = async (id: number, unavailabilityData: NewUnavailabilityData): Promise<boolean> => {
+    setIsLoading(true);
+    setError(null);
+    
+    try {
+      logger.info('Updating unavailability record', { id });
+      
+      await apiService.updateUnavailability(id, unavailabilityData);
+      
+      logger.info('Unavailability record updated successfully');
+      
+      // Refresh unavailability records
+      await fetchUnavailability();
+      
+      return true;
+    } catch (err: any) {
+      logger.error('Failed to update unavailability record', {
+        error: err.message,
+        stack: err.stack
+      });
+      
+      setError(`Failed to update unavailability record: ${err.message}`);
+      return false;
+    } finally {
+      setIsLoading(false);
+    }
+  };
+  
+  const deleteUnavailability = async (id: number): Promise<boolean> => {
+    setIsLoading(true);
+    setError(null);
+    
+    try {
+      logger.info('Deleting unavailability record', { id });
+      
+      await apiService.deleteUnavailability(id);
+      
+      logger.info('Unavailability record deleted successfully');
+      
+      // Refresh unavailability records
+      await fetchUnavailability();
+      
+      return true;
+    } catch (err: any) {
+      logger.error('Failed to delete unavailability record', {
+        error: err.message,
+        stack: err.stack
+      });
+      
+      setError(`Failed to delete unavailability record: ${err.message}`);
+      return false;
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
   // Construct the context value
   const contextValue: ScheduleContextState = {
     // Data
@@ -892,6 +1032,7 @@ export const ScheduleProvider: React.FC<{children: ReactNode}> = ({ children }) 
     schedule,
     notifications,
     caregivers,
+    unavailability,
     
     // UI state
     selectedDay,
@@ -921,7 +1062,13 @@ export const ScheduleProvider: React.FC<{children: ReactNode}> = ({ children }) 
     addTeamMember,
     updateTeamMember,
     deleteTeamMember,
-    refreshTeamMembers
+    refreshTeamMembers,
+    
+    // Unavailability operations
+    getUnavailability,
+    addUnavailability,
+    updateUnavailability,
+    deleteUnavailability
   };
 
   return (

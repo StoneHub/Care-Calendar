@@ -96,6 +96,7 @@ app.use((err, req, res, next) => {
 // Import utilities
 const generateCalendarWeeks = require('./utils/generateCalendarWeeks');
 const setupHistoryTable = require('../db/setup_history');
+const setupUnavailabilityTable = require('../db/setup_unavailability');
 
 // Start server
 const HOST = '0.0.0.0';
@@ -106,6 +107,10 @@ server.listen(port, HOST, async () => {
     // Set up history table
     await setupHistoryTable();
     logger.info('History table setup completed');
+    
+    // Set up unavailability table
+    await setupUnavailabilityTable();
+    logger.info('Unavailability table setup completed');
     
     // Auto-generate calendar weeks on server start
     await generateCalendarWeeks(4, 12); // 4 weeks back, 12 weeks forward

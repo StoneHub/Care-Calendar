@@ -11,6 +11,7 @@
     "reset-db": "node src/server.js --reset-db",
     "debug-db": "node src/utils/resolveDb.js --reset",
     "setup-history": "node db/setup_history.js",
+    "setup-unavailability": "node db/setup_unavailability.js",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "dependencies": {

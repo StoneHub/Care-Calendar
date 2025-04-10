@@ -96,12 +96,12 @@ const CreateWeekModal: React.FC<CreateWeekModalProps> = ({
   };
 
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4">
-      <div className="bg-white rounded-lg shadow-lg max-w-md w-full p-6">
-        <h3 className="text-lg font-medium mb-4">Create New Week</h3>
+    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
+      <div className="bg-white dark:bg-gray-800 rounded-lg shadow-lg max-w-md w-full p-6">
+        <h3 className="text-lg font-medium mb-4 dark:text-white">Create New Week</h3>
         
         {error && (
-          <div className="mb-4 p-2 bg-red-100 border border-red-300 text-red-800 rounded">
+          <div className="mb-4 p-2 bg-red-100 dark:bg-red-900/30 border border-red-300 dark:border-red-600 text-red-800 dark:text-red-300 rounded">
             {error}
           </div>
         )}
@@ -109,12 +109,12 @@ const CreateWeekModal: React.FC<CreateWeekModalProps> = ({
         <form onSubmit={handleSubmit}>
           <div className="grid grid-cols-2 gap-4 mb-4">
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
                 Start Date (Monday)
               </label>
               <input 
                 type="date"
-                className="w-full p-2 border border-gray-300 rounded"
+                className="w-full p-2 border border-gray-300 dark:border-gray-600 rounded dark:bg-gray-700 dark:text-white"
                 value={startDate}
                 onChange={handleStartDateChange}
                 disabled={isSubmitting}
@@ -122,28 +122,28 @@ const CreateWeekModal: React.FC<CreateWeekModalProps> = ({
             </div>
             
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
                 End Date (Sunday)
               </label>
               <input 
                 type="date"
-                className="w-full p-2 border border-gray-300 rounded"
+                className="w-full p-2 border border-gray-300 dark:border-gray-600 rounded dark:bg-gray-700 dark:text-white"
                 value={endDate}
                 onChange={(e) => setEndDate(e.target.value)}
                 disabled={true} // Auto-calculated, so disabled
               />
-              <p className="text-xs text-gray-500 mt-1">
+              <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
                 End date is automatically set to Sunday
               </p>
             </div>
           </div>
           
           <div className="mb-4">
-            <label className="block text-sm font-medium text-gray-700 mb-1">
+            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
               Notes (optional)
             </label>
             <textarea 
-              className="w-full p-2 border border-gray-300 rounded"
+              className="w-full p-2 border border-gray-300 dark:border-gray-600 rounded dark:bg-gray-700 dark:text-white"
               value={notes}
               onChange={(e) => setNotes(e.target.value)}
               placeholder="Add any notes about this week"
@@ -161,7 +161,7 @@ const CreateWeekModal: React.FC<CreateWeekModalProps> = ({
                 onChange={(e) => setIsPublished(e.target.checked)}
                 disabled={isSubmitting}
               />
-              <span className="text-sm text-gray-700">Publish this week immediately</span>
+              <span className="text-sm text-gray-700 dark:text-gray-300">Publish this week immediately</span>
             </label>
           </div>
           
@@ -169,14 +169,14 @@ const CreateWeekModal: React.FC<CreateWeekModalProps> = ({
             <button 
               type="button"
               onClick={onClose}
-              className="px-4 py-2 text-gray-700 bg-gray-100 rounded hover:bg-gray-200"
+              className="px-4 py-2 text-gray-700 dark:text-gray-300 bg-gray-100 dark:bg-gray-700 rounded hover:bg-gray-200 dark:hover:bg-gray-600"
               disabled={isSubmitting}
             >
               Cancel
             </button>
             <button 
               type="submit"
-              className="px-4 py-2 text-white bg-blue-600 rounded hover:bg-blue-700"
+              className="px-4 py-2 text-white bg-blue-600 dark:bg-blue-700 rounded hover:bg-blue-700 dark:hover:bg-blue-600"
               disabled={isSubmitting}
             >
               {isSubmitting ? 'Creating...' : 'Create Week'}

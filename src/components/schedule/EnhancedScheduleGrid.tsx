@@ -1,5 +1,5 @@
-import React from 'react';
-import { DayName, Shift } from '../../types';
+import React, { useMemo } from 'react';
+import { DayName, Shift, Unavailability } from '../../types';
 import { useScheduleContext } from '../../context/ScheduleContext';
 import { dateService } from '../../services/core/DateService';
 import ShiftCard from '../shared/ShiftCard';
@@ -13,21 +13,86 @@ const EnhancedScheduleGrid: React.FC<EnhancedScheduleGridProps> = ({
   onDayClick, 
   onShiftClick 
 }) => {
-  // Get data from context
-  const { schedule, selectedWeek, isLoading, error } = useScheduleContext();
-  
   // Ensure days are in correct order (Monday to Sunday)
   const orderedDays: DayName[] = ['monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday'];
+
+  // Get data from context
+  const { schedule, selectedWeek, isLoading, error, unavailability } = useScheduleContext();
+  
+  // Group unavailability by day for the selected week
+  const unavailabilityByDay = useMemo(() => {
+    if (!selectedWeek || !unavailability.length) return {};
+    
+    const result: Record<DayName, Unavailability[]> = {
+      monday: [],
+      tuesday: [],
+      wednesday: [],
+      thursday: [],
+      friday: [],
+      saturday: [],
+      sunday: []
+    };
+    
+    // Get dates for each day in the selected week
+    const weekDates = orderedDays.reduce<Record<DayName, Date>>((acc, day) => {
+      acc[day] = dateService.getDayDate(day, selectedWeek);
+      return acc;
+    }, {} as Record<DayName, Date>);
+    
+    // Helper to check if a date falls within a date range
+    const isDateInRange = (date: Date, startDate: string, endDate: string): boolean => {
+      const start = new Date(startDate);
+      start.setHours(0, 0, 0, 0);
+      
+      const end = new Date(endDate);
+      end.setHours(23, 59, 59, 999);
+      
+      return date >= start && date <= end;
+    };
+    
+    // Filter unavailability records for the current week
+    unavailability.forEach(record => {
+      orderedDays.forEach(day => {
+        const dayDate = weekDates[day];
+        
+        if (isDateInRange(dayDate, record.startDate, record.endDate)) {
+          result[day].push(record);
+        }
+        
+        // Handle recurring unavailability
+        if (record.isRecurring) {
+          const recordStart = new Date(record.startDate);
+          const recordEnd = new Date(record.endDate);
+          const recurringEndDate = record.recurringEndDate 
+            ? new Date(record.recurringEndDate)
+            : new Date(new Date().getFullYear(), 11, 31); // End of year fallback
+          
+          // If the day of week matches and it's before the recurring end date
+          if (recordStart.getDay() === dayDate.getDay() && 
+              dayDate > recordEnd && 
+              dayDate <= recurringEndDate) {
+            
+            // Only include if we haven't already matched this record
+            if (!result[day].some(item => item.id === record.id)) {
+              result[day].push(record);
+            }
+          }
+        }
+      });
+    });
+    
+    return result;
+  }, [selectedWeek, unavailability, orderedDays]);
   
   // Function to determine shift status color
   const getShiftStatusColor = (status: string): string => {
     switch(status) {
-      case 'confirmed': return 'bg-green-100 border-green-300';
-      case 'dropped': return 'bg-red-100 border-red-300';
-      case 'adjusted': return 'bg-blue-100 border-blue-300';
-      case 'swap-proposed': return 'bg-purple-100 border-purple-300';
-      case 'requested-off': return 'bg-amber-100 border-amber-300';
-      default: return 'bg-gray-100 border-gray-300';
+      case 'confirmed': return 'bg-green-100 dark:bg-green-900/30 border-green-300 dark:border-green-800';
+      case 'dropped': return 'bg-red-100 dark:bg-red-900/30 border-red-300 dark:border-red-800';
+      case 'adjusted': return 'bg-blue-100 dark:bg-blue-900/30 border-blue-300 dark:border-blue-800';
+      case 'swap-proposed': return 'bg-purple-100 dark:bg-purple-900/30 border-purple-300 dark:border-purple-800';
+      case 'requested-off': return 'bg-amber-100 dark:bg-amber-900/30 border-amber-300 dark:border-amber-800';
+      default: return 'bg-gray-100 dark:bg-gray-700 border-gray-300 dark:border-gray-600';
     }
   };
 
@@ -36,19 +101,19 @@ const EnhancedScheduleGrid: React.FC<EnhancedScheduleGridProps> = ({
   // If loading, show a skeleton UI
   if (isLoading) {
     return (
-      <div className="bg-white rounded-lg shadow overflow-hidden animate-pulse">
+      <div className="bg-white dark:bg-gray-800 rounded-lg shadow overflow-hidden animate-pulse">
         <div className="grid grid-cols-7 border-b">
           {orderedDays.map((day) => (
             <div key={day} className="p-2 border-r last:border-r-0">
-              <div className="h-6 bg-gray-200 rounded"></div>
+              <div className="h-6 bg-gray-200 dark:bg-gray-700 rounded"></div>
             </div>
           ))}
         </div>
         <div className="grid grid-cols-7 text-sm">
           {orderedDays.map((day) => (
             <div key={day} className="border-r last:border-r-0 min-h-64 p-2">
-              <div className="h-20 bg-gray-100 rounded mb-2"></div>
-              <div className="h-20 bg-gray-100 rounded"></div>
+              <div className="h-20 bg-gray-100 dark:bg-gray-700 rounded mb-2"></div>
+              <div className="h-20 bg-gray-100 dark:bg-gray-700 rounded"></div>
             </div>
           ))}
         </div>
@@ -59,7 +124,7 @@ const EnhancedScheduleGrid: React.FC<EnhancedScheduleGridProps> = ({
   // If error, show error message
   if (error) {
     return (
-      <div className="bg-white rounded-lg shadow p-4 text-center text-red-500">
+      <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-4 text-center text-red-500 dark:text-red-400">
         <svg xmlns="http://www.w3.org/2000/svg" className="h-12 w-12 mx-auto mb-2 text-red-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
         </svg>
@@ -76,7 +141,7 @@ const EnhancedScheduleGrid: React.FC<EnhancedScheduleGridProps> = ({
   }
 
   return (
-    <div className="bg-white rounded-lg shadow overflow-hidden">
+    <div className="bg-white dark:bg-gray-800 rounded-lg shadow overflow-hidden">
       {/* Schedule Header */}
       <div className="grid grid-cols-7 border-b">
         {orderedDays.map((day) => {
@@ -87,10 +152,10 @@ const EnhancedScheduleGrid: React.FC<EnhancedScheduleGridProps> = ({
           const shouldHighlightToday = isActuallyToday && isCurrentWeekSelected;
           
           return (
-            <div key={day} className={`p-2 border-r last:border-r-0 text-center ${shouldHighlightToday ? 'bg-blue-50' : ''}`}>
+            <div key={day} className={`p-2 border-r last:border-r-0 text-center ${shouldHighlightToday ? 'bg-blue-50 dark:bg-blue-900/30' : 'dark:border-gray-700'} dark:text-white`}>
               <div className="font-medium">{dayInfo.dayName}</div>
-              <div className={`text-lg ${shouldHighlightToday ? 'font-bold text-blue-700' : ''}`}>{dayInfo.dateStr}</div>
-              {shouldHighlightToday && <div className="text-xs text-blue-500">Today</div>}
+              <div className={`text-lg ${shouldHighlightToday ? 'font-bold text-blue-700 dark:text-blue-400' : 'dark:text-white'}`}>{dayInfo.dateStr}</div>
+              {shouldHighlightToday && <div className="text-xs text-blue-500 dark:text-blue-400">Today</div>}
             </div>
           );
         })}
@@ -101,13 +166,13 @@ const EnhancedScheduleGrid: React.FC<EnhancedScheduleGridProps> = ({
         {orderedDays.map((day) => (
           <div 
             key={day} 
-            className="border-r last:border-r-0 min-h-64 relative p-2"
+            className="border-r last:border-r-0 dark:border-gray-700 min-h-64 relative p-2 dark:bg-gray-800"
             onClick={() => onDayClick && onDayClick(day)}
           >
             {/* Empty state with add button when no shifts */}
             {(!schedule[day] || schedule[day].length === 0) && (
               <div 
-                className="absolute inset-0 flex flex-col items-center justify-center text-gray-400 cursor-pointer hover:bg-gray-50 transition-colors duration-150"
+                className="absolute inset-0 flex flex-col items-center justify-center text-gray-400 dark:text-gray-500 cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors duration-150"
                 onClick={(e) => {
                   e.stopPropagation();
                   if (onDayClick) onDayClick(day);
@@ -119,6 +184,18 @@ const EnhancedScheduleGrid: React.FC<EnhancedScheduleGridProps> = ({
                 <span className="mt-2 text-sm">Add Shift</span>
               </div>
             )}
+            
+            {/* Render unavailability markers */}
+            {(unavailabilityByDay[day] || []).map((item) => (
+              <div 
+                key={`unavailable-${item.id}`}
+                className="mb-2 p-2 bg-red-100 dark:bg-red-900 text-red-800 dark:text-red-200 text-xs rounded border border-red-300 dark:border-red-700"
+              >
+                <div className="font-medium">{item.caregiverName}</div>
+                <div>Unavailable {item.isRecurring ? '(Weekly)' : ''}</div>
+                {item.reason && <div className="text-red-700 dark:text-red-300">{item.reason}</div>}
+              </div>
+            ))}
             
             {/* Render shifts */}
             {(schedule[day] || []).map((shift) => (

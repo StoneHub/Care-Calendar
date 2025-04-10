@@ -3,6 +3,7 @@ import { DayName } from '../../types';
 import { logger } from '../../utils/logger';
 import { dateService } from '../../services/core/DateService';
 import { useScheduleContext } from '../../context/ScheduleContext';
+import { useTheme } from '../../context/ThemeContext';
 
 interface EnhancedAddShiftModalProps {
   initialDay?: DayName | null;
@@ -21,8 +22,12 @@ const EnhancedAddShiftModal: React.FC<EnhancedAddShiftModalProps> = ({
     addShift,
     selectWeek,
     isLoading, 
-    error: contextError 
+    error: contextError,
+    addUnavailability 
   } = useScheduleContext();
+  
+  // Get theme
+  const { theme } = useTheme();
   
   // Local state
   const [day, setDay] = useState<DayName>(initialDay || 'monday');
@@ -33,6 +38,9 @@ const EnhancedAddShiftModal: React.FC<EnhancedAddShiftModalProps> = ({
   const [localError, setLocalError] = useState<string | null>(null);
   const [formTouched, setFormTouched] = useState<boolean>(false);
   const [submitting, setSubmitting] = useState<boolean>(false);
+  const [isTimeOff, setIsTimeOff] = useState<boolean>(false);
+  const [isRecurring, setIsRecurring] = useState<boolean>(false);
+  const [recurringEndDate, setRecurringEndDate] = useState<string>('');
   
   // Generate time options using the date service
   const timeOptions = dateService.generateTimeOptions(60); // 1 hour intervals
@@ -50,6 +58,19 @@ const EnhancedAddShiftModal: React.FC<EnhancedAddShiftModalProps> = ({
       setDay(initialDay);
     }
   }, [initialDay]);
+  
+  // Calculate end of year date for recurring events
+  const endOfYearDate = new Date();
+  endOfYearDate.setMonth(11); // December (0-indexed)
+  endOfYearDate.setDate(31);
+  const endOfYearISODate = endOfYearDate.toISOString().split('T')[0];
+
+  // Set initial recurring end date to end of year
+  useEffect(() => {
+    if (!recurringEndDate) {
+      setRecurringEndDate(endOfYearISODate);
+    }
+  }, []);
   
   // Update week ID when selectedWeek changes
   useEffect(() => {
@@ -141,36 +162,69 @@ const EnhancedAddShiftModal: React.FC<EnhancedAddShiftModalProps> = ({
     
     setSubmitting(true);
     
-    logger.info('Add shift form validated successfully', {
-      day,
-      caregiver,
-      weekId,
-      startTime,
-      endTime
-    });
-    
-    // Prepare shift data
-    const shiftData = {
-      caregiver_id: caregiver,
-      start: startTime,
-      end: endTime,
-      status: 'confirmed'
-    };
-    
     try {
-      // FIXED: Now passing the selected weekId directly to addShift
-      // No need to first select the week, which could cause race conditions
-      const success = await addShift(day, shiftData, weekId);
-      
-      if (success) {
-        logger.info('Shift added successfully');
-        onClose();
+      if (isTimeOff) {
+        // Handle unavailability creation
+        logger.info('Adding unavailability record', {
+          caregiver,
+          startDate: getSelectedDate(),
+          endDate: getSelectedDate(),
+          isRecurring,
+          recurringEndDate: isRecurring ? recurringEndDate : undefined
+        });
+
+        // Prepare unavailability data
+        const unavailabilityData = {
+          caregiverId: caregiver,
+          startDate: getSelectedDate(),
+          endDate: getSelectedDate(),
+          reason: `Added from shift dialog: ${startTime} - ${endTime}`,
+          isRecurring,
+          recurringEndDate: isRecurring ? recurringEndDate : undefined
+        };
+
+        const success = await addUnavailability(unavailabilityData);
+
+        if (success) {
+          logger.info('Unavailability added successfully');
+          onClose();
+        } else {
+          logger.error('Failed to add unavailability');
+          setLocalError(contextError || 'Failed to add time off. Please try again.');
+        }
       } else {
-        logger.error('Failed to add shift');
-        setLocalError(contextError || 'Failed to add shift. Please try again.');
+        // Handle regular shift creation
+        logger.info('Add shift form validated successfully', {
+          day,
+          caregiver,
+          weekId,
+          startTime,
+          endTime,
+          isRecurring
+        });
+        
+        // Prepare shift data
+        const shiftData = {
+          caregiver_id: caregiver,
+          start: startTime,
+          end: endTime,
+          status: 'confirmed'
+        };
+        
+        // FIXED: Now passing the selected weekId directly to addShift
+        // No need to first select the week, which could cause race conditions
+        const success = await addShift(day, shiftData, weekId);
+        
+        if (success) {
+          logger.info('Shift added successfully');
+          onClose();
+        } else {
+          logger.error('Failed to add shift');
+          setLocalError(contextError || 'Failed to add shift. Please try again.');
+        }
       }
     } catch (err: any) {
-      logger.error('Error in add shift form submission', {
+      logger.error('Error in form submission', {
         error: err.message
       });
       setLocalError(`Error: ${err.message}`);
@@ -179,14 +233,25 @@ const EnhancedAddShiftModal: React.FC<EnhancedAddShiftModalProps> = ({
     }
   };
 
+  // Get the selected date string in YYYY-MM-DD format
+  const getSelectedDate = (): string => {
+    if (!weekId) return '';
+    
+    const selectedWeekObj = weeks.find(w => w.id === weekId);
+    if (!selectedWeekObj) return '';
+    
+    const dayDate = dateService.getDayDate(day, selectedWeekObj);
+    return dayDate.toISOString().split('T')[0];
+  };
+
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
-      <div className="bg-white rounded-lg shadow-lg max-w-md w-full p-6 animate-fade-in">
+      <div className="bg-white dark:bg-gray-800 rounded-lg shadow-lg max-w-md w-full p-6 animate-fade-in">
         <div className="flex justify-between items-center mb-4">
-          <h3 className="text-lg font-medium">Add New Shift</h3>
+          <h3 className="text-lg font-medium dark:text-white">{isTimeOff ? 'Add Time Off' : 'Add New Shift'}</h3>
           <button
             onClick={onClose}
-            className="text-gray-400 hover:text-gray-600"
+            className="text-gray-400 hover:text-gray-600 dark:text-gray-300 dark:hover:text-gray-100"
             aria-label="Close"
           >
             <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -197,10 +262,10 @@ const EnhancedAddShiftModal: React.FC<EnhancedAddShiftModalProps> = ({
         
         {/* Error message */}
         {(localError || contextError) && (
-          <div className="mb-4 p-3 bg-red-100 border-l-4 border-red-500 text-red-700">
+          <div className="mb-4 p-3 bg-red-100 dark:bg-red-900/30 border-l-4 border-red-500 dark:border-red-600 text-red-700 dark:text-red-300">
             <div className="flex">
               <div className="flex-shrink-0">
-                <svg className="h-5 w-5 text-red-500" viewBox="0 0 20 20" fill="currentColor">
+                <svg className="h-5 w-5 text-red-500 dark:text-red-400" viewBox="0 0 20 20" fill="currentColor">
                   <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
                 </svg>
               </div>
@@ -212,13 +277,43 @@ const EnhancedAddShiftModal: React.FC<EnhancedAddShiftModalProps> = ({
         )}
         
         <form onSubmit={handleSubmit} className="space-y-4">
+          {/* Entry Type Selection */}
+          <div>
+            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+              Entry Type
+            </label>
+            <div className="flex mt-1 space-x-4">
+              <label className="inline-flex items-center">
+                <input
+                  type="radio"
+                  className="form-radio text-blue-600"
+                  name="entryType"
+                  checked={!isTimeOff}
+                  onChange={() => setIsTimeOff(false)}
+                  disabled={isLoading || submitting}
+                />
+                <span className="ml-2 text-gray-700 dark:text-gray-300">Shift</span>
+              </label>
+              <label className="inline-flex items-center">
+                <input
+                  type="radio"
+                  className="form-radio text-purple-600"
+                  name="entryType"
+                  checked={isTimeOff}
+                  onChange={() => setIsTimeOff(true)}
+                  disabled={isLoading || submitting}
+                />
+                <span className="ml-2 text-gray-700 dark:text-gray-300">Time Off</span>
+              </label>
+            </div>
+          </div>
           {/* Week Selection */}
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
+            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
               Week
             </label>
             <select 
-              className={`w-full p-2 border ${!weekId && formTouched ? 'border-red-500' : 'border-gray-300'} rounded focus:ring-blue-500 focus:border-blue-500`}
+              className={`w-full p-2 border ${!weekId && formTouched ? 'border-red-500' : 'border-gray-300 dark:border-gray-600'} rounded focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:text-white`}
               value={weekId || ''}
               onChange={handleWeekChange}
               disabled={isLoading || submitting}
@@ -238,11 +333,11 @@ const EnhancedAddShiftModal: React.FC<EnhancedAddShiftModalProps> = ({
 
           {/* Day Selection */}
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
+            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
               Day
             </label>
             <select 
-              className="w-full p-2 border border-gray-300 rounded focus:ring-blue-500 focus:border-blue-500"
+              className="w-full p-2 border border-gray-300 dark:border-gray-600 rounded focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:text-white"
               value={day}
               onChange={(e) => {
                 setDay(e.target.value as DayName);
@@ -266,11 +361,11 @@ const EnhancedAddShiftModal: React.FC<EnhancedAddShiftModalProps> = ({
           
           {/* Caregiver Selection */}
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
+            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
               Caregiver
             </label>
             <select 
-              className={`w-full p-2 border ${!caregiver && formTouched ? 'border-red-500' : 'border-gray-300'} rounded focus:ring-blue-500 focus:border-blue-500`}
+              className={`w-full p-2 border ${!caregiver && formTouched ? 'border-red-500' : 'border-gray-300 dark:border-gray-600'} rounded focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:text-white`}
               value={caregiver}
               onChange={(e) => {
                 setCaregiver(Number(e.target.value));
@@ -290,54 +385,97 @@ const EnhancedAddShiftModal: React.FC<EnhancedAddShiftModalProps> = ({
             )}
           </div>
           
-          {/* Time Selection */}
-          <div className="grid grid-cols-2 gap-4">
+          {/* Recurring Option (for Time Off) */}
+          {isTimeOff && (
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                Start Time
-              </label>
-              <select 
-                className="w-full p-2 border border-gray-300 rounded focus:ring-blue-500 focus:border-blue-500"
-                value={startTime}
-                onChange={(e) => {
-                  setStartTime(e.target.value);
-                  setFormTouched(true);
-                }}
-                disabled={isLoading || submitting}
-              >
-                {timeOptions.map(time => (
-                  <option key={`start-${time}`} value={time}>
-                    {time}
-                  </option>
-                ))}
-              </select>
+              <div className="flex items-center mb-2">
+                <input
+                  type="checkbox"
+                  id="isRecurring"
+                  checked={isRecurring}
+                  onChange={(e) => setIsRecurring(e.target.checked)}
+                  className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 dark:border-gray-600 rounded"
+                  disabled={isLoading || submitting}
+                />
+                <label htmlFor="isRecurring" className="ml-2 block text-sm text-gray-700 dark:text-gray-300">
+                  Repeats Weekly
+                </label>
+              </div>
+              
+              {isRecurring && (
+                <div className="mt-2">
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                    Repeat Until
+                  </label>
+                  <input
+                    type="date"
+                    value={recurringEndDate}
+                    onChange={(e) => setRecurringEndDate(e.target.value)}
+                    min={getSelectedDate()}
+                    className="w-full p-2 border border-gray-300 dark:border-gray-600 rounded focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:text-white"
+                    disabled={isLoading || submitting}
+                  />
+                  <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
+                    If blank, will repeat until end of year
+                  </p>
+                </div>
+              )}
             </div>
-            
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                End Time
-              </label>
-              <select 
-                className="w-full p-2 border border-gray-300 rounded focus:ring-blue-500 focus:border-blue-500"
-                value={endTime}
-                onChange={(e) => {
-                  setEndTime(e.target.value);
-                  setFormTouched(true);
-                }}
-                disabled={isLoading || submitting}
-              >
-                {timeOptions.map(time => (
-                  <option key={`end-${time}`} value={time}>
-                    {time}
-                  </option>
-                ))}
-              </select>
-            </div>
-          </div>
+          )}
           
-          {/* Invalid time range error */}
-          {formTouched && startTime && endTime && timeOptions.indexOf(startTime) >= timeOptions.indexOf(endTime) && (
-            <p className="text-xs text-red-500">End time must be after start time</p>
+          {/* Time Selection Section */}
+          {!isTimeOff && (
+            <React.Fragment>
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                    Start Time
+                  </label>
+                  <select 
+                    className="w-full p-2 border border-gray-300 dark:border-gray-600 rounded focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:text-white"
+                    value={startTime}
+                    onChange={(e) => {
+                      setStartTime(e.target.value);
+                      setFormTouched(true);
+                    }}
+                    disabled={isLoading || submitting}
+                  >
+                    {timeOptions.map(time => (
+                      <option key={`start-${time}`} value={time}>
+                        {time}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+                
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                    End Time
+                  </label>
+                  <select 
+                    className="w-full p-2 border border-gray-300 dark:border-gray-600 rounded focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:text-white"
+                    value={endTime}
+                    onChange={(e) => {
+                      setEndTime(e.target.value);
+                      setFormTouched(true);
+                    }}
+                    disabled={isLoading || submitting}
+                  >
+                    {timeOptions.map(time => (
+                      <option key={`end-${time}`} value={time}>
+                        {time}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              </div>
+              
+              <div>
+                {formTouched && startTime && endTime && timeOptions.indexOf(startTime) >= timeOptions.indexOf(endTime) && (
+                  <p className="text-xs text-red-500 mt-1">End time must be after start time</p>
+                )}
+              </div>
+            </React.Fragment>
           )}
           
           {/* Action buttons */}
@@ -345,14 +483,14 @@ const EnhancedAddShiftModal: React.FC<EnhancedAddShiftModalProps> = ({
             <button 
               type="button"
               onClick={onClose}
-              className="px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 hover:bg-gray-200 rounded focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-500"
+              className="px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-200 bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 rounded focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-500 dark:focus:ring-offset-gray-800"
               disabled={isLoading || submitting}
             >
               Cancel
             </button>
             <button 
               type="submit"
-              className="px-4 py-2 text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 rounded focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed"
+              className="px-4 py-2 text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 dark:bg-blue-700 dark:hover:bg-blue-600 rounded focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 dark:focus:ring-offset-gray-800 disabled:opacity-50 disabled:cursor-not-allowed"
               disabled={isLoading || submitting}
             >
               {(isLoading || submitting) ? (
@@ -364,7 +502,7 @@ const EnhancedAddShiftModal: React.FC<EnhancedAddShiftModalProps> = ({
                   Adding...
                 </span>
               ) : (
-                'Add Shift'
+                isTimeOff ? 'Add Time Off' : 'Add Shift'
               )}
             </button>
           </div>

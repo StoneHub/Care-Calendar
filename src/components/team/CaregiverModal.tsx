@@ -52,17 +52,17 @@ const CaregiverModal: React.FC<CaregiverModalProps> = ({
   };
 
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4">
-      <div className="bg-white rounded-lg shadow-lg max-w-sm w-full p-4">
-        <h3 className="text-lg font-medium mb-4">
+    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
+      <div className="bg-white dark:bg-gray-800 rounded-lg shadow-lg max-w-sm w-full p-4">
+        <h3 className="text-lg font-medium mb-4 dark:text-white">
           {mode === 'add' ? 'Add New Team Member' : 'Edit Team Member'}
         </h3>
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Name</label>
+            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Name</label>
             <input 
               type="text" 
-              className="w-full p-2 border rounded" 
+              className="w-full p-2 border rounded dark:bg-gray-700 dark:border-gray-600 dark:text-white" 
               placeholder="Enter name"
               value={name}
               onChange={(e) => setName(e.target.value)}
@@ -70,9 +70,9 @@ const CaregiverModal: React.FC<CaregiverModalProps> = ({
             />
           </div>
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Role</label>
+            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Role</label>
             <select 
-              className="w-full p-2 border rounded"
+              className="w-full p-2 border rounded dark:bg-gray-700 dark:border-gray-600 dark:text-white"
               value={role}
               onChange={(e) => setRole(e.target.value)}
               required
@@ -83,9 +83,9 @@ const CaregiverModal: React.FC<CaregiverModalProps> = ({
             </select>
           </div>
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Availability</label>
+            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Availability</label>
             <select 
-              className="w-full p-2 border rounded"
+              className="w-full p-2 border rounded dark:bg-gray-700 dark:border-gray-600 dark:text-white"
               value={availability}
               onChange={(e) => setAvailability(e.target.value)}
               required
@@ -96,10 +96,10 @@ const CaregiverModal: React.FC<CaregiverModalProps> = ({
             </select>
           </div>
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Hours per week</label>
+            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Hours per week</label>
             <input 
               type="number" 
-              className="w-full p-2 border rounded" 
+              className="w-full p-2 border rounded dark:bg-gray-700 dark:border-gray-600 dark:text-white" 
               placeholder="Enter hours"
               value={hours}
               onChange={(e) => setHours(parseInt(e.target.value) || 0)}
@@ -111,13 +111,13 @@ const CaregiverModal: React.FC<CaregiverModalProps> = ({
             <button 
               type="button"
               onClick={onClose}
-              className="text-gray-600 px-4 py-2"
+              className="text-gray-600 dark:text-gray-300 px-4 py-2"
             >
               Cancel
             </button>
             <button 
               type="submit"
-              className="bg-blue-600 text-white px-4 py-2 rounded"
+              className="bg-blue-600 dark:bg-blue-700 text-white px-4 py-2 rounded"
             >
               {mode === 'add' ? 'Add Member' : 'Save Changes'}
             </button>

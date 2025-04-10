@@ -11,14 +11,14 @@ interface ShiftCardProps {
 const ShiftCard: React.FC<ShiftCardProps> = ({ shift, onClick, statusColorClass }) => {
   return (
     <div 
-      className={`p-2 mb-2 rounded border ${statusColorClass} hover:shadow-md transition-all cursor-pointer`}
+      className={`p-2 mb-2 rounded border ${statusColorClass} hover:shadow-md transition-all cursor-pointer dark:border-opacity-50`}
       onClick={onClick}
     >
-      <div className="font-medium">{shift.caregiver}</div>
-      <div className="text-sm text-gray-600">{shift.start} - {shift.end}</div>
+      <div className="font-medium dark:text-gray-100">{shift.caregiver}</div>
+      <div className="text-sm text-gray-600 dark:text-gray-300">{shift.start} - {shift.end}</div>
       
       {shift.status !== 'confirmed' && (
-        <div className="mt-1 text-xs inline-block px-1.5 py-0.5 rounded bg-white">
+        <div className="mt-1 text-xs inline-block px-1.5 py-0.5 rounded bg-white dark:bg-gray-700 dark:text-white">
           {shift.status.replace('-', ' ')}
         </div>
       )}
