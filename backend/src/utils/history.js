@@ -17,7 +17,7 @@ const logger = require('./logger');
  * @param {Object} [options.details] - Additional details to store as JSON
  * @returns {Promise<number|null>} - ID of the created history record or null on failure
  */
-async function recordHistory(actionType, entityType, entityId, description, options = {}) {
+async function recordHistory(actionType, entityType, entityId, description, options = {}, trx = null) {
   try {
     logger.debug('Recording history', {
       actionType,
@@ -28,7 +28,10 @@ async function recordHistory(actionType, entityType, entityId, description, opti
     
     const { weekId, caregiverId, details } = options;
     
-    const [id] = await db('history_records').insert({
+    // Use the passed transaction if available, otherwise use the default db connection
+    const dbConnection = trx || db;
+    
+    const [id] = await dbConnection('history_records').insert({
       action_type: actionType,
       entity_type: entityType,
       entity_id: entityId,

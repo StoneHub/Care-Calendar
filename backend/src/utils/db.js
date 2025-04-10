@@ -15,7 +15,16 @@ const isWindows = process.platform === 'win32' ||
 let dbConfig = {
   ...config[environment],
   client: isWindows ? 'sqlite3' : config[environment].client,
-  useNullAsDefault: true // This is important for SQLite
+  useNullAsDefault: true, // This is important for SQLite
+  pool: {
+    min: 2,
+    max: 10,
+    acquireTimeoutMillis: 30000,
+    createTimeoutMillis: 30000,
+    idleTimeoutMillis: 30000,
+    reapIntervalMillis: 1000,
+    createRetryIntervalMillis: 100
+  }
 };
 
 // Ensure db directory exists
@@ -55,7 +64,16 @@ try {
     knexInstance = knex({
       client: 'sqlite3',
       connection: { filename: ':memory:' },
-      useNullAsDefault: true
+      useNullAsDefault: true,
+      pool: {
+        min: 2,
+        max: 10,
+        acquireTimeoutMillis: 30000,
+        createTimeoutMillis: 30000,
+        idleTimeoutMillis: 30000,
+        reapIntervalMillis: 1000,
+        createRetryIntervalMillis: 100
+      }
     });
     logger.warn('Using in-memory SQLite database - data will NOT be persisted!');
   } catch (fallbackError) {

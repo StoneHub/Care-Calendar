@@ -17,7 +17,7 @@ class APIService {
       headers: {
         'Content-Type': 'application/json'
       },
-      timeout: 10000 // 10 second timeout
+      timeout: 30000 // 30 second timeout
     });
     
     this.requestTimeouts = new Map();
@@ -254,7 +254,7 @@ class APIService {
     return this.request<Caregiver>('GET', `/team/${id}`);
   }
   
-  async createTeamMember(caregiver: Omit<Caregiver, 'id'>): Promise<Caregiver> {
+  async createTeamMember(caregiver: Omit<Caregiver, 'id' | 'is_active'>): Promise<Caregiver> {
     // Map frontend field names to backend field names
     const payload = {
       name: caregiver.name,
@@ -276,10 +276,21 @@ class APIService {
       name: caregiver.name,
       role: caregiver.role,
       availability: caregiver.availability,
-      hours_per_week: caregiver.hours
+      hours_per_week: caregiver.hours,
+      is_active: caregiver.is_active
     };
     
     return this.request<Caregiver>('PUT', `/team/${caregiver.id}`, { data: payload });
+  }
+  
+  async toggleTeamMemberActive(id: number, isActive: boolean): Promise<Caregiver> {
+    if (!id || typeof id !== 'number' || isNaN(id)) {
+      throw new Error('Invalid team member ID. Cannot toggle active status.');
+    }
+    
+    return this.request<Caregiver>('PUT', `/team/${id}`, { 
+      data: { is_active: isActive }
+    });
   }
   
   async deleteTeamMember(id: number, forceDelete: boolean = false): Promise<void> {

@@ -159,7 +159,8 @@ exports.getShiftsByWeek = async (req, res) => {
       return res.status(404).json({ error: 'Week not found' });
     }
     
-    // Get all shifts for the week with caregiver info
+    // Get all shifts for the week with caregiver info (including both active and inactive caregivers)
+    // We show all shifts regardless of caregiver active status because this is historical data
     const shifts = await db('shifts')
       .join('team_members', 'shifts.caregiver_id', 'team_members.id')
       .select(
@@ -171,7 +172,8 @@ exports.getShiftsByWeek = async (req, res) => {
         'shifts.week_id',
         'team_members.id as caregiver_id',
         'team_members.name as caregiver_name',
-        'team_members.role as caregiver_role'
+        'team_members.role as caregiver_role',
+        'team_members.is_active as caregiver_is_active'
       )
       .where('shifts.week_id', weekId)
       .orderBy(['shifts.day_of_week', 'shifts.start_time']);
@@ -244,13 +246,18 @@ exports.createShift = async (req, res) => {
       return res.status(400).json({ error: 'Missing required fields' });
     }
     
-    // Get caregiver name for history recording
+    // Get caregiver name for history recording and verify they're active
     const caregiver = await db('team_members')
       .where({ id: caregiver_id })
       .first();
     
     if (!caregiver) {
       return res.status(400).json({ error: 'Invalid caregiver ID' });
+    }
+    
+    // Ensure caregiver is active before allowing shift assignment
+    if (!caregiver.is_active) {
+      return res.status(400).json({ error: 'Cannot assign shifts to inactive team members' });
     }
     
     // Use transaction to ensure data integrity
@@ -330,10 +337,26 @@ exports.updateShift = async (req, res) => {
     // Build update object with only provided fields
     const updateData = {};
     if (day_of_week) updateData.day_of_week = day_of_week;
-    if (caregiver_id) updateData.caregiver_id = caregiver_id;
     if (start_time) updateData.start_time = start_time;
     if (end_time) updateData.end_time = end_time;
     if (status) updateData.status = status;
+    
+    // If caregiver_id is being updated, verify the new caregiver is active
+    if (caregiver_id) {
+      const newCaregiver = await db('team_members')
+        .where({ id: caregiver_id })
+        .first();
+        
+      if (!newCaregiver) {
+        return res.status(400).json({ error: 'Invalid caregiver ID' });
+      }
+      
+      if (!newCaregiver.is_active) {
+        return res.status(400).json({ error: 'Cannot assign shifts to inactive team members' });
+      }
+      
+      updateData.caregiver_id = caregiver_id;
+    }
     
     const updated = await db('shifts')
       .where({ id })

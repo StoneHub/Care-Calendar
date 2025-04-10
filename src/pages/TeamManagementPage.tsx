@@ -26,6 +26,7 @@ const TeamManagementPage: React.FC = () => {
   const [confirmDelete, setConfirmDelete] = useState<number | null>(null);
   const [forceDelete, setForceDelete] = useState<boolean>(false);
   const [selectedCaregiverId, setSelectedCaregiverId] = useState<number | null>(null);
+  const [showInactive, setShowInactive] = useState<boolean>(false);
   
   // Open add modal
   const handleAddMember = () => {
@@ -130,6 +131,34 @@ const TeamManagementPage: React.FC = () => {
     setSelectedCaregiverId(caregiver.id);
   };
   
+  // Handle toggling active status of a team member
+  const handleToggleActiveMember = async (caregiverId: number, isActive: boolean) => {
+    setIsLoading(true);
+    setError(null);
+    
+    try {
+      logger.info(`${isActive ? 'Activating' : 'Deactivating'} caregiver`, { id: caregiverId });
+      
+      // Make the API call to toggle active status
+      await apiService.toggleTeamMemberActive(caregiverId, isActive);
+      logger.info(`Caregiver ${isActive ? 'activated' : 'deactivated'} successfully`);
+      
+      // Force caregivers refresh without page reload
+      await refreshTeamMembers();
+    } catch (err: any) {
+      const errorMsg = err.message || `Failed to ${isActive ? 'activate' : 'deactivate'} team member`;
+      logger.error(`Failed to ${isActive ? 'activate' : 'deactivate'} caregiver`, { error: errorMsg, id: caregiverId });
+      setError(errorMsg);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+  
+  // Toggle showing inactive team members
+  const handleToggleShowInactive = () => {
+    setShowInactive(prev => !prev);
+  };
+  
   // Reset error on context change
   useEffect(() => {
     if (contextError) {
@@ -149,7 +178,10 @@ const TeamManagementPage: React.FC = () => {
           onAddMember={handleAddMember}
           onEditMember={handleEditMember}
           onDeleteMember={handleDeleteMember}
+          onToggleActiveMember={handleToggleActiveMember}
           onViewUnavailability={handleViewUnavailability}
+          showInactive={showInactive}
+          onToggleShowInactive={handleToggleShowInactive}
         />
       </div>
       

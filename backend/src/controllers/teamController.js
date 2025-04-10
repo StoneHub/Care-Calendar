@@ -1,14 +1,25 @@
 const db = require('../utils/db');
 const { recordHistory } = require('../utils/history');
 const logger = require('../utils/logger');
+const { withTransaction } = require('../utils/transaction');
 
-// GET all team members
+// GET all team members with option to filter by active status
 exports.getAllTeamMembers = async (req, res) => {
   try {
-    const teamMembers = await db('team_members').select('*');
+    const showInactive = req.query.showInactive === 'true';
+    
+    // Only show active team members by default
+    let query = db('team_members').select('*');
+    
+    // Filter by active status unless specifically requested to show all
+    if (!showInactive) {
+      query = query.where({ is_active: true });
+    }
+    
+    const teamMembers = await query;
     res.status(200).json(teamMembers);
   } catch (error) {
-    console.error('Error fetching team members:', error);
+    logger.error('Error fetching team members:', error);
     res.status(500).json({ error: 'Failed to fetch team members' });
   }
 };
@@ -27,7 +38,7 @@ exports.getTeamMemberById = async (req, res) => {
     
     res.status(200).json(teamMember);
   } catch (error) {
-    console.error(`Error fetching team member with ID ${req.params.id}:`, error);
+    logger.error(`Error fetching team member with ID ${req.params.id}:`, error);
     res.status(500).json({ error: 'Failed to fetch team member' });
   }
 };
@@ -47,7 +58,8 @@ exports.createTeamMember = async (req, res) => {
         name,
         role,
         availability,
-        hours_per_week
+        hours_per_week,
+        is_active: true
       })
       .returning('id');
     
@@ -55,9 +67,25 @@ exports.createTeamMember = async (req, res) => {
       .where({ id })
       .first();
     
+    // Record history
+    await recordHistory(
+      'create',
+      'team_member',
+      id,
+      `Created new team member: ${name}`,
+      { 
+        details: { 
+          name,
+          role,
+          availability,
+          hours_per_week
+        }
+      }
+    );
+    
     res.status(201).json(newTeamMember);
   } catch (error) {
-    console.error('Error creating team member:', error);
+    logger.error('Error creating team member:', error);
     res.status(500).json({ error: 'Failed to create team member' });
   }
 };
@@ -66,10 +94,10 @@ exports.createTeamMember = async (req, res) => {
 exports.updateTeamMember = async (req, res) => {
   try {
     const { id } = req.params;
-    const { name, role, availability, hours_per_week } = req.body;
+    const { name, role, availability, hours_per_week, is_active } = req.body;
     
     // Basic validation
-    if (!name && !role && !availability && !hours_per_week) {
+    if (!name && !role && !availability && !hours_per_week && is_active === undefined) {
       return res.status(400).json({ error: 'No update fields provided' });
     }
     
@@ -79,6 +107,16 @@ exports.updateTeamMember = async (req, res) => {
     if (role) updateData.role = role;
     if (availability) updateData.availability = availability;
     if (hours_per_week) updateData.hours_per_week = hours_per_week;
+    if (is_active !== undefined) updateData.is_active = is_active;
+    
+    // Get team member before update for history
+    const teamMemberBefore = await db('team_members')
+      .where({ id })
+      .first();
+      
+    if (!teamMemberBefore) {
+      return res.status(404).json({ error: 'Team member not found' });
+    }
     
     const updated = await db('team_members')
       .where({ id })
@@ -92,14 +130,47 @@ exports.updateTeamMember = async (req, res) => {
       .where({ id })
       .first();
     
+    // Record history for the update
+    let actionType = 'update';
+    let description = `Updated team member: ${teamMemberBefore.name}`;
+    
+    if (is_active !== undefined) {
+      if (is_active) {
+        actionType = 'reactivate';
+        description = `Reactivated team member: ${teamMemberBefore.name}`;
+      } else {
+        actionType = 'deactivate';
+        description = `Deactivated team member: ${teamMemberBefore.name}`;
+      }
+    }
+    
+    await recordHistory(
+      actionType,
+      'team_member',
+      id,
+      description,
+      { 
+        details: { 
+          before: {
+            name: teamMemberBefore.name,
+            role: teamMemberBefore.role,
+            availability: teamMemberBefore.availability,
+            hours_per_week: teamMemberBefore.hours_per_week,
+            is_active: teamMemberBefore.is_active
+          },
+          after: updateData
+        }
+      }
+    );
+    
     res.status(200).json(updatedTeamMember);
   } catch (error) {
-    console.error(`Error updating team member with ID ${req.params.id}:`, error);
+    logger.error(`Error updating team member with ID ${req.params.id}:`, error);
     res.status(500).json({ error: 'Failed to update team member' });
   }
 };
 
-// DELETE a team member
+// DELETE a team member (soft delete by default, hard delete if forceDelete=true)
 exports.deleteTeamMember = async (req, res) => {
   try {
     const { id } = req.params;
@@ -114,32 +185,13 @@ exports.deleteTeamMember = async (req, res) => {
       return res.status(404).json({ error: 'Team member not found' });
     }
     
-    // Check for related shifts before starting transaction
-    if (!forceDelete) {
-      const shiftsCount = await db('shifts')
-        .where({ caregiver_id: id })
-        .count('id as count')
-        .first();
-      
-      const hasShifts = shiftsCount && parseInt(shiftsCount.count) > 0;
-      
-      if (hasShifts) {
-        return res.status(409).json({ 
-          error: `Cannot delete team member with ${shiftsCount.count} assigned shifts. Use force delete or reassign shifts first.` 
-        });
-      }
-    }
-    
-    // Handle deletion with all potential foreign key constraints
-    try {
-      // Store the team member data for history records before deletion
-      const name = teamMember.name;
-      const role = teamMember.role;
-      
-      // Force delete handles all relations
+    // Proper soft delete using transactions
+    await withTransaction(async (trx) => {
       if (forceDelete) {
+        // Hard delete - remove related records first within the transaction
+        
         // Check for shifts
-        const shiftsCount = await db('shifts')
+        const shiftsCount = await trx('shifts')
           .where({ caregiver_id: id })
           .count('id as count')
           .first();
@@ -147,81 +199,94 @@ exports.deleteTeamMember = async (req, res) => {
         const hasShifts = shiftsCount && parseInt(shiftsCount.count) > 0;
         
         if (hasShifts) {
-          logger.info(`Force deleting ${shiftsCount.count} shifts for caregiver ${id} (${name})`);
-          
-          // Delete shifts
-          await db('shifts')
+          logger.info(`Force deleting ${shiftsCount.count} shifts for caregiver ${id} (${teamMember.name})`);
+          await trx('shifts')
             .where({ caregiver_id: id })
             .delete();
         }
         
         // Check and delete unavailability records
-        const unavailabilityCount = await db('unavailability')
+        const unavailabilityCount = await trx('unavailability')
           .where({ caregiver_id: id })
           .count('id as count')
           .first();
           
         if (unavailabilityCount && parseInt(unavailabilityCount.count) > 0) {
           logger.info(`Force deleting ${unavailabilityCount.count} unavailability records for caregiver ${id}`);
-          
-          await db('unavailability')
+          await trx('unavailability')
             .where({ caregiver_id: id })
             .delete();
         }
         
         // Check and delete notifications related to this caregiver
-        const notificationsCount = await db('notifications')
+        const notificationsCount = await trx('notifications')
           .where({ from_caregiver_id: id })
-          .orWhere({ to_caregiver_id: id })
           .count('id as count')
           .first();
           
         if (notificationsCount && parseInt(notificationsCount.count) > 0) {
           logger.info(`Force deleting ${notificationsCount.count} notifications related to caregiver ${id}`);
-          
-          await db('notifications')
+          await trx('notifications')
             .where({ from_caregiver_id: id })
-            .orWhere({ to_caregiver_id: id })
             .delete();
         }
+        
+        // Finally, delete the team member
+        await trx('team_members')
+          .where({ id })
+          .delete();
+          
+        // Record history for hard delete
+        await recordHistory(
+          'delete',
+          'team_member',
+          id,
+          `Permanently deleted team member: ${teamMember.name}`,
+          { 
+            details: { 
+              name: teamMember.name,
+              role: teamMember.role,
+              forceDelete: true
+            }
+          },
+          trx // Pass the transaction object here
+        );
+      } else {
+        // Soft delete - just update is_active flag to false
+        await trx('team_members')
+          .where({ id })
+          .update({ is_active: false });
+          
+        // Record history for soft delete
+        await recordHistory(
+          'deactivate',
+          'team_member',
+          id,
+          `Deactivated team member: ${teamMember.name}`,
+          { 
+            details: { 
+              name: teamMember.name,
+              role: teamMember.role,
+              forceDelete: false
+            }
+          },
+          trx // Pass the transaction object here
+        );
       }
-      
-      // Now delete the team member - this is done outside any transaction
-      // to avoid complex transaction handling with potential cascades
-      await db('team_members')
-        .where({ id })
-        .delete();
-      
-      // Record history after successful deletion
-      await recordHistory(
-        'delete',
-        'team_member',
-        id,
-        `Deleted team member: ${name}`,
-        { 
-          details: { 
-            name,
-            role,
-            forceDelete
-          }
-        }
-      );
-      
-      // Return success
-      res.status(200).json({ message: 'Team member deleted successfully' });
-    } catch (error) {
-      logger.error(`Error in delete operation for team member ${id}:`, error);
-      
-      if (error.code === 'SQLITE_CONSTRAINT') {
-        return res.status(409).json({ 
-          error: 'Cannot delete team member due to database constraints. This may be due to history records or other dependencies.' 
-        });
-      }
-      
-      throw error; // Re-throw for outer catch block
-    }
+    });
+    
+    // Return success
+    const action = forceDelete ? "deleted" : "deactivated";
+    res.status(200).json({ message: `Team member ${action} successfully` });
   } catch (error) {
-    logger.error(`Error deleting team member with ID ${req.params.id}:`, error);
-    res.status(500).json({ error: 'Failed to delete team member' });
+    logger.error(`Error in delete operation for team member ${req.params.id}:`, error);
+    
+    if (error.code === 'SQLITE_CONSTRAINT') {
+      return res.status(409).json({ 
+        error: 'Cannot delete team member due to database constraints. This may be due to history records or other dependencies.' 
+      });
+    }
+    
+    res.status(500).json({ error: `Failed to delete team member: ${error.message}` });
   }
 };

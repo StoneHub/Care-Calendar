@@ -56,6 +56,7 @@ export interface Caregiver {
   hours: number;
   availability: string;
   role: string;
+  is_active: boolean;
 }
 
 export interface CaregiverBackend {
@@ -64,6 +65,7 @@ export interface CaregiverBackend {
   hours_per_week: number;
   availability: string;
   role: string;
+  is_active: boolean;
 }
 
 export type NotificationType = 'adjust' | 'swap' | 'drop' | 'suggestion' | 'coverage';
@@ -103,7 +105,7 @@ export interface PayrollRecord {
   notes?: string;
 }
 
-export type ActionType = 'create' | 'update' | 'delete' | 'drop' | 'adjust' | 'swap';
+export type ActionType = 'create' | 'update' | 'delete' | 'drop' | 'adjust' | 'swap' | 'deactivate' | 'reactivate';
 export type EntityType = 'shift' | 'week' | 'caregiver' | 'notification';
 
 export interface HistoryRecord {

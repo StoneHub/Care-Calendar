@@ -18,6 +18,7 @@ const CaregiverModal: React.FC<CaregiverModalProps> = ({
   const [role, setRole] = useState(caregiver?.role || 'Day Shift');
   const [availability, setAvailability] = useState(caregiver?.availability || 'Weekdays');
   const [hours, setHours] = useState(caregiver?.hours || 0);
+  const [isActive, setIsActive] = useState(caregiver?.is_active !== false);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -35,16 +36,18 @@ const CaregiverModal: React.FC<CaregiverModalProps> = ({
         name,
         role,
         availability,
-        hours
+        hours,
+        is_active: isActive
       };
       onSave(updatedCaregiver);
     } else {
-      // For new caregivers
+      // For new caregivers - is_active is always true for new caregivers
       const newCaregiver = {
         name,
         role,
         availability,
         hours
+        // is_active is set on the backend with a default value of true
       };
       onSave(newCaregiver);
     }
@@ -107,6 +110,21 @@ const CaregiverModal: React.FC<CaregiverModalProps> = ({
               min="1"
             />
           </div>
+          
+          {mode === 'edit' && (
+            <div className="flex items-center">
+              <input 
+                type="checkbox"
+                id="is-active"
+                className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
+                checked={isActive}
+                onChange={(e) => setIsActive(e.target.checked)}
+              />
+              <label htmlFor="is-active" className="ml-2 block text-sm text-gray-700 dark:text-gray-300">
+                Active team member
+              </label>
+            </div>
+          )}
           <div className="mt-6 flex justify-end space-x-3">
             <button 
               type="button"

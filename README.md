@@ -36,6 +36,11 @@ The application has a well-structured architecture with clear separation of conc
 
 The latest updates address several critical issues and implement new features:
 
+**[Team Management]:**
+- Fixed team member deletion timeout issue by ensuring history recording uses the same database transaction
+- Optimized database connection pool settings to handle concurrent operations better
+- Increased API request timeout for long-running operations involving multiple database changes
+
 **Dark Mode & Theme Consistency:**
 - Implemented simple 6am-7pm fixed times for Greenville, SC auto-switching
 - Added consistent theming across all components using standardized utility classes
