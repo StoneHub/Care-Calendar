@@ -251,6 +251,20 @@ exports.getShiftById = async (req, res) => {
 
 // POST create a new shift
 exports.createShift = async (req, res) => {
+  // Extract request ID from headers or generate one if not present
+  const requestId = req.headers['x-request-id'] || `shift_${Date.now()}_${Math.random().toString(36).substring(2, 10)}`;
+  
+  // Add request ID to res.locals for access in other middleware or response handlers
+  res.locals.requestId = requestId;
+  
+  // Log the incoming request with the request ID
+  logger.info('Starting shift creation', {
+    requestId,
+    body: JSON.stringify(req.body),
+    path: req.path,
+    method: req.method
+  });
+
   try {
     const { 
       week_id, 
@@ -259,12 +273,35 @@ exports.createShift = async (req, res) => {
       start_time, 
       end_time, 
       status,
-      isRecurring,
-      recurringEndDate
+      is_recurring,
+      recurring_end_date
     } = req.body;
+    
+    // Log detailed parameters
+    logger.debug('Shift creation parameters', {
+      requestId,
+      week_id,
+      day_of_week,
+      caregiver_id,
+      start_time,
+      end_time,
+      status,
+      is_recurring,
+      recurring_end_date
+    });
     
     // Basic validation
     if (!week_id || !day_of_week || !caregiver_id || !start_time || !end_time) {
+      logger.warn('Missing required fields for shift creation', {
+        requestId, 
+        missingFields: [
+          !week_id ? 'week_id' : null,
+          !day_of_week ? 'day_of_week' : null,
+          !caregiver_id ? 'caregiver_id' : null,
+          !start_time ? 'start_time' : null,
+          !end_time ? 'end_time' : null
+        ].filter(Boolean)
+      });
       return res.status(400).json({ error: 'Missing required fields' });
     }
     
@@ -294,8 +331,8 @@ exports.createShift = async (req, res) => {
           end_time,
           status: status || 'confirmed',
           // Use 1 instead of true for SQLite compatibility
-          is_recurring: isRecurring ? 1 : 0,
-          recurring_end_date: isRecurring ? recurringEndDate : null
+          is_recurring: is_recurring ? 1 : 0,
+          recurring_end_date: is_recurring ? recurring_end_date : null
         })
         .returning('id');
       
@@ -306,152 +343,242 @@ exports.createShift = async (req, res) => {
         entity_id: originalShiftId,
         caregiver_id,
         week_id,
-        description: `Created shift for ${caregiver.name} on ${day_of_week} (${start_time}-${end_time})${isRecurring ? ' (recurring weekly)' : ''}`,
+        description: `Created shift for ${caregiver.name} on ${day_of_week} (${start_time}-${end_time})${is_recurring ? ' (recurring weekly)' : ''}`,
+
         details: JSON.stringify({
           day_of_week,
           start_time,
           end_time,
           status: status || 'confirmed',
-          is_recurring: isRecurring ? 1 : 0,
-          recurring_end_date: isRecurring ? recurringEndDate : null
+          is_recurring: is_recurring ? 1 : 0,
+          recurring_end_date: is_recurring ? recurring_end_date : null
         })
       });
       
       // If recurring, create future shifts
-      if (isRecurring) {
+      if (is_recurring) {
         logger.info('Creating recurring shifts', {
           caregiver_id,
           day_of_week,
-          end_date: recurringEndDate
+          end_date: recurring_end_date,
+          originalShiftId
         });
         
-        // Get the current week's info to calculate dates
-        const currentWeek = await trx('weeks').where({ id: week_id }).first();
-        
-// Calculate the day index (0 = Monday, 6 = Sunday)
-const dayIndex = ['monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday'].indexOf(day_of_week);
-if (dayIndex === -1) {
-  throw new Error(`Invalid day of week: ${day_of_week}`);
-}
+        try {
+          // Get the current week's info to calculate dates
+          const currentWeek = await trx('weeks').where({ id: week_id }).first();
+          
+          if (!currentWeek) {
+            throw new Error(`Week with ID ${week_id} not found`);
+          }
+          
+          // Calculate the day index (0 = Monday, 6 = Sunday)
+          const dayIndex = ['monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday'].indexOf(day_of_week.toLowerCase());
+          if (dayIndex === -1) {
+            throw new Error(`Invalid day of week: ${day_of_week}`);
+          }
 
-// Add detailed logging for debugging
-logger.debug('Recurring shift parameters', {
-  isRecurring,
-  recurringEndDate,
-  day_of_week,
-  dayIndex,
-  week_id,
-  currentWeek: currentWeek ? {
-    id: currentWeek.id,
-    start_date: currentWeek.start_date,
-    end_date: currentWeek.end_date
-  } : null
-});
+          // Add detailed logging for debugging
+          logger.debug('Recurring shift parameters', {
+            is_recurring,
+            recurring_end_date,
+            day_of_week,
+            dayIndex,
+            week_id,
+            currentWeek: {
+              id: currentWeek.id,
+              start_date: currentWeek.start_date,
+              end_date: currentWeek.end_date
+            },
+            originalShiftId
+          });
 
-// Calculate the date of the first shift
-const firstShiftDate = new Date(currentWeek.start_date);
-firstShiftDate.setDate(firstShiftDate.getDate() + dayIndex);
+          // Calculate the date of the first shift
+          const firstShiftDate = new Date(currentWeek.start_date);
+          firstShiftDate.setDate(firstShiftDate.getDate() + dayIndex);
 
-// Calculate end date (use end of year if not specified)
-const endDate = recurringEndDate 
-  ? new Date(recurringEndDate) 
-  : new Date(new Date().getFullYear(), 11, 31); // Dec 31 of current year
+          // Calculate end date (use end of year if not specified)
+          const endDate = recurring_end_date 
+            ? new Date(recurring_end_date) 
+            : new Date(new Date().getFullYear(), 11, 31); // Dec 31 of current year
 
-logger.debug('Date calculations', {
-  firstShiftDate: firstShiftDate.toISOString(),
-  endDate: endDate.toISOString(),
-  currentWeekStart: currentWeek.start_date,
-  dayIndex
-});
-        
-// Generate future dates (weekly)
-let currentDate = new Date(firstShiftDate);
-currentDate.setDate(currentDate.getDate() + 7); // Start from next week
+          // Normalize end date to midnight UTC for consistent comparisons
+          const endDateUTC = new Date(Date.UTC(endDate.getFullYear(), endDate.getMonth(), endDate.getDate()));
+          
+          logger.debug('Date calculations', {
+            firstShiftDate: firstShiftDate.toISOString(),
+            endDate: endDate.toISOString(),
+            endDateUTC: endDateUTC.toISOString(),
+            currentWeekStart: currentWeek.start_date,
+            dayIndex
+          });
+                  
+          // Generate future dates (weekly)
+          let currentDate = new Date(firstShiftDate);
+          currentDate.setDate(currentDate.getDate() + 7); // Start from next week
+          
+          // Normalize current date to midnight UTC for consistent comparisons with endDateUTC
+          let currentDateUTC = new Date(Date.UTC(currentDate.getFullYear(), currentDate.getMonth(), currentDate.getDate()));
 
-logger.debug('Starting future shift creation', {
-  startingDate: currentDate.toISOString(),
-  endDate: endDate.toISOString()
-});
+          logger.debug('Starting future shift creation', {
+            startingDate: currentDate.toISOString(),
+            startingDateUTC: currentDateUTC.toISOString(),
+            endDate: endDate.toISOString(),
+            endDateUTC: endDateUTC.toISOString(),
+            comparison: currentDateUTC <= endDateUTC ? 'within range' : 'out of range'
+          });
 
-let futureShiftCount = 0;
-while (currentDate <= endDate) {
-  // Find or create the week for this date
-  const weekStart = new Date(currentDate);
-  weekStart.setDate(weekStart.getDate() - dayIndex); // Go back to Monday
-  
-  const weekEnd = new Date(weekStart);
-  weekEnd.setDate(weekEnd.getDate() + 6); // 6 days after start = Sunday
-  
-  // Format dates for DB
-  const formattedStart = weekStart.toISOString().split('T')[0];
-  const formattedEnd = weekEnd.toISOString().split('T')[0];
-  
-  logger.debug('Processing future week', {
-    currentDate: currentDate.toISOString(),
-    weekStart: formattedStart,
-    weekEnd: formattedEnd,
-    iteration: futureShiftCount + 1
-  });
-  
-  // Find existing week or create new one
-  let weekRow = await trx('weeks')
-    .where('start_date', formattedStart)
-    .first();
-    
-  let futureWeekId;
-  
-  if (weekRow) {
-    futureWeekId = weekRow.id;
-    logger.debug('Found existing week', { weekId: futureWeekId, start_date: formattedStart });
-  } else {
-    // Create a new week
-    const [newWeekId] = await trx('weeks')
-      .insert({
-        start_date: formattedStart,
-        end_date: formattedEnd,
-        is_published: false,
-        notes: `Auto-generated for recurring shift`
-      })
-      .returning('id');
-    futureWeekId = newWeekId;
-    logger.debug('Created new week', { weekId: futureWeekId, start_date: formattedStart });
-  }
-  
-  // Create the recurring shift for this week
-  const [recurringShiftId] = await trx('shifts')
-    .insert({
-      week_id: futureWeekId,
-      day_of_week,
-      caregiver_id,
-      start_time,
-      end_time,
-      status: status || 'confirmed',
-      parent_shift_id: originalShiftId,
-      // Add is_recurring flag to child shifts as well
-      // Use 1 instead of true for SQLite compatibility
-      is_recurring: 1
-    })
-    .returning('id');
-  
-  logger.debug('Created recurring shift', {
-    original_id: originalShiftId,
-    recurring_id: recurringShiftId,
-    week_id: futureWeekId,
-    date: currentDate.toISOString().split('T')[0]
-  });
-  
-  futureShiftCount++;
-  
-  // Move to next week
-  currentDate.setDate(currentDate.getDate() + 7);
-}
+          let futureShiftCount = 0;
+          
+          while (currentDateUTC <= endDateUTC) {
+            try {
+              // Find or create the week for this date
+              const weekStart = new Date(currentDate);
+              weekStart.setDate(weekStart.getDate() - dayIndex); // Go back to Monday
+              
+              const weekEnd = new Date(weekStart);
+              weekEnd.setDate(weekEnd.getDate() + 6); // 6 days after start = Sunday
+              
+              // Format dates for DB
+              const formattedStart = weekStart.toISOString().split('T')[0];
+              const formattedEnd = weekEnd.toISOString().split('T')[0];
+              
+              logger.debug('Processing future week', {
+                currentDate: currentDate.toISOString(),
+                weekStart: formattedStart,
+                weekEnd: formattedEnd,
+                iteration: futureShiftCount + 1
+              });
+              
+              // Find existing week or create new one
+              let futureWeekId;
+              
+              try {
+                // Find existing week
+                let weekRow = await trx('weeks')
+                  .where('start_date', formattedStart)
+                  .first();
+                  
+                if (weekRow) {
+                  futureWeekId = weekRow.id;
+                  logger.debug('Found existing week', { 
+                    weekId: futureWeekId, 
+                    start_date: formattedStart,
+                    end_date: formattedEnd
+                  });
+                } else {
+                  // Create a new week
+                  logger.debug('Creating new week', { 
+                    start_date: formattedStart,
+                    end_date: formattedEnd
+                  });
+                  
+                  const [newWeekId] = await trx('weeks')
+                    .insert({
+                      start_date: formattedStart,
+                      end_date: formattedEnd,
+                      is_published: false,
+                      notes: `Auto-generated for recurring shift`
+                    })
+                    .returning('id');
+                    
+                  futureWeekId = newWeekId;
+                  logger.debug('Created new week', { 
+                    weekId: futureWeekId, 
+                    start_date: formattedStart,
+                    end_date: formattedEnd
+                  });
+                }
+              } catch (weekError) {
+                logger.error('Error finding/creating future week', { 
+                  formattedStart,
+                  formattedEnd,
+                  error: weekError.message,
+                  stack: weekError.stack
+                });
+                throw weekError; // Re-throw to ensure transaction rollback
+              }
+              
+              try {
+                // Create the recurring shift for this week
+                logger.debug('Inserting recurring shift', {
+                  week_id: futureWeekId,
+                  day_of_week,
+                  caregiver_id,
+                  parent_shift_id: originalShiftId
+                });
+                
+                const [recurringShiftId] = await trx('shifts')
+                  .insert({
+                    week_id: futureWeekId,
+                    day_of_week,
+                    caregiver_id,
+                    start_time,
+                    end_time,
+                    status: status || 'confirmed',
+                    parent_shift_id: originalShiftId,
+                    // Add is_recurring flag to child shifts as well
+                    // Use 1 instead of true for SQLite compatibility
+                    is_recurring: 1
+                  })
+                  .returning('id');
+                
+                logger.debug('Created recurring shift', {
+                  original_id: originalShiftId,
+                  recurring_id: recurringShiftId,
+                  week_id: futureWeekId,
+                  date: currentDate.toISOString().split('T')[0]
+                });
+                
+                futureShiftCount++;
+              } catch (shiftError) {
+                logger.error('Error creating recurring shift', { 
+                  futureWeekId,
+                  day_of_week,
+                  caregiver_id,
+                  error: shiftError.message,
+                  stack: shiftError.stack
+                });
+                throw shiftError; // Re-throw to ensure transaction rollback
+              }
+            } catch (iterationError) {
+              logger.error('Error in recurring shift iteration', {
+                currentDate: currentDate.toISOString(),
+                iteration: futureShiftCount + 1,
+                error: iterationError.message,
+                stack: iterationError.stack
+              });
+              throw iterationError; // Re-throw to ensure transaction rollback
+            }
+            
+            // Move to next week
+            currentDate.setDate(currentDate.getDate() + 7);
+            // Update the UTC version for comparison
+            currentDateUTC = new Date(Date.UTC(currentDate.getFullYear(), currentDate.getMonth(), currentDate.getDate()));
+            
+            logger.debug('Advanced to next week', {
+              newDate: currentDate.toISOString(),
+              newDateUTC: currentDateUTC.toISOString(),
+              endDate: endDateUTC.toISOString(),
+              comparison: currentDateUTC <= endDateUTC ? 'within range' : 'out of range',
+              futureShiftCount
+            });
+          }
 
-logger.info('Completed recurring shift creation', {
-  originalShiftId,
-  totalFutureShifts: futureShiftCount,
-  isRecurring,
-  endDate: endDate.toISOString().split('T')[0]
-});
+          logger.info('Completed recurring shift creation', {
+            originalShiftId,
+            totalFutureShifts: futureShiftCount,
+            is_recurring,
+            endDate: endDate.toISOString().split('T')[0]
+          });
+        } catch (recurringError) {
+          logger.error('Error in recurring shift creation process', {
+            originalShiftId,
+            error: recurringError.message,
+            stack: recurringError.stack
+          });
+          throw recurringError; // Re-throw to ensure transaction rollback
+        }
       }
       
       return originalShiftId;

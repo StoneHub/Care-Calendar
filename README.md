@@ -36,6 +36,11 @@ The application has a well-structured architecture with clear separation of conc
 
 The latest updates address several critical issues and implement new features:
 
+**[Recurring Shifts]:**
+- Fixed issue with recurring shifts not appearing on subsequent weeks
+- Corrected key casing mismatch between frontend API service and backend controller
+- Improved validation and error handling for recurring shift creation
+
 **[Team Management]:**
 - Fixed team member deletion timeout issue by ensuring history recording uses the same database transaction
 - Optimized database connection pool settings to handle concurrent operations better

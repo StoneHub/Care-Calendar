@@ -47,7 +47,8 @@ class APIService {
     
     // Log the request
     logger.info('API Request', {
-      id: requestId,
+      requestId,
+      id: requestId, // Keep old field for backward compatibility
       method: config.method?.toUpperCase(),
       url: config.url,
       data: config.data,
@@ -76,7 +77,8 @@ class APIService {
     const requestId = response.config.headers?.['X-Request-ID'] || 'unknown';
     
     logger.info('API Response', {
-      id: requestId,
+      requestId,
+      id: requestId, // Keep old field for backward compatibility
       status: response.status,
       url: response.config.url,
       data: response.data ? (typeof response.data === 'object' ? 'object' : response.data) : null
@@ -96,7 +98,8 @@ class APIService {
     
     // Log the error
     logger.error('API Response Error', {
-      id: requestId,
+      requestId,
+      id: requestId, // Keep old field for backward compatibility
       url: config.url,
       method: config.method?.toUpperCase(),
       status: error.response?.status,
