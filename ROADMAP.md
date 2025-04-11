@@ -1,7 +1,7 @@
 # Care Calendar: Enhanced Experience & Accessibility Development Plan
 
 ## Overview
-This development plan outlines the implementation of five key enhancements to the Care Calendar application: local network access, dark mode with automatic switching, team member unavailability tracking, improved team management, and Google Calendar integration.
+This development plan outlines the implementation of six key enhancements to the Care Calendar application: local network access, dark mode with automatic switching, team member unavailability tracking, improved team management, repeating weekly shifts, and Google Calendar integration.
 
 ## Implementation Status
 
@@ -34,11 +34,19 @@ This development plan outlines the implementation of five key enhancements to th
 **Status: IN PROGRESS**
 - ✅ Implemented force delete option for team members with assigned shifts
 - ✅ Fixed history tracking for team member deletions 
-- Will remove hours requirements for team members
-- Will add active/inactive status for team members
+- ✅ Removed hours requirements for team members
+- ✅ Added active/inactive status for team members
 - Will implement HTML reporting with tax information
 
-### 🔄 Feature 5: Google Calendar Integration
+### 🔄 Feature 5: Repeating Weekly Shifts
+**Status: PARTIALLY COMPLETED**
+- ✅ Added "Repeats Weekly" checkbox to the Add Shift modal
+- ✅ Added "Repeat Until" date picker when the checkbox is selected
+- ✅ Implemented backend support for recurring shifts
+- ✅ Added database schema updates to support recurring shifts
+- ❌ Recurring shifts not appearing on subsequent weeks (needs debugging)
+
+### 🔄 Feature 6: Google Calendar Integration
 **Status: PENDING**
 - Will use single account (alexsaero56@gmail.com)
 - Will create shared calendar for team members
@@ -49,5 +57,12 @@ This development plan outlines the implementation of five key enhancements to th
 3. ✅ Dark Mode theme (COMPLETED)
 4. 🔄 Enhanced Team Management (CURRENT)
    * ✅ Fix history logging for team member deletions (COMPLETED)
-   * Complete remaining team management features
-5. 🔄 Google Calendar Integration (NEXT)
+   * ✅ Remove hours requirements for team members (COMPLETED)
+   * ✅ Add active/inactive status for team members (COMPLETED)
+   * Complete HTML reporting with tax information
+5. 🔄 Repeating Weekly Shifts (PARTIALLY COMPLETED)
+   * ✅ Added UI for creating recurring shifts
+   * ✅ Implemented backend support for recurring shifts
+   * ✅ Updated database schema
+   * ❌ Debug issue with recurring shifts not appearing on subsequent weeks
+6. 🔄 Google Calendar Integration (NEXT)

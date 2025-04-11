@@ -18,7 +18,6 @@ async function setupDatabase() {
         table.string('name').notNullable();
         table.string('role').notNullable();
         table.string('availability').notNullable();
-        table.integer('hours_per_week').notNullable();
         table.boolean('is_active').defaultTo(true);
         table.timestamps(true, true);
       }).then(() => logger.info('Created team_members table'));

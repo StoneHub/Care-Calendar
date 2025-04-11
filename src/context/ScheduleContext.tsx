@@ -469,7 +469,9 @@ export const ScheduleProvider: React.FC<{children: ReactNode}> = ({ children }) 
         caregiver_id: shift.caregiver_id,
         start_time: shift.start,
         end_time: shift.end,
-        status: shift.status || 'confirmed'
+        status: shift.status || 'confirmed',
+        isRecurring: shift.isRecurring,
+        recurringEndDate: shift.recurringEndDate
       };
       
       // Log the request data

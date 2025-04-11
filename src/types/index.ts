@@ -25,6 +25,9 @@ export interface ShiftBackend {
   start_time: string;
   end_time: string;
   status: ShiftStatus;
+  is_recurring?: boolean;
+  recurring_end_date?: string;
+  parent_shift_id?: number;
 }
 
 export interface Shift {
@@ -39,6 +42,9 @@ export interface Shift {
   requestBy?: string;
   swapWith?: string;
   droppedBy?: string;
+  is_recurring?: boolean;
+  recurring_end_date?: string;
+  parent_shift_id?: number;
 }
 
 export interface NewShiftData {
@@ -55,7 +61,6 @@ export type WeeklySchedule = Record<DayName, Shift[]>;
 export interface Caregiver {
   id: number;
   name: string;
-  hours: number;
   availability: string;
   role: string;
   is_active: boolean;
@@ -64,7 +69,6 @@ export interface Caregiver {
 export interface CaregiverBackend {
   id: number;
   name: string;
-  hours_per_week: number;
   availability: string;
   role: string;
   is_active: boolean;

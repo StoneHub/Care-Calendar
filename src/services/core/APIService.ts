@@ -259,8 +259,7 @@ class APIService {
     const payload = {
       name: caregiver.name,
       role: caregiver.role,
-      availability: caregiver.availability,
-      hours_per_week: caregiver.hours
+      availability: caregiver.availability
     };
     
     return this.request<Caregiver>('POST', '/team', { data: payload });
@@ -276,7 +275,6 @@ class APIService {
       name: caregiver.name,
       role: caregiver.role,
       availability: caregiver.availability,
-      hours_per_week: caregiver.hours,
       is_active: caregiver.is_active
     };
     
@@ -338,6 +336,13 @@ class APIService {
   }
   
   async createShift(shift: any): Promise<Shift> {
+    // Log the incoming shift data for debugging
+    logger.debug('Creating shift with data', { 
+      shift,
+      hasIsRecurring: shift.hasOwnProperty('isRecurring'),
+      isRecurringValue: shift.isRecurring
+    });
+    
     // Map frontend isRecurring and recurringEndDate to backend is_recurring and recurring_end_date
     const payload = {
       ...shift,
@@ -346,8 +351,15 @@ class APIService {
     };
     
     // Remove frontend-specific properties
-    if ('isRecurring' in payload) delete payload.isRecurring;
-    if ('recurringEndDate' in payload) delete payload.recurringEndDate;
+    delete payload.isRecurring;
+    delete payload.recurringEndDate;
+    
+    // Log the final payload being sent to the backend
+    logger.debug('Final shift payload', { 
+      payload,
+      hasIsRecurring: payload.hasOwnProperty('is_recurring'),
+      isRecurringValue: payload.is_recurring
+    });
     
     return this.request<Shift>('POST', '/schedule/shifts', { data: payload });
   }

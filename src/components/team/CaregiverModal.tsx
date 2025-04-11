@@ -17,7 +17,6 @@ const CaregiverModal: React.FC<CaregiverModalProps> = ({
   const [name, setName] = useState(caregiver?.name || '');
   const [role, setRole] = useState(caregiver?.role || 'Day Shift');
   const [availability, setAvailability] = useState(caregiver?.availability || 'Weekdays');
-  const [hours, setHours] = useState(caregiver?.hours || 0);
   const [isActive, setIsActive] = useState(caregiver?.is_active !== false);
 
   const handleSubmit = (e: React.FormEvent) => {
@@ -36,18 +35,16 @@ const CaregiverModal: React.FC<CaregiverModalProps> = ({
         name,
         role,
         availability,
-        hours,
         is_active: isActive
       };
       onSave(updatedCaregiver);
     } else {
       // For new caregivers - is_active is always true for new caregivers
-      const newCaregiver = {
+      const newCaregiver: Omit<Caregiver, 'id'> = {
         name,
         role,
         availability,
-        hours
-        // is_active is set on the backend with a default value of true
+        is_active: true
       };
       onSave(newCaregiver);
     }
@@ -79,6 +76,7 @@ const CaregiverModal: React.FC<CaregiverModalProps> = ({
               value={role}
               onChange={(e) => setRole(e.target.value)}
               required
+              aria-label="Role"
             >
               <option>Day Shift</option>
               <option>Evening Shift</option>
@@ -92,23 +90,12 @@ const CaregiverModal: React.FC<CaregiverModalProps> = ({
               value={availability}
               onChange={(e) => setAvailability(e.target.value)}
               required
+              aria-label="Availability"
             >
               <option>Weekdays</option>
               <option>Weekends</option>
               <option>All days</option>
             </select>
-          </div>
-          <div>
-            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Hours per week</label>
-            <input 
-              type="number" 
-              className="w-full p-2 border rounded dark:bg-gray-700 dark:border-gray-600 dark:text-white" 
-              placeholder="Enter hours"
-              value={hours}
-              onChange={(e) => setHours(parseInt(e.target.value) || 0)}
-              required
-              min="1"
-            />
           </div>
           
           {mode === 'edit' && (

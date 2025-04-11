@@ -14,6 +14,15 @@ import { logger } from './logger';
  * Converts a backend shift to frontend shift format
  */
 export function mapShiftFromBackend(backendShift: ShiftBackend): Shift {
+  // Log the backend shift for debugging
+  logger.debug('Mapping shift from backend', {
+    id: backendShift.id,
+    day: backendShift.day_of_week,
+    caregiver: backendShift.caregiver_name,
+    is_recurring: backendShift.is_recurring,
+    parent_shift_id: backendShift.parent_shift_id
+  });
+  
   return {
     id: backendShift.id,
     caregiver: backendShift.caregiver_name,
@@ -22,7 +31,11 @@ export function mapShiftFromBackend(backendShift: ShiftBackend): Shift {
     status: backendShift.status,
     caregiver_id: backendShift.caregiver_id,
     week_id: backendShift.week_id,
-    day: backendShift.day_of_week
+    day: backendShift.day_of_week,
+    // Include recurring information if available
+    is_recurring: backendShift.is_recurring,
+    recurring_end_date: backendShift.recurring_end_date,
+    parent_shift_id: backendShift.parent_shift_id
   };
 }
 
@@ -37,7 +50,10 @@ export function mapShiftToBackend(shift: Shift, weekId: number, day: DayName): P
     caregiver_id: shift.caregiver_id,
     start_time: shift.start,
     end_time: shift.end,
-    status: shift.status
+    status: shift.status,
+    is_recurring: shift.is_recurring,
+    recurring_end_date: shift.recurring_end_date,
+    parent_shift_id: shift.parent_shift_id
   };
 }
 
@@ -48,9 +64,9 @@ export function mapCaregiverFromBackend(backendCaregiver: CaregiverBackend): Car
   return {
     id: backendCaregiver.id,
     name: backendCaregiver.name,
-    hours: backendCaregiver.hours_per_week,
     availability: backendCaregiver.availability,
-    role: backendCaregiver.role
+    role: backendCaregiver.role,
+    is_active: backendCaregiver.is_active
   };
 }
 
@@ -61,9 +77,9 @@ export function mapCaregiverToBackend(caregiver: Caregiver): CaregiverBackend {
   return {
     id: caregiver.id,
     name: caregiver.name,
-    hours_per_week: caregiver.hours,
     availability: caregiver.availability,
-    role: caregiver.role
+    role: caregiver.role,
+    is_active: caregiver.is_active
   };
 }
 

@@ -46,10 +46,10 @@ exports.getTeamMemberById = async (req, res) => {
 // POST create a new team member
 exports.createTeamMember = async (req, res) => {
   try {
-    const { name, role, availability, hours_per_week } = req.body;
+    const { name, role, availability } = req.body;
     
     // Basic validation
-    if (!name || !role || !availability || !hours_per_week) {
+    if (!name || !role || !availability) {
       return res.status(400).json({ error: 'Missing required fields' });
     }
     
@@ -58,7 +58,6 @@ exports.createTeamMember = async (req, res) => {
         name,
         role,
         availability,
-        hours_per_week,
         is_active: true
       })
       .returning('id');
@@ -77,8 +76,7 @@ exports.createTeamMember = async (req, res) => {
         details: { 
           name,
           role,
-          availability,
-          hours_per_week
+          availability
         }
       }
     );
@@ -94,10 +92,10 @@ exports.createTeamMember = async (req, res) => {
 exports.updateTeamMember = async (req, res) => {
   try {
     const { id } = req.params;
-    const { name, role, availability, hours_per_week, is_active } = req.body;
+    const { name, role, availability, is_active } = req.body;
     
     // Basic validation
-    if (!name && !role && !availability && !hours_per_week && is_active === undefined) {
+    if (!name && !role && !availability && is_active === undefined) {
       return res.status(400).json({ error: 'No update fields provided' });
     }
     
@@ -106,7 +104,6 @@ exports.updateTeamMember = async (req, res) => {
     if (name) updateData.name = name;
     if (role) updateData.role = role;
     if (availability) updateData.availability = availability;
-    if (hours_per_week) updateData.hours_per_week = hours_per_week;
     if (is_active !== undefined) updateData.is_active = is_active;
     
     // Get team member before update for history
@@ -155,7 +152,6 @@ exports.updateTeamMember = async (req, res) => {
             name: teamMemberBefore.name,
             role: teamMemberBefore.role,
             availability: teamMemberBefore.availability,
-            hours_per_week: teamMemberBefore.hours_per_week,
             is_active: teamMemberBefore.is_active
           },
           after: updateData
