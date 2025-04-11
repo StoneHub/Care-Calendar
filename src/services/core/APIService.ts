@@ -1,6 +1,7 @@
 import axios, { AxiosInstance, AxiosRequestConfig, AxiosResponse, AxiosError } from 'axios';
 import { Caregiver, Shift, Notification, Week, HistoryRecord, Unavailability, NewUnavailabilityData, UnavailabilityBackend } from '../../types';
 import { logger } from '../../utils/logger';
+import { API_BASE_URL } from '../../config';
 
 /**
  * Enhanced API service with better error handling
@@ -13,7 +14,7 @@ class APIService {
   
   constructor() {
     this.api = axios.create({
-      baseURL: 'http://localhost:3001/api',
+      baseURL: API_BASE_URL,
       headers: {
         'Content-Type': 'application/json'
       },
