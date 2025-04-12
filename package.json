@@ -14,7 +14,8 @@
     "backend:seed-db": "cd backend && npm run seed-db",
     "backend:setup-history": "cd backend && npm run setup-history",
     "dev:all": "concurrently \"npm run dev\" \"cd backend && npm run dev\"",
-    "start:windows": "node start-windows.js"
+    "start:windows": "node start-windows.js",
+    "start": "concurrently \"vite preview --host=0.0.0.0\" \"cd backend && npm run dev\""
   },
   "dependencies": {
     "axios": "^1.6.7",
