@@ -15,7 +15,9 @@
     "backend:setup-history": "cd backend && npm run setup-history",
     "dev:all": "concurrently \"npm run dev\" \"cd backend && npm run dev\"",
     "start:windows": "node start-windows.js",
-    "start": "concurrently \"vite preview --host=0.0.0.0\" \"cd backend && npm run dev\""
+    "start": "concurrently \"vite preview --host=0.0.0.0\" \"cd backend && npm run dev\"",
+    "set-ip": "sed -i \"s/YOUR_IP_ADDRESS/$(hostname -I | awk '{print $1}')/\" public/index.html",
+    "backend:reset": "cd backend && bash reset-db.sh"
   },
   "dependencies": {
     "axios": "^1.6.7",
