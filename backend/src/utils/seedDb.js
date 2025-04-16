@@ -39,10 +39,20 @@ function seedDatabase() {
     logger.info(`Seeded weeks with id: ${weekId}`);
     // Get caregiver IDs
     const caregivers = lowdbUtil.getAll('team_members');
-    const robinId = caregivers.find(c => c.name.trim() === 'Robin').id;
-    const scarletId = caregivers.find(c => c.name.trim() === 'Scarlet').id;
-    const kellyId = caregivers.find(c => c.name.trim() === 'Kellie').id;
-    const joanneId = caregivers.find(c => c.name.trim() === 'Joanne').id;
+    const robin = caregivers.find(c => c.name.trim() === 'Robin');
+    const scarlet = caregivers.find(c => c.name.trim() === 'Scarlet');
+    const kelly = caregivers.find(c => c.name.trim() === 'Kellie');
+    const joanne = caregivers.find(c => c.name.trim() === 'Joanne');
+    if (!robin || !scarlet || !kelly || !joanne) {
+      logger.error('One or more required caregivers are missing. Cannot seed shifts or notifications.', {
+        robin: !!robin, scarlet: !!scarlet, kelly: !!kelly, joanne: !!joanne
+      });
+      return;
+    }
+    const robinId = robin.id;
+    const scarletId = scarlet.id;
+    const kellyId = kelly.id;
+    const joanneId = joanne.id;
     // Seed shifts for the week if not present
     const existingShifts = lowdbUtil.find('shifts', { week_id: weekId });
     if (!existingShifts || existingShifts.length === 0) {
