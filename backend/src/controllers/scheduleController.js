@@ -286,3 +286,106 @@ exports.dropShift = async (req, res) => {
     res.status(500).json({ error: 'Failed to drop shift' });
   }
 };
+
+// POST swap shifts
+exports.swapShift = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { swap_with_id } = req.body;
+    if (!swap_with_id) {
+      return res.status(400).json({ error: 'swap_with_id is required' });
+    }
+    const shiftA = lowdbUtil.findById('shifts', id);
+    const shiftB = lowdbUtil.findById('shifts', swap_with_id);
+    if (!shiftA || !shiftB) {
+      return res.status(404).json({ error: 'One or both shifts not found' });
+    }
+    // Swap caregivers
+    const tempCaregiverId = shiftA.caregiver_id;
+    lowdbUtil.update('shifts', shiftA.id, {
+      caregiver_id: shiftB.caregiver_id,
+      status: 'confirmed'
+    });
+    lowdbUtil.update('shifts', shiftB.id, {
+      caregiver_id: tempCaregiverId,
+      status: 'confirmed'
+    });
+    // Create notifications for both shifts
+    const now = new Date();
+    const dateStr = now.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' });
+    const timeStr = now.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: false });
+    lowdbUtil.insert('notifications', {
+      type: 'swap',
+      from_caregiver_id: shiftA.caregiver_id,
+      affected_shift_id: shiftA.id,
+      week_id: shiftA.week_id,
+      message: `Swapped shift with caregiver ${shiftB.caregiver_id}`,
+      date: dateStr,
+      time: timeStr,
+      status: 'completed'
+    });
+    lowdbUtil.insert('notifications', {
+      type: 'swap',
+      from_caregiver_id: shiftB.caregiver_id,
+      affected_shift_id: shiftB.id,
+      week_id: shiftB.week_id,
+      message: `Swapped shift with caregiver ${shiftA.caregiver_id}`,
+      date: dateStr,
+      time: timeStr,
+      status: 'completed'
+    });
+    await recordHistory('swap', 'shift', id, `Swapped shift ${id} with shift ${swap_with_id}`);
+    // Return updated shifts
+    const updatedA = lowdbUtil.findById('shifts', id);
+    const updatedB = lowdbUtil.findById('shifts', swap_with_id);
+    res.status(200).json({ original_shift: updatedA, swap_with_shift: updatedB });
+  } catch (error) {
+    logger.error(`Error swapping shifts:`, error);
+    res.status(500).json({ error: 'Failed to swap shifts' });
+  }
+};
+
+// POST adjust shift hours
+exports.adjustShift = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { new_start_time, new_end_time, reason } = req.body;
+    if (!new_start_time && !new_end_time) {
+      return res.status(400).json({ error: 'At least one of new_start_time or new_end_time is required' });
+    }
+    const shift = lowdbUtil.findById('shifts', id);
+    if (!shift) {
+      return res.status(404).json({ error: 'Shift not found' });
+    }
+    const updateData = { status: 'adjusted' };
+    if (new_start_time) updateData.start_time = new_start_time;
+    if (new_end_time) updateData.end_time = new_end_time;
+    const updatedShift = lowdbUtil.update('shifts', id, updateData);
+    // Create notification
+    const now = new Date();
+    const dateStr = now.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' });
+    const timeStr = now.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: false });
+    lowdbUtil.insert('notifications', {
+      type: 'adjust',
+      from_caregiver_id: shift.caregiver_id,
+      affected_shift_id: shift.id,
+      week_id: shift.week_id,
+      message: `Adjusted shift to ${updateData.start_time || shift.start_time}-${updateData.end_time || shift.end_time}${reason ? ': ' + reason : ''}`,
+      date: dateStr,
+      time: timeStr,
+      status: 'completed'
+    });
+    await recordHistory('adjust', 'shift', id, `Adjusted shift ${id}`);
+    const caregiver = lowdbUtil.findById('team_members', updatedShift.caregiver_id);
+    res.status(200).json({
+      ...updatedShift,
+      caregiver_id: caregiver ? caregiver.id : null,
+      caregiver_name: caregiver ? caregiver.name : '',
+      caregiver_role: caregiver ? caregiver.role : '',
+      caregiver_is_active: caregiver ? caregiver.is_active : false
+    });
+  } catch (error) {
+    logger.error(`Error adjusting shift with ID ${req.params.id}:`, error);
+    res.status(500).json({ error: 'Failed to adjust shift' });
+  }
+};
