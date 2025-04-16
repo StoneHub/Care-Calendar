@@ -8,20 +8,15 @@ const routes = require('./routes');
 const logger = require('./utils/logger');
 const path = require('path');
 const discovery = require('./utils/discovery');
+const lowdbUtil = require('./utils/lowdbUtil');
 
 // Check if database reset is needed
 const args = process.argv.slice(2);
 if (args.includes('--reset-db')) {
   logger.info('Database reset requested via command line');
-  const resolveDb = require('./utils/resolveDb');
-  resolveDb.main(true)
-    .then(() => {
-      logger.info('Database reset completed, continuing with server startup');
-    })
-    .catch(error => {
-      logger.error('Failed to reset database', { error: error.message });
-      // Continue starting the server anyway
-    });
+  // Use LowDB reset functionality
+  lowdbUtil.resetAllCollections();
+  logger.info('Database reset completed, continuing with server startup');
 }
 
 const app = express();
@@ -95,8 +90,24 @@ app.use((err, req, res, next) => {
 
 // Import utilities
 const generateCalendarWeeks = require('./utils/generateCalendarWeeks');
-const { setupHistoryTable } = require('../db/setup_history');
-const { setupUnavailabilityTable } = require('../db/setup_unavailability');
+
+// Helper to ensure required collections exist
+async function setupLowDbCollections() {
+  logger.info('Setting up LowDB collections...');
+  
+  // Ensure all necessary collections exist
+  ['team_members', 'weeks', 'shifts', 'notifications', 'history', 'unavailability', 'payroll_records'].forEach(collection => {
+    const items = lowdbUtil.getAll(collection);
+    if (!items || !Array.isArray(items)) {
+      logger.info(`Creating ${collection} collection`);
+      lowdbUtil.resetCollection(collection);
+    } else {
+      logger.info(`Collection ${collection} exists with ${items.length} items`);
+    }
+  });
+  
+  logger.info('LowDB collections setup complete');
+}
 
 // Start server
 const HOST = '0.0.0.0';
@@ -104,13 +115,13 @@ server.listen(port, HOST, async () => {
   logger.info(`Server running on http://${HOST}:${port}`);
   
   try {
-    // Set up history table
-    await setupHistoryTable();
-    logger.info('History table setup completed');
+    // Set up LowDB collections
+    await setupLowDbCollections();
     
-    // Set up unavailability table
-    await setupUnavailabilityTable();
-    logger.info('Unavailability table setup completed');
+    // Seed database if needed
+    const seedDb = require('./utils/seedDb');
+    await seedDb.seedDatabase();
+    logger.info('Database initialization complete');
     
     // Auto-generate calendar weeks on server start
     await generateCalendarWeeks(4, 12); // 4 weeks back, 12 weeks forward
