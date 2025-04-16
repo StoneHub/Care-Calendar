@@ -1,7 +1,7 @@
 /**
  * Utility for generating calendar weeks for the application
  */
-const db = require('./db');
+const lowdbUtil = require('./lowdbUtil');
 const logger = require('./logger');
 
 /**
@@ -86,14 +86,12 @@ async function generateCalendarWeeks(weeksBack = 4, weeksForward = 12) {
     // Insert weeks - skip if they already exist
     for (const week of weeksToCreate) {
       try {
-        // Check if week exists
-        const existingWeek = await db('weeks')
-          .where('start_date', week.start_date)
-          .first();
+        // Check if week exists using lowdbUtil
+        const existingWeek = lowdbUtil.find('weeks', { start_date: week.start_date })[0];
           
         if (!existingWeek) {
           logger.debug('Creating new week', week);
-          await db('weeks').insert(week);
+          lowdbUtil.insert('weeks', week);
         } else {
           logger.debug('Week already exists', { 
             start_date: week.start_date,
