@@ -1,0 +1,11 @@
+{
+  "team_members": [
+    {
+      "id": "097f5f9d-5e45-4352-9e5b-a60048305c1e",
+      "name": "Admin User",
+      "role": "Admin",
+      "availability": "All days",
+      "is_active": true
+    }
+  ]
+}
