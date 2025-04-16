@@ -1,19 +1,17 @@
-const db = require('../utils/db');
+const lowdbUtil = require('../utils/lowdbUtil');
 const io = require('../utils/socket');
 const logger = require('../utils/logger');
 const { recordHistory } = require('../utils/history');
-const { withTransaction } = require('../utils/transaction');
 
 // GET all weeks
 exports.getAllWeeks = async (req, res) => {
   try {
-    const weeks = await db('weeks')
-      .select('*')
-      .orderBy('start_date', 'desc');
-    
+    let weeks = lowdbUtil.getAll('weeks');
+    // Sort by start_date descending
+    weeks = weeks.sort((a, b) => b.start_date.localeCompare(a.start_date));
     res.status(200).json(weeks);
   } catch (error) {
-    console.error('Error fetching weeks:', error);
+    logger.error('Error fetching weeks:', error);
     res.status(500).json({ error: 'Failed to fetch weeks' });
   }
 };
@@ -22,17 +20,13 @@ exports.getAllWeeks = async (req, res) => {
 exports.getWeekById = async (req, res) => {
   try {
     const { id } = req.params;
-    const week = await db('weeks')
-      .where({ id })
-      .first();
-    
+    const week = lowdbUtil.findById('weeks', id);
     if (!week) {
       return res.status(404).json({ error: 'Week not found' });
     }
-    
     res.status(200).json(week);
   } catch (error) {
-    console.error(`Error fetching week with ID ${req.params.id}:`, error);
+    logger.error(`Error fetching week with ID ${req.params.id}:`, error);
     res.status(500).json({ error: 'Failed to fetch week' });
   }
 };
@@ -41,44 +35,20 @@ exports.getWeekById = async (req, res) => {
 exports.getCurrentWeek = async (req, res) => {
   try {
     const today = new Date().toISOString().split('T')[0];
-    logger.debug('Looking for current week', { today });
-    
-    const currentWeek = await db('weeks')
-      .where('start_date', '<=', today)
-      .where('end_date', '>=', today)
-      .first();
-    
+    let weeks = lowdbUtil.getAll('weeks');
+    const currentWeek = weeks.find(w => w.start_date <= today && w.end_date >= today);
     if (!currentWeek) {
-      logger.warn('No current week found', { today });
-      
-      // Try to get the most recent week as a fallback
-      const mostRecentWeek = await db('weeks')
-        .orderBy('start_date', 'desc')
-        .first();
-      
+      // Fallback: most recent week
+      weeks = weeks.sort((a, b) => b.start_date.localeCompare(a.start_date));
+      const mostRecentWeek = weeks[0];
       if (mostRecentWeek) {
-        logger.info('Returning most recent week as fallback', { 
-          week_id: mostRecentWeek.id,
-          start_date: mostRecentWeek.start_date
-        });
         return res.status(200).json(mostRecentWeek);
       }
-      
       return res.status(404).json({ error: 'No current week found' });
     }
-    
-    logger.info('Current week found', { 
-      week_id: currentWeek.id,
-      start_date: currentWeek.start_date,
-      end_date: currentWeek.end_date 
-    });
-    
     res.status(200).json(currentWeek);
   } catch (error) {
-    logger.error('Error fetching current week', { 
-      error: error.message,
-      stack: error.stack
-    });
+    logger.error('Error fetching current week', error);
     res.status(500).json({ error: 'Failed to fetch current week' });
   }
 };
@@ -87,28 +57,18 @@ exports.getCurrentWeek = async (req, res) => {
 exports.createWeek = async (req, res) => {
   try {
     const { start_date, end_date, is_published, notes } = req.body;
-    
-    // Basic validation
     if (!start_date || !end_date) {
       return res.status(400).json({ error: 'Start date and end date are required' });
     }
-    
-    const [id] = await db('weeks')
-      .insert({
-        start_date,
-        end_date,
-        is_published: is_published || false,
-        notes: notes || ''
-      })
-      .returning('id');
-    
-    const newWeek = await db('weeks')
-      .where({ id })
-      .first();
-    
+    const newWeek = lowdbUtil.insert('weeks', {
+      start_date,
+      end_date,
+      is_published: is_published || false,
+      notes: notes || ''
+    });
     res.status(201).json(newWeek);
   } catch (error) {
-    console.error('Error creating week:', error);
+    logger.error('Error creating week:', error);
     res.status(500).json({ error: 'Failed to create week' });
   }
 };
@@ -118,29 +78,18 @@ exports.updateWeek = async (req, res) => {
   try {
     const { id } = req.params;
     const { start_date, end_date, is_published, notes } = req.body;
-    
-    // Build update object with only provided fields
     const updateData = {};
     if (start_date) updateData.start_date = start_date;
     if (end_date) updateData.end_date = end_date;
     if (is_published !== undefined) updateData.is_published = is_published;
     if (notes !== undefined) updateData.notes = notes;
-    
-    const updated = await db('weeks')
-      .where({ id })
-      .update(updateData);
-    
-    if (updated === 0) {
+    const updatedWeek = lowdbUtil.update('weeks', id, updateData);
+    if (!updatedWeek) {
       return res.status(404).json({ error: 'Week not found' });
     }
-    
-    const updatedWeek = await db('weeks')
-      .where({ id })
-      .first();
-    
     res.status(200).json(updatedWeek);
   } catch (error) {
-    console.error(`Error updating week with ID ${req.params.id}:`, error);
+    logger.error(`Error updating week with ID ${req.params.id}:`, error);
     res.status(500).json({ error: 'Failed to update week' });
   }
 };
@@ -149,67 +98,27 @@ exports.updateWeek = async (req, res) => {
 exports.getShiftsByWeek = async (req, res) => {
   try {
     const { weekId } = req.params;
-    
-    // Verify the week exists
-    const week = await db('weeks')
-      .where({ id: weekId })
-      .first();
-    
+    const week = lowdbUtil.findById('weeks', weekId);
     if (!week) {
       return res.status(404).json({ error: 'Week not found' });
     }
-    
-    // Get all shifts for the week with caregiver info (including both active and inactive caregivers)
-    // We show all shifts regardless of caregiver active status because this is historical data
-    const shifts = await db('shifts')
-      .join('team_members', 'shifts.caregiver_id', 'team_members.id')
-      .select(
-        'shifts.id',
-        'shifts.day_of_week',
-        'shifts.start_time',
-        'shifts.end_time',
-        'shifts.status',
-        'shifts.week_id',
-        'shifts.is_recurring',
-        'shifts.recurring_end_date',
-        'shifts.parent_shift_id',
-        'team_members.id as caregiver_id',
-        'team_members.name as caregiver_name',
-        'team_members.role as caregiver_role',
-        'team_members.is_active as caregiver_is_active'
-      )
-      .where('shifts.week_id', weekId)
-      .orderBy(['shifts.day_of_week', 'shifts.start_time']);
-    
-    logger.debug('Retrieved shifts with recurring info', {
-      weekId,
-      count: shifts.length,
-      recurringCount: shifts.filter(s => s.is_recurring).length,
-      childShiftsCount: shifts.filter(s => s.parent_shift_id).length
+    // Get all shifts for the week
+    let shifts = lowdbUtil.find('shifts', { week_id: weekId });
+    // Attach caregiver info manually
+    const caregivers = lowdbUtil.getAll('team_members');
+    shifts = shifts.map(shift => {
+      const caregiver = caregivers.find(c => c.id === shift.caregiver_id);
+      return {
+        ...shift,
+        caregiver_id: caregiver ? caregiver.id : null,
+        caregiver_name: caregiver ? caregiver.name : '',
+        caregiver_role: caregiver ? caregiver.role : '',
+        caregiver_is_active: caregiver ? caregiver.is_active : false
+      };
     });
-    
-    // Group shifts by day
-    const shiftsByDay = shifts.reduce((acc, shift) => {
-      const day = shift.day_of_week;
-      if (!acc[day]) {
-        acc[day] = [];
-      }
-      acc[day].push(shift);
-      return acc;
-    }, {});
-    
-    // Log what we're sending back to client
-    logger.debug('Returning shifts for week', {
-      weekId,
-      totalShifts: shifts.length,
-      format: 'grouped by day',
-      data: shiftsByDay
-    });
-    
-    // Return the shifts as a flat array instead of grouped by day
     res.status(200).json(shifts);
   } catch (error) {
-    console.error(`Error fetching shifts for week ${req.params.weekId}:`, error);
+    logger.error(`Error fetching shifts for week ${req.params.weekId}:`, error);
     res.status(500).json({ error: 'Failed to fetch shifts' });
   }
 };
@@ -218,406 +127,66 @@ exports.getShiftsByWeek = async (req, res) => {
 exports.getShiftById = async (req, res) => {
   try {
     const { id } = req.params;
-    
-    const shift = await db('shifts')
-      .join('team_members', 'shifts.caregiver_id', 'team_members.id')
-      .select(
-        'shifts.id',
-        'shifts.day_of_week',
-        'shifts.start_time',
-        'shifts.end_time',
-        'shifts.status',
-        'shifts.week_id',
-        'shifts.is_recurring',
-        'shifts.recurring_end_date',
-        'shifts.parent_shift_id',
-        'team_members.id as caregiver_id',
-        'team_members.name as caregiver_name',
-        'team_members.role as caregiver_role'
-      )
-      .where('shifts.id', id)
-      .first();
-    
+    const shift = lowdbUtil.findById('shifts', id);
     if (!shift) {
       return res.status(404).json({ error: 'Shift not found' });
     }
-    
-    res.status(200).json(shift);
+    const caregiver = lowdbUtil.findById('team_members', shift.caregiver_id);
+    res.status(200).json({
+      ...shift,
+      caregiver_id: caregiver ? caregiver.id : null,
+      caregiver_name: caregiver ? caregiver.name : '',
+      caregiver_role: caregiver ? caregiver.role : '',
+      caregiver_is_active: caregiver ? caregiver.is_active : false
+    });
   } catch (error) {
-    console.error(`Error fetching shift with ID ${req.params.id}:`, error);
+    logger.error(`Error fetching shift with ID ${req.params.id}:`, error);
     res.status(500).json({ error: 'Failed to fetch shift' });
   }
 };
 
-// POST create a new shift
+// POST create a new shift (basic, no recurring logic yet)
 exports.createShift = async (req, res) => {
-  // Extract request ID from headers or generate one if not present
-  const requestId = req.headers['x-request-id'] || `shift_${Date.now()}_${Math.random().toString(36).substring(2, 10)}`;
-  
-  // Add request ID to res.locals for access in other middleware or response handlers
-  res.locals.requestId = requestId;
-  
-  // Log the incoming request with the request ID
-  logger.info('Starting shift creation', {
-    requestId,
-    body: JSON.stringify(req.body),
-    path: req.path,
-    method: req.method
-  });
-
   try {
-    const { 
-      week_id, 
-      day_of_week, 
-      caregiver_id, 
-      start_time, 
-      end_time, 
-      status,
-      is_recurring,
-      recurring_end_date
-    } = req.body;
-    
-    // Log detailed parameters
-    logger.debug('Shift creation parameters', {
-      requestId,
+    const { week_id, day_of_week, caregiver_id, start_time, end_time, status, is_recurring, recurring_end_date, parent_shift_id } = req.body;
+    if (!week_id || !day_of_week || !caregiver_id || !start_time || !end_time) {
+      return res.status(400).json({ error: 'Missing required fields' });
+    }
+    if (is_recurring && (!recurring_end_date || new Date(recurring_end_date) <= new Date())) {
+      return res.status(400).json({ error: 'A valid recurring_end_date is required for recurring shifts' });
+    }
+    const caregiver = lowdbUtil.findById('team_members', caregiver_id);
+    if (!caregiver) {
+      return res.status(400).json({ error: 'Invalid caregiver ID' });
+    }
+    if (!caregiver.is_active) {
+      return res.status(400).json({ error: 'Cannot assign shifts to inactive team members' });
+    }
+    // Insert the shift
+    const newShift = lowdbUtil.insert('shifts', {
       week_id,
       day_of_week,
       caregiver_id,
       start_time,
       end_time,
-      status,
-      is_recurring,
-      recurring_end_date
+      status: status || 'confirmed',
+      is_recurring: !!is_recurring,
+      recurring_end_date: is_recurring ? recurring_end_date : null,
+      parent_shift_id: parent_shift_id || null
     });
-    
-    // Basic validation
-    if (!week_id || !day_of_week || !caregiver_id || !start_time || !end_time) {
-      logger.warn('Missing required fields for shift creation', {
-        requestId, 
-        missingFields: [
-          !week_id ? 'week_id' : null,
-          !day_of_week ? 'day_of_week' : null,
-          !caregiver_id ? 'caregiver_id' : null,
-          !start_time ? 'start_time' : null,
-          !end_time ? 'end_time' : null
-        ].filter(Boolean)
-      });
-      return res.status(400).json({ error: 'Missing required fields' });
-    }
-    
-    // Get caregiver name for history recording and verify they're active
-    const caregiver = await db('team_members')
-      .where({ id: caregiver_id })
-      .first();
-    
-    if (!caregiver) {
-      return res.status(400).json({ error: 'Invalid caregiver ID' });
-    }
-    
-    // Ensure caregiver is active before allowing shift assignment
-    if (!caregiver.is_active) {
-      return res.status(400).json({ error: 'Cannot assign shifts to inactive team members' });
-    }
-    
-    // Use transaction to ensure data integrity
-    const id = await withTransaction(async (trx) => {
-      // Insert original shift
-      const [originalShiftId] = await trx('shifts')
-        .insert({
-          week_id,
-          day_of_week,
-          caregiver_id,
-          start_time,
-          end_time,
-          status: status || 'confirmed',
-          // Use 1 instead of true for SQLite compatibility
-          is_recurring: is_recurring ? 1 : 0,
-          recurring_end_date: is_recurring ? recurring_end_date : null
-        })
-        .returning('id');
-      
-      // Record history
-      await trx('history_records').insert({
-        action_type: 'create',
-        entity_type: 'shift',
-        entity_id: originalShiftId,
-        caregiver_id,
-        week_id,
-        description: `Created shift for ${caregiver.name} on ${day_of_week} (${start_time}-${end_time})${is_recurring ? ' (recurring weekly)' : ''}`,
-
-        details: JSON.stringify({
-          day_of_week,
-          start_time,
-          end_time,
-          status: status || 'confirmed',
-          is_recurring: is_recurring ? 1 : 0,
-          recurring_end_date: is_recurring ? recurring_end_date : null
-        })
-      });
-      
-      // If recurring, create future shifts
-      if (is_recurring) {
-        logger.info('Creating recurring shifts', {
-          caregiver_id,
-          day_of_week,
-          end_date: recurring_end_date,
-          originalShiftId
-        });
-        
-        try {
-          // Get the current week's info to calculate dates
-          const currentWeek = await trx('weeks').where({ id: week_id }).first();
-          
-          if (!currentWeek) {
-            throw new Error(`Week with ID ${week_id} not found`);
-          }
-          
-          // Calculate the day index (0 = Monday, 6 = Sunday)
-          const dayIndex = ['monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday'].indexOf(day_of_week.toLowerCase());
-          if (dayIndex === -1) {
-            throw new Error(`Invalid day of week: ${day_of_week}`);
-          }
-
-          // Add detailed logging for debugging
-          logger.debug('Recurring shift parameters', {
-            is_recurring,
-            recurring_end_date,
-            day_of_week,
-            dayIndex,
-            week_id,
-            currentWeek: {
-              id: currentWeek.id,
-              start_date: currentWeek.start_date,
-              end_date: currentWeek.end_date
-            },
-            originalShiftId
-          });
-
-          // Calculate the date of the first shift
-          const firstShiftDate = new Date(currentWeek.start_date);
-          firstShiftDate.setDate(firstShiftDate.getDate() + dayIndex);
-
-          // Calculate end date (use end of year if not specified)
-          const endDate = recurring_end_date 
-            ? new Date(recurring_end_date) 
-            : new Date(new Date().getFullYear(), 11, 31); // Dec 31 of current year
-
-          // Normalize end date to midnight UTC for consistent comparisons
-          const endDateUTC = new Date(Date.UTC(endDate.getFullYear(), endDate.getMonth(), endDate.getDate()));
-          
-          logger.debug('Date calculations', {
-            firstShiftDate: firstShiftDate.toISOString(),
-            endDate: endDate.toISOString(),
-            endDateUTC: endDateUTC.toISOString(),
-            currentWeekStart: currentWeek.start_date,
-            dayIndex
-          });
-                  
-          // Generate future dates (weekly)
-          let currentDate = new Date(firstShiftDate);
-          currentDate.setDate(currentDate.getDate() + 7); // Start from next week
-          
-          // Normalize current date to midnight UTC for consistent comparisons with endDateUTC
-          let currentDateUTC = new Date(Date.UTC(currentDate.getFullYear(), currentDate.getMonth(), currentDate.getDate()));
-
-          logger.debug('Starting future shift creation', {
-            startingDate: currentDate.toISOString(),
-            startingDateUTC: currentDateUTC.toISOString(),
-            endDate: endDate.toISOString(),
-            endDateUTC: endDateUTC.toISOString(),
-            comparison: currentDateUTC <= endDateUTC ? 'within range' : 'out of range'
-          });
-
-          let futureShiftCount = 0;
-          
-          while (currentDateUTC <= endDateUTC) {
-            try {
-              // Find or create the week for this date
-              const weekStart = new Date(currentDate);
-              weekStart.setDate(weekStart.getDate() - dayIndex); // Go back to Monday
-              
-              const weekEnd = new Date(weekStart);
-              weekEnd.setDate(weekEnd.getDate() + 6); // 6 days after start = Sunday
-              
-              // Format dates for DB
-              const formattedStart = weekStart.toISOString().split('T')[0];
-              const formattedEnd = weekEnd.toISOString().split('T')[0];
-              
-              logger.debug('Processing future week', {
-                currentDate: currentDate.toISOString(),
-                weekStart: formattedStart,
-                weekEnd: formattedEnd,
-                iteration: futureShiftCount + 1
-              });
-              
-              // Find existing week or create new one
-              let futureWeekId;
-              
-              try {
-                // Find existing week
-                let weekRow = await trx('weeks')
-                  .where('start_date', formattedStart)
-                  .first();
-                  
-                if (weekRow) {
-                  futureWeekId = weekRow.id;
-                  logger.debug('Found existing week', { 
-                    weekId: futureWeekId, 
-                    start_date: formattedStart,
-                    end_date: formattedEnd
-                  });
-                } else {
-                  // Create a new week
-                  logger.debug('Creating new week', { 
-                    start_date: formattedStart,
-                    end_date: formattedEnd
-                  });
-                  
-                  const [newWeekId] = await trx('weeks')
-                    .insert({
-                      start_date: formattedStart,
-                      end_date: formattedEnd,
-                      is_published: false,
-                      notes: `Auto-generated for recurring shift`
-                    })
-                    .returning('id');
-                    
-                  futureWeekId = newWeekId;
-                  logger.debug('Created new week', { 
-                    weekId: futureWeekId, 
-                    start_date: formattedStart,
-                    end_date: formattedEnd
-                  });
-                }
-              } catch (weekError) {
-                logger.error('Error finding/creating future week', { 
-                  formattedStart,
-                  formattedEnd,
-                  error: weekError.message,
-                  stack: weekError.stack
-                });
-                throw weekError; // Re-throw to ensure transaction rollback
-              }
-              
-              try {
-                // Create the recurring shift for this week
-                logger.debug('Inserting recurring shift', {
-                  week_id: futureWeekId,
-                  day_of_week,
-                  caregiver_id,
-                  parent_shift_id: originalShiftId
-                });
-                
-                const [recurringShiftId] = await trx('shifts')
-                  .insert({
-                    week_id: futureWeekId,
-                    day_of_week,
-                    caregiver_id,
-                    start_time,
-                    end_time,
-                    status: status || 'confirmed',
-                    parent_shift_id: originalShiftId,
-                    // Add is_recurring flag to child shifts as well
-                    // Use 1 instead of true for SQLite compatibility
-                    is_recurring: 1
-                  })
-                  .returning('id');
-                
-                logger.debug('Created recurring shift', {
-                  original_id: originalShiftId,
-                  recurring_id: recurringShiftId,
-                  week_id: futureWeekId,
-                  date: currentDate.toISOString().split('T')[0]
-                });
-                
-                futureShiftCount++;
-              } catch (shiftError) {
-                logger.error('Error creating recurring shift', { 
-                  futureWeekId,
-                  day_of_week,
-                  caregiver_id,
-                  error: shiftError.message,
-                  stack: shiftError.stack
-                });
-                throw shiftError; // Re-throw to ensure transaction rollback
-              }
-            } catch (iterationError) {
-              logger.error('Error in recurring shift iteration', {
-                currentDate: currentDate.toISOString(),
-                iteration: futureShiftCount + 1,
-                error: iterationError.message,
-                stack: iterationError.stack
-              });
-              throw iterationError; // Re-throw to ensure transaction rollback
-            }
-            
-            // Move to next week
-            currentDate.setDate(currentDate.getDate() + 7);
-            // Update the UTC version for comparison
-            currentDateUTC = new Date(Date.UTC(currentDate.getFullYear(), currentDate.getMonth(), currentDate.getDate()));
-            
-            logger.debug('Advanced to next week', {
-              newDate: currentDate.toISOString(),
-              newDateUTC: currentDateUTC.toISOString(),
-              endDate: endDateUTC.toISOString(),
-              comparison: currentDateUTC <= endDateUTC ? 'within range' : 'out of range',
-              futureShiftCount
-            });
-          }
-
-          logger.info('Completed recurring shift creation', {
-            originalShiftId,
-            totalFutureShifts: futureShiftCount,
-            is_recurring,
-            endDate: endDate.toISOString().split('T')[0]
-          });
-        } catch (recurringError) {
-          logger.error('Error in recurring shift creation process', {
-            originalShiftId,
-            error: recurringError.message,
-            stack: recurringError.stack
-          });
-          throw recurringError; // Re-throw to ensure transaction rollback
-        }
-      }
-      
-      return originalShiftId;
+    // TODO: Add recurring logic here (future enhancement)
+    await recordHistory('create', 'shift', newShift.id, `Created shift for ${caregiver.name} on ${day_of_week} (${start_time}-${end_time})`, {
+      details: { day_of_week, start_time, end_time, status: status || 'confirmed', is_recurring: !!is_recurring, recurring_end_date }
     });
-    
-    // Get complete shift data to return
-    const newShift = await db('shifts')
-      .join('team_members', 'shifts.caregiver_id', 'team_members.id')
-      .select(
-        'shifts.id',
-        'shifts.day_of_week',
-        'shifts.start_time',
-        'shifts.end_time',
-        'shifts.status',
-        'shifts.week_id',
-        'shifts.is_recurring',
-        'shifts.recurring_end_date',
-        'shifts.parent_shift_id',
-        'team_members.id as caregiver_id',
-        'team_members.name as caregiver_name',
-        'team_members.role as caregiver_role'
-      )
-      .where('shifts.id', id)
-      .first();
-    
-    logger.info('Shift created successfully', { 
-      shift_id: id,
-      caregiver: caregiver.name,
-      day: day_of_week,
-      time: `${start_time}-${end_time}`
+    res.status(201).json({
+      ...newShift,
+      caregiver_id: caregiver.id,
+      caregiver_name: caregiver.name,
+      caregiver_role: caregiver.role,
+      caregiver_is_active: caregiver.is_active
     });
-    
-    res.status(201).json(newShift);
   } catch (error) {
-    logger.error('Error creating shift:', {
-      error: error.message,
-      stack: error.stack,
-      body: req.body
-    });
+    logger.error('Error creating shift:', error);
     res.status(500).json({ error: 'Failed to create shift' });
   }
 };
@@ -627,153 +196,54 @@ exports.updateShift = async (req, res) => {
   try {
     const { id } = req.params;
     const { day_of_week, caregiver_id, start_time, end_time, status } = req.body;
-    
-    // Build update object with only provided fields
     const updateData = {};
     if (day_of_week) updateData.day_of_week = day_of_week;
     if (start_time) updateData.start_time = start_time;
     if (end_time) updateData.end_time = end_time;
     if (status) updateData.status = status;
-    
-    // If caregiver_id is being updated, verify the new caregiver is active
     if (caregiver_id) {
-      const newCaregiver = await db('team_members')
-        .where({ id: caregiver_id })
-        .first();
-        
+      const newCaregiver = lowdbUtil.findById('team_members', caregiver_id);
       if (!newCaregiver) {
         return res.status(400).json({ error: 'Invalid caregiver ID' });
       }
-      
       if (!newCaregiver.is_active) {
         return res.status(400).json({ error: 'Cannot assign shifts to inactive team members' });
       }
-      
       updateData.caregiver_id = caregiver_id;
     }
-    
-    const updated = await db('shifts')
-      .where({ id })
-      .update(updateData);
-    
-    if (updated === 0) {
+    const updatedShift = lowdbUtil.update('shifts', id, updateData);
+    if (!updatedShift) {
       return res.status(404).json({ error: 'Shift not found' });
     }
-    
-    const updatedShift = await db('shifts')
-      .join('team_members', 'shifts.caregiver_id', 'team_members.id')
-      .select(
-        'shifts.id',
-        'shifts.day_of_week',
-        'shifts.start_time',
-        'shifts.end_time',
-        'shifts.status',
-        'shifts.week_id',
-        'shifts.is_recurring',
-        'shifts.recurring_end_date',
-        'shifts.parent_shift_id',
-        'team_members.id as caregiver_id',
-        'team_members.name as caregiver_name',
-        'team_members.role as caregiver_role'
-      )
-      .where('shifts.id', id)
-      .first();
-    
-    res.status(200).json(updatedShift);
+    const caregiver = lowdbUtil.findById('team_members', updatedShift.caregiver_id);
+    res.status(200).json({
+      ...updatedShift,
+      caregiver_id: caregiver ? caregiver.id : null,
+      caregiver_name: caregiver ? caregiver.name : '',
+      caregiver_role: caregiver ? caregiver.role : '',
+      caregiver_is_active: caregiver ? caregiver.is_active : false
+    });
   } catch (error) {
-    console.error(`Error updating shift with ID ${req.params.id}:`, error);
+    logger.error(`Error updating shift with ID ${req.params.id}:`, error);
     res.status(500).json({ error: 'Failed to update shift' });
   }
 };
 
-// DELETE a shift
+// DELETE a shift (basic, no recurring logic yet)
 exports.deleteShift = async (req, res) => {
   try {
     const { id } = req.params;
-    
-    // Check if shift exists and get details for history
-    const shift = await db('shifts')
-      .join('team_members', 'shifts.caregiver_id', 'team_members.id')
-      .select(
-        'shifts.*',
-        'team_members.name as caregiver_name'
-      )
-      .where('shifts.id', id)
-      .first();
-    
+    const shift = lowdbUtil.findById('shifts', id);
     if (!shift) {
       return res.status(404).json({ error: 'Shift not found' });
     }
-    
-    // Use transaction to ensure data integrity
-    await withTransaction(async (trx) => {
-      // Check if this is a recurring shift
-      let shiftsToDelete = [id];
-      let isRecurring = false;
-      
-      if (shift.is_recurring || shift.parent_shift_id) {
-        isRecurring = true;
-        // This is part of a recurring series
-        // If it's a child shift, get its parent
-        const parentId = shift.parent_shift_id || shift.id;
-        
-        // Get all shifts in this series (parent and all children)
-        const seriesShifts = await trx('shifts')
-          .where({ id: parentId }) // The parent
-          .orWhere({ parent_shift_id: parentId }) // All children
-          .select('id');
-          
-        shiftsToDelete = seriesShifts.map(s => s.id);
-        
-        logger.info('Deleting recurring shift series', { 
-          shift_id: id,
-          parent_id: parentId,
-          total_shifts: shiftsToDelete.length
-        });
-      }
-      
-      // Delete any related notifications first
-      await trx('notifications')
-        .whereIn('affected_shift_id', shiftsToDelete)
-        .delete();
-      
-      // Delete all the shifts
-      await trx('shifts')
-        .whereIn('id', shiftsToDelete)
-        .delete();
-      
-      // Record history
-      await trx('history_records').insert({
-        action_type: 'delete',
-        entity_type: 'shift',
-        entity_id: id,
-        caregiver_id: shift.caregiver_id,
-        week_id: shift.week_id,
-        description: `Deleted ${isRecurring ? 'recurring ' : ''}shift for ${shift.caregiver_name} on ${shift.day_of_week} (${shift.start_time}-${shift.end_time})`,
-        details: JSON.stringify({
-          day_of_week: shift.day_of_week,
-          start_time: shift.start_time,
-          end_time: shift.end_time,
-          status: shift.status,
-          is_recurring: isRecurring ? 1 : 0,
-          deleted_count: shiftsToDelete.length
-        })
-      });
-    });
-    
-    logger.info('Shift deleted successfully', { 
-      shift_id: id,
-      caregiver: shift.caregiver_name,
-      day: shift.day_of_week,
-      time: `${shift.start_time}-${shift.end_time}`
-    });
-    
+    lowdbUtil.remove('shifts', id);
+    // Remove related notifications
+    lowdbUtil.removeWhere('notifications', { affected_shift_id: id });
+    await recordHistory('delete', 'shift', id, `Deleted shift for caregiver_id ${shift.caregiver_id} on ${shift.day_of_week}`);
     res.status(200).json({ message: 'Shift deleted successfully' });
   } catch (error) {
-    logger.error(`Error deleting shift with ID ${req.params.id}:`, { 
-      error: error.message,
-      stack: error.stack 
-    });
+    logger.error(`Error deleting shift with ID ${req.params.id}:`, error);
     res.status(500).json({ error: 'Failed to delete shift' });
   }
 };
@@ -783,34 +253,16 @@ exports.dropShift = async (req, res) => {
   try {
     const { id } = req.params;
     const { reason } = req.body;
-    
-    // Get the shift to drop
-    const shift = await db('shifts')
-      .join('team_members', 'shifts.caregiver_id', 'team_members.id')
-      .select(
-        'shifts.*',
-        'team_members.name as caregiver_name'
-      )
-      .where('shifts.id', id)
-      .first();
-    
+    const shift = lowdbUtil.findById('shifts', id);
     if (!shift) {
       return res.status(404).json({ error: 'Shift not found' });
     }
-    
-    // Update shift status to dropped
-    await db('shifts')
-      .where({ id })
-      .update({ 
-        status: 'dropped'
-      });
-    
-    // Create notification for dropped shift
+    lowdbUtil.update('shifts', id, { status: 'dropped' });
+    // Create notification
     const now = new Date();
     const dateStr = now.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' });
     const timeStr = now.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: false });
-    
-    await db('notifications').insert({
+    lowdbUtil.insert('notifications', {
       type: 'drop',
       from_caregiver_id: shift.caregiver_id,
       affected_shift_id: shift.id,
@@ -820,231 +272,17 @@ exports.dropShift = async (req, res) => {
       time: timeStr,
       status: 'pending'
     });
-    
-    // Get the updated shift
-    const updatedShift = await db('shifts')
-      .join('team_members', 'shifts.caregiver_id', 'team_members.id')
-      .select(
-        'shifts.id',
-        'shifts.day_of_week',
-        'shifts.start_time',
-        'shifts.end_time',
-        'shifts.status',
-        'shifts.week_id',
-        'shifts.is_recurring',
-        'shifts.recurring_end_date',
-        'shifts.parent_shift_id',
-        'team_members.id as caregiver_id',
-        'team_members.name as caregiver_name',
-        'team_members.role as caregiver_role'
-      )
-      .where('shifts.id', id)
-      .first();
-    
-    res.status(200).json(updatedShift);
-  } catch (error) {
-    console.error(`Error dropping shift with ID ${req.params.id}:`, error);
-    res.status(500).json({ error: 'Failed to drop shift' });
-  }
-};
-
-// POST swap shifts
-exports.swapShift = async (req, res) => {
-  try {
-    const { id } = req.params;
-    const { swap_with_id } = req.body;
-    
-    // Basic validation
-    if (!swap_with_id) {
-      return res.status(400).json({ error: 'Swap with ID is required' });
-    }
-    
-    // Get the shift to swap
-    const shift = await db('shifts')
-      .join('team_members', 'shifts.caregiver_id', 'team_members.id')
-      .select(
-        'shifts.*',
-        'team_members.name as caregiver_name'
-      )
-      .where('shifts.id', id)
-      .first();
-    
-    if (!shift) {
-      return res.status(404).json({ error: 'Shift not found' });
-    }
-    
-    // Get the shift to swap with
-    const swapWithShift = await db('shifts')
-      .join('team_members', 'shifts.caregiver_id', 'team_members.id')
-      .select(
-        'shifts.*',
-        'team_members.name as caregiver_name'
-      )
-      .where('shifts.id', swap_with_id)
-      .first();
-    
-    if (!swapWithShift) {
-      return res.status(404).json({ error: 'Swap with shift not found' });
-    }
-    
-    // Update both shifts to swap-proposed
-    await db('shifts')
-      .where({ id })
-      .update({ 
-        status: 'swap-proposed'
-      });
-    
-    await db('shifts')
-      .where({ id: swap_with_id })
-      .update({ 
-        status: 'swap-proposed'
-      });
-    
-    // Create notification for swap request
-    const now = new Date();
-    const dateStr = now.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' });
-    const timeStr = now.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: false });
-    
-    await db('notifications').insert({
-      type: 'swap',
-      from_caregiver_id: shift.caregiver_id,
-      affected_shift_id: shift.id,
-      week_id: shift.week_id,
-      message: `Proposed shift swap with ${swapWithShift.caregiver_name}`,
-      date: dateStr,
-      time: timeStr,
-      status: 'pending'
-    });
-    
-    // Return both updated shifts
-    const [updatedShift, updatedSwapWithShift] = await Promise.all([
-      db('shifts')
-        .join('team_members', 'shifts.caregiver_id', 'team_members.id')
-        .select(
-          'shifts.id',
-          'shifts.day_of_week',
-          'shifts.start_time',
-          'shifts.end_time',
-          'shifts.status',
-          'shifts.week_id',
-          'shifts.is_recurring',
-          'shifts.recurring_end_date',
-          'shifts.parent_shift_id',
-          'team_members.id as caregiver_id',
-          'team_members.name as caregiver_name',
-          'team_members.role as caregiver_role'
-        )
-        .where('shifts.id', id)
-        .first(),
-      db('shifts')
-        .join('team_members', 'shifts.caregiver_id', 'team_members.id')
-        .select(
-          'shifts.id',
-          'shifts.day_of_week',
-          'shifts.start_time',
-          'shifts.end_time',
-          'shifts.status',
-          'shifts.week_id',
-          'shifts.is_recurring',
-          'shifts.recurring_end_date',
-          'shifts.parent_shift_id',
-          'team_members.id as caregiver_id',
-          'team_members.name as caregiver_name',
-          'team_members.role as caregiver_role'
-        )
-        .where('shifts.id', swap_with_id)
-        .first()
-    ]);
-    
+    const updatedShift = lowdbUtil.findById('shifts', id);
+    const caregiver = lowdbUtil.findById('team_members', updatedShift.caregiver_id);
     res.status(200).json({
-      original_shift: updatedShift,
-      swap_with_shift: updatedSwapWithShift
+      ...updatedShift,
+      caregiver_id: caregiver ? caregiver.id : null,
+      caregiver_name: caregiver ? caregiver.name : '',
+      caregiver_role: caregiver ? caregiver.role : '',
+      caregiver_is_active: caregiver ? caregiver.is_active : false
     });
   } catch (error) {
-    console.error(`Error swapping shift with ID ${req.params.id}:`, error);
-    res.status(500).json({ error: 'Failed to swap shift' });
-  }
-};
-
-// POST adjust shift hours
-exports.adjustShift = async (req, res) => {
-  try {
-    const { id } = req.params;
-    const { new_start_time, new_end_time, reason } = req.body;
-    
-    // Basic validation
-    if (!new_start_time && !new_end_time) {
-      return res.status(400).json({ error: 'New start time or end time is required' });
-    }
-    
-    // Get the shift to adjust
-    const shift = await db('shifts')
-      .join('team_members', 'shifts.caregiver_id', 'team_members.id')
-      .select(
-        'shifts.*',
-        'team_members.name as caregiver_name'
-      )
-      .where('shifts.id', id)
-      .first();
-    
-    if (!shift) {
-      return res.status(404).json({ error: 'Shift not found' });
-    }
-    
-    // Store original times for notification
-    const originalStartTime = shift.start_time;
-    const originalEndTime = shift.end_time;
-    
-    // Update shift with new times
-    const updateData = {
-      status: 'adjusted'
-    };
-    if (new_start_time) updateData.start_time = new_start_time;
-    if (new_end_time) updateData.end_time = new_end_time;
-    
-    await db('shifts')
-      .where({ id })
-      .update(updateData);
-    
-    // Create notification for adjusted shift
-    const now = new Date();
-    const dateStr = now.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' });
-    const timeStr = now.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: false });
-    
-    await db('notifications').insert({
-      type: 'adjust',
-      from_caregiver_id: shift.caregiver_id,
-      affected_shift_id: shift.id,
-      week_id: shift.week_id,
-      message: `Changed shift from ${originalStartTime}-${originalEndTime} to ${new_start_time || shift.start_time}-${new_end_time || shift.end_time}${reason ? `: ${reason}` : ''}`,
-      date: dateStr,
-      time: timeStr,
-      status: 'completed'
-    });
-    
-    // Get the updated shift
-    const updatedShift = await db('shifts')
-      .join('team_members', 'shifts.caregiver_id', 'team_members.id')
-      .select(
-        'shifts.id',
-        'shifts.day_of_week',
-        'shifts.start_time',
-        'shifts.end_time',
-        'shifts.status',
-        'shifts.week_id',
-        'shifts.is_recurring',
-        'shifts.recurring_end_date',
-        'shifts.parent_shift_id',
-        'team_members.id as caregiver_id',
-        'team_members.name as caregiver_name',
-        'team_members.role as caregiver_role'
-      )
-      .where('shifts.id', id)
-      .first();
-    
-    res.status(200).json(updatedShift);
-  } catch (error) {
-    console.error(`Error adjusting shift with ID ${req.params.id}:`, error);
-    res.status(500).json({ error: 'Failed to adjust shift' });
+    logger.error(`Error dropping shift with ID ${req.params.id}:`, error);
+    res.status(500).json({ error: 'Failed to drop shift' });
   }
 };

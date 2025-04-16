@@ -51,6 +51,13 @@ This development plan outlines the implementation of six key enhancements to the
 - Will use single account (alexsaero56@gmail.com)
 - Will create shared calendar for team members
 
+### 🔄 Backend Migration to LowDB (April 2025)
+**Status: IN PROGRESS**
+- Migrated from Knex/SQLite to LowDB for Pi 2B compatibility
+- Team and schedule controllers refactored
+- Remaining controllers (history, notification, payroll, unavailability) in progress
+- See IMPLEMENTATION-NOTES.md for migration checklist
+
 ## Implementation Sequence
 1. ✅ Local Network Access (COMPLETED)
 2. ✅ Days Out/Unavailability feature (COMPLETED)
@@ -65,4 +72,8 @@ This development plan outlines the implementation of six key enhancements to the
    * ✅ Implemented backend support for recurring shifts
    * ✅ Updated database schema
    * ❌ Debug issue with recurring shifts not appearing on subsequent weeks
-6. 🔄 Google Calendar Integration (NEXT)
+6. 🔄 Backend Migration to LowDB (IN PROGRESS)
+   * Migrated from Knex/SQLite to LowDB for Pi 2B compatibility
+   * Refactored team and schedule controllers
+   * Remaining controllers (history, notification, payroll, unavailability) in progress
+7. 🔄 Google Calendar Integration (NEXT)

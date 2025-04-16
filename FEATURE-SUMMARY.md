@@ -1,3 +1,7 @@
+# Backend Migration Note (April 2025)
+
+> The backend has been migrated from Knex/SQLite to LowDB (JSON file storage) for compatibility with Raspberry Pi 2B. All endpoints are being refactored to use LowDB. See IMPLEMENTATION-NOTES.md for details.
+
 # Repeating Weekly Shifts Feature
 
 ## Implementation Summary
@@ -34,7 +38,7 @@ We've implemented the "repeating weekly" feature for shifts in the Care Calendar
 
 ## Current Status
 
-The repeating weekly shifts feature has been partially implemented but is not functioning correctly. While the UI changes and database schema updates are in place, the recurring shifts are not appearing on subsequent weeks as expected.
+The repeating weekly shifts feature has been partially implemented but is not functioning correctly. While the UI changes and database schema updates are in place, the recurring shifts are not appearing on subsequent weeks as expected. Additionally, the migration to LowDB requires further adjustments to ensure compatibility with the new backend structure.
 
 ### Known Issues
 

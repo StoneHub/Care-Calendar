@@ -1,3 +1,26 @@
+# LowDB Backend Migration (April 2025)
+
+## Migration Summary
+- Migrated backend from Knex/SQLite to LowDB (pure JS, JSON file storage) for compatibility with Raspberry Pi 2B and Node 10.24.1.
+- All controllers now use lowdbUtil for data access.
+- All SQLite/Knex files, migrations, and scripts have been removed or replaced.
+- Database reset now deletes JSON files in backend/db/.
+
+## Migration Checklist
+- [x] Remove Knex/SQLite dependencies and files
+- [x] Add lowdbUtil.js and refactor setupDb.js
+- [x] Refactor teamController.js and scheduleController.js to use LowDB
+- [x] Update reset-db.sh to delete JSON files
+- [ ] Refactor remaining controllers (history, notification, payroll, unavailability)
+- [ ] Test all endpoints and features on Pi 2B
+
+## Current Status
+- Team and schedule endpoints are now LowDB-based and working.
+- Remaining controllers are being refactored.
+- See ROADMAP.md for live progress.
+
+---
+
 # Implementation Notes for Care Calendar
 
 ## Current Project Status

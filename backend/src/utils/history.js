@@ -1,11 +1,11 @@
 /**
  * History utility for recording user actions and system events
  */
-const db = require('./db');
+const lowdbUtil = require('./lowdbUtil');
 const logger = require('./logger');
 
 /**
- * Record an action in the history table
+ * Record an action in the history table (LowDB version)
  *
  * @param {string} actionType - Type of action (create, update, delete, etc.)
  * @param {string} entityType - Type of entity (shift, week, team_member, etc.)
@@ -17,7 +17,7 @@ const logger = require('./logger');
  * @param {Object} [options.details] - Additional details to store as JSON
  * @returns {Promise<number|null>} - ID of the created history record or null on failure
  */
-async function recordHistory(actionType, entityType, entityId, description, options = {}, trx = null) {
+async function recordHistory(actionType, entityType, entityId, description, options = {}) {
   try {
     logger.debug('Recording history', {
       actionType,
@@ -25,13 +25,10 @@ async function recordHistory(actionType, entityType, entityId, description, opti
       entityId,
       description
     });
-    
     const { weekId, caregiverId, details } = options;
-    
-    // Use the passed transaction if available, otherwise use the default db connection
-    const dbConnection = trx || db;
-    
-    const [id] = await dbConnection('history_records').insert({
+    const timestamp = new Date().toISOString();
+    const record = lowdbUtil.insert('history', {
+      timestamp,
       action_type: actionType,
       entity_type: entityType,
       entity_id: entityId,
@@ -39,9 +36,8 @@ async function recordHistory(actionType, entityType, entityId, description, opti
       week_id: weekId || null,
       caregiver_id: caregiverId || null,
       details: details ? JSON.stringify(details) : null
-    }).returning('id');
-    
-    return id;
+    });
+    return record.id;
   } catch (error) {
     logger.error('Failed to record history', {
       error: error.message,
@@ -50,50 +46,53 @@ async function recordHistory(actionType, entityType, entityId, description, opti
       entityType,
       entityId
     });
-    
-    // Don't throw - history recording should not break core functionality
     return null;
   }
 }
 
 /**
- * Get formatted history records with sorting and filtering
+ * Get formatted history records with sorting and filtering (LowDB version)
  *
  * @param {Object} filters - Filter criteria
  * @param {string} [filters.actionType] - Filter by action type
  * @param {string} [filters.entityType] - Filter by entity type
  * @param {number} [filters.weekId] - Filter by week ID
+ * @param {number} [filters.entityId] - Filter by entity ID
  * @param {number} [filters.limit=50] - Maximum number of records to return
  * @param {number} [filters.offset=0] - Offset for pagination
  * @returns {Promise<Array>} - Formatted history records
  */
 async function getHistoryRecords(filters = {}) {
   try {
-    const { 
-      actionType, 
-      entityType, 
-      weekId, 
-      limit = 50, 
-      offset = 0 
+    const {
+      actionType,
+      entityType,
+      weekId,
+      entityId,
+      limit = 50,
+      offset = 0
     } = filters;
-    
-    // Build base query
-    let query = db('history_records')
-      .leftJoin('team_members', 'history_records.caregiver_id', 'team_members.id')
-      .select(
-        'history_records.*',
-        'team_members.name as caregiver_name'
-      )
-      .orderBy('history_records.timestamp', 'desc')
-      .limit(limit)
-      .offset(offset);
-    
+    // Get all history records
+    let records = lowdbUtil.getAll('history');
     // Apply filters
-    if (actionType) query = query.where('action_type', actionType);
-    if (entityType) query = query.where('entity_type', entityType);
-    if (weekId) query = query.where('week_id', weekId);
-    
-    return query;
+    if (actionType) records = records.filter(r => r.action_type === actionType);
+    if (entityType) records = records.filter(r => r.entity_type === entityType);
+    if (weekId) records = records.filter(r => r.week_id == weekId);
+    if (entityId) records = records.filter(r => r.entity_id == entityId);
+    // Sort by timestamp descending
+    records = records.sort((a, b) => (b.timestamp || '').localeCompare(a.timestamp || ''));
+    // Pagination
+    records = records.slice(offset, offset + limit);
+    // Attach caregiver_name
+    const caregivers = lowdbUtil.getAll('team_members');
+    records = records.map(r => {
+      const caregiver = caregivers.find(c => c.id === r.caregiver_id);
+      return {
+        ...r,
+        caregiver_name: caregiver ? caregiver.name : undefined
+      };
+    });
+    return records;
   } catch (error) {
     logger.error('Failed to get history records', {
       error: error.message,
