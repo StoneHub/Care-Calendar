@@ -1,0 +1,11 @@
+{
+  "ignore": [
+    "node_modules",
+    ".git",
+    "db/*.json",
+    "logs/*.log",
+    "*.log"
+  ],
+  "delay": "2000",
+  "verbose": true
+}
