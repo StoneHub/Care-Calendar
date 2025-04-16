@@ -1,6 +1,6 @@
 /**
  * Simple starter script for Care-Calendar that works with Node.js 10.x
- * This replaces the need for Vite which requires Node.js 14+
+ * This script starts both the frontend and backend servers
  */
 const { spawn } = require('child_process');
 const { networkInterfaces } = require('os');
@@ -25,18 +25,73 @@ function getIPAddress() {
 function startServers() {
   console.log(`[${new Date().toLocaleTimeString()}] [setup] Starting Care Calendar...`);
   
-  // Replace placeholder IP with actual IP address
-  const ipAddress = getIPAddress();
-  console.log(`[${new Date().toLocaleTimeString()}] [setup] Replacing placeholder IP with actual IP address...`);
-  
+  // Update configuration
   try {
+    const ipAddress = getIPAddress();
+    const configPath = path.join(__dirname, 'config.json');
+    
+    // Create or update config.json
+    let config = {};
+    if (fs.existsSync(configPath)) {
+      config = JSON.parse(fs.readFileSync(configPath, 'utf8'));
+    }
+    
+    // Update API URL with current IP
+    config.api = config.api || {};
+    config.api.baseUrl = `http://${ipAddress}:3001/api`;
+    
+    // Set ports
+    config.frontend = config.frontend || {};
+    config.frontend.port = 8080;
+    config.backend = config.backend || {};
+    config.backend.port = 3001;
+    
+    // Write updated config
+    fs.writeFileSync(configPath, JSON.stringify(config, null, 2));
+    console.log(`[${new Date().toLocaleTimeString()}] [setup] Updated config with IP: ${ipAddress}`);
+    
+    // Update index.html
     const indexPath = path.join(__dirname, 'public', 'index.html');
-    let indexContent = fs.readFileSync(indexPath, 'utf8');
-    indexContent = indexContent.replace('YOUR_IP_ADDRESS', ipAddress);
-    fs.writeFileSync(indexPath, indexContent);
-    console.log(`[${new Date().toLocaleTimeString()}] [setup] Updated index.html with IP: ${ipAddress}`);
+    if (fs.existsSync(indexPath)) {
+      let indexContent = fs.readFileSync(indexPath, 'utf8');
+      
+      // If index.html contains window.__CONFIG__
+      if (indexContent.includes('__CONFIG__')) {
+        indexContent = indexContent.replace(
+          /window\.__CONFIG__\s*=\s*{[^}]*}/,
+          `window.__CONFIG__ = { API_BASE_URL: "${config.api.baseUrl}" }`
+        );
+        fs.writeFileSync(indexPath, indexContent);
+        console.log(`[${new Date().toLocaleTimeString()}] [setup] Updated index.html with API URL: ${config.api.baseUrl}`);
+      }
+    }
   } catch (err) {
-    console.error(`[${new Date().toLocaleTimeString()}] [setup] Error updating index.html:`, err);
+    console.error(`[${new Date().toLocaleTimeString()}] [setup] Error updating configuration:`, err);
+  }
+  
+  // Kill any existing node processes that might be using the ports
+  try {
+    console.log(`[${new Date().toLocaleTimeString()}] [setup] Checking for existing processes...`);
+    const checkPorts = spawn('sh', ['-c', 'pgrep -f "node"'], { stdio: 'pipe', shell: true });
+    
+    checkPorts.stdout.on('data', (data) => {
+      const pids = data.toString().trim().split('\n');
+      const currentPid = process.pid.toString();
+      
+      pids.forEach(pid => {
+        // Don't kill ourselves!
+        if (pid && pid !== currentPid) {
+          try {
+            process.kill(parseInt(pid), 'SIGTERM');
+            console.log(`[${new Date().toLocaleTimeString()}] [setup] Terminated process ${pid}`);
+          } catch (err) {
+            // Ignore errors (likely process doesn't exist or we don't have permission)
+          }
+        }
+      });
+    });
+  } catch (err) {
+    console.log(`[${new Date().toLocaleTimeString()}] [setup] Error checking for existing processes:`, err);
   }
   
   // Start backend server

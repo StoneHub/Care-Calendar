@@ -7,6 +7,18 @@ const fs = require('fs');
 const path = require('path');
 const { networkInterfaces } = require('os');
 
+// Read config
+let config;
+try {
+  config = JSON.parse(fs.readFileSync(path.join(__dirname, 'config.json'), 'utf8'));
+} catch (err) {
+  config = {
+    api: { baseUrl: `http://${getLocalIpAddress()}:3001/api` },
+    frontend: { port: 8080 }
+  };
+  console.log('Could not read config.json, using defaults');
+}
+
 // Get local IP address
 function getLocalIpAddress() {
   const nets = networkInterfaces();
@@ -66,8 +78,23 @@ const server = http.createServer((req, res) => {
             res.writeHead(500);
             res.end('Error loading index.html');
           } else {
-            res.writeHead(200, { 'Content-Type': 'text/html' });
-            res.end(content, 'utf-8');
+            // Update the API URL in the HTML content
+            let htmlContent = content.toString();
+            if (htmlContent.includes('__CONFIG__')) {
+              const localIp = getLocalIpAddress();
+              const apiBaseUrl = config.api.baseUrl || `http://${localIp}:3001/api`;
+              
+              htmlContent = htmlContent.replace(
+                /window\.__CONFIG__\s*=\s*{[^}]*}/,
+                `window.__CONFIG__ = { API_BASE_URL: "${apiBaseUrl}" }`
+              );
+              
+              res.writeHead(200, { 'Content-Type': 'text/html' });
+              res.end(htmlContent, 'utf-8');
+            } else {
+              res.writeHead(200, { 'Content-Type': 'text/html' });
+              res.end(content, 'utf-8');
+            }
           }
         });
       } else {
@@ -76,34 +103,38 @@ const server = http.createServer((req, res) => {
         res.end('Server Error: ' + error.code);
       }
     } else {
-      // Success - serve the file
-      res.writeHead(200, { 'Content-Type': contentType });
-      res.end(content, 'utf-8');
+      // For HTML files, make sure we update the API URL
+      if (contentType === 'text/html') {
+        let htmlContent = content.toString();
+        if (htmlContent.includes('__CONFIG__')) {
+          const localIp = getLocalIpAddress();
+          const apiBaseUrl = config.api.baseUrl || `http://${localIp}:3001/api`;
+          
+          htmlContent = htmlContent.replace(
+            /window\.__CONFIG__\s*=\s*{[^}]*}/,
+            `window.__CONFIG__ = { API_BASE_URL: "${apiBaseUrl}" }`
+          );
+          
+          res.writeHead(200, { 'Content-Type': contentType });
+          res.end(htmlContent, 'utf-8');
+        } else {
+          res.writeHead(200, { 'Content-Type': contentType });
+          res.end(content, 'utf-8');
+        }
+      } else {
+        // For non-HTML files, serve as-is
+        res.writeHead(200, { 'Content-Type': contentType });
+        res.end(content, 'utf-8');
+      }
     }
   });
 });
 
 // Set port and start server
-const PORT = process.env.PORT || 8080;
+const PORT = config.frontend.port || 8080;
 server.listen(PORT, () => {
   const localIp = getLocalIpAddress();
   console.log(`Server running at http://${localIp}:${PORT}/`);
   console.log(`For local access: http://localhost:${PORT}/`);
   console.log(`For network access: http://${localIp}:${PORT}/`);
-  
-  // Update index.html with the IP address
-  try {
-    const indexPath = path.join(__dirname, 'public', 'index.html');
-    let indexContent = fs.readFileSync(indexPath, 'utf8');
-    
-    if (indexContent.includes('YOUR_IP_ADDRESS')) {
-      indexContent = indexContent.replace('YOUR_IP_ADDRESS', localIp);
-      fs.writeFileSync(indexPath, indexContent);
-      console.log(`Updated index.html with IP address: ${localIp}`);
-    } else {
-      console.log('index.html already configured with IP address');
-    }
-  } catch (err) {
-    console.error('Error updating index.html:', err);
-  }
 });
