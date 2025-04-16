@@ -73,12 +73,12 @@ if (process.env.NODE_ENV !== 'production') {
       res.status(200).json({
         status: 'connected',
         tables: {
-          team_members: { count: teamCount?.count || 0, latest: latestTeamMember || null },
-          weeks: { count: weekCount?.count || 0, latest: latestWeek || null },
-          shifts: { count: shiftCount?.count || 0, latest: latestShift || null },
-          notifications: { count: notificationCount?.count || 0, latest: latestNotification || null },
-          history_records: { count: historyCount?.count || 0, latest: latestHistory || null },
-          unavailability: { count: unavailabilityCount?.count || 0, latest: latestUnavailability || null }
+          team_members: { count: (teamCount && teamCount.count) || 0, latest: latestTeamMember || null },
+          weeks: { count: (weekCount && weekCount.count) || 0, latest: latestWeek || null },
+          shifts: { count: (shiftCount && shiftCount.count) || 0, latest: latestShift || null },
+          notifications: { count: (notificationCount && notificationCount.count) || 0, latest: latestNotification || null },
+          history_records: { count: (historyCount && historyCount.count) || 0, latest: latestHistory || null },
+          unavailability: { count: (unavailabilityCount && unavailabilityCount.count) || 0, latest: latestUnavailability || null }
         },
         timestamp: new Date().toISOString()
       });
