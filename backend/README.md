@@ -5,15 +5,14 @@ This is the Express.js backend service for the Care Calendar application, provid
 ## Tech Stack
 
 - **Express.js**: Web server framework
-- **SQLite**: Lightweight database for local storage
-- **Knex.js**: SQL query builder for database operations
+- **LowDB**: Lightweight JSON file database for local storage
 - **Socket.io**: Real-time updates
 - **Morgan**: HTTP request logger
 
 ## Features
 
 - RESTful API for managing schedules, team members, and notifications
-- SQLite database for persistent local storage
+- JSON file-based database for persistent local storage
 - Real-time updates using Socket.io
 - Payroll calculation functionality
 
@@ -42,35 +41,6 @@ npm run seed-db
 ```bash
 npm run dev
 ```
-
-### Windows Compatibility
-
-If you're experiencing SQLite compatibility issues on Windows, use the Windows-specific script:
-
-```bash
-npm run dev:windows
-```
-
-Or from the project root:
-
-```bash
-npm run backend:dev:windows
-```
-
-To run both frontend and backend:
-
-```bash
-npm run dev:all:windows
-```
-
-### Troubleshooting SQLite Issues on Windows
-
-If you encounter SQLite compatibility issues on Windows (error: `not a valid Win32 application`), try these solutions:
-
-1. Use the Windows-specific scripts mentioned above
-2. Reinstall the SQLite packages: `npm uninstall sqlite3 better-sqlite3 && npm install better-sqlite3 sqlite3`
-
-The application includes a Windows compatibility mode that uses `better-sqlite3` instead of `sqlite3` when running on Windows systems.
 
 ## API Endpoints
 
@@ -120,34 +90,34 @@ The application includes a Windows compatibility mode that uses `better-sqlite3`
 ```
 backend/
 ├── config/ - Configuration files
-├── db/ - SQLite database files
+├── db/ - JSON database files
 ├── src/
 │   ├── routes/ - API route definitions
+│   ├── controllers/ - Request handlers and business logic
 │   ├── utils/ - Helper functions
-│   │   ├── db.js - Database connection
+│   │   ├── lowdbUtil.js - Database utilities for LowDB
 │   │   ├── initializeDb.js - Initialize database directories
-│   │   ├── setupDb.js - Create database tables
+│   │   ├── setupDb.js - Create initial database structure
 │   │   ├── seedDb.js - Seed database with initial data
 │   │   └── socket.js - Socket.io utilities
 │   └── server.js - Express server setup
-└── knexfile.js - Knex configuration
 ```
 
 ## Database Schema
 
-The database includes the following tables:
+The database uses JSON files in the `db/` directory for the following collections:
 
-- `team_members` - Information about caregivers
+- `team_members.json` - Information about caregivers
   - id, name, role, availability, hours_per_week
 
-- `weeks` - Weekly schedule periods
+- `weeks.json` - Weekly schedule periods
   - id, start_date, end_date, is_published, notes
 
-- `shifts` - Individual caregiver shifts
+- `shifts.json` - Individual caregiver shifts
   - id, week_id, day_of_week, caregiver_id, start_time, end_time, status
 
-- `notifications` - System notifications and history
+- `notifications.json` - System notifications and history
   - id, type, from_caregiver_id, affected_shift_id, week_id, message, date, time, status
 
-- `payroll_records` - Calculated hours for payroll
+- `payroll_records.json` - Calculated hours for payroll
   - id, caregiver_id, week_id, total_hours, date_calculated, notes
