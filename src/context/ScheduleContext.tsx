@@ -5,10 +5,11 @@ import React, {
   ReactNode,
   useEffect,
   useCallback,
+  useMemo,
 } from 'react';
-import { Week, Shift, DayName, ShiftStatus } from '../types';
-import { APIService } from '../services/core';
-import { mapShifts, mapWeeks } from '../utils/mappers';
+import { Week, Shift, ShiftStatus, WeeklySchedule } from '../types';
+import { apiService } from '../services/core';
+import { mapShifts, mapWeeks, organizeShiftsByDay } from '../utils/mappers';
 import { useAppStatus } from './AppStatusContext';
 import { logger } from '../utils/logger';
 
@@ -18,6 +19,7 @@ interface ScheduleDataContextType {
   weeks: Week[];
   shifts: { [weekId: string]: Shift[] };
   selectedWeek: Week | null;
+  schedule: WeeklySchedule; // Computed from shifts for current week
   
   // Operations
   setSelectedWeek: (week: Week | null) => void;
@@ -47,12 +49,12 @@ export const ScheduleDataProvider: React.FC<{ children: ReactNode }> = ({
   const fetchWeeks = useCallback(async () => {
     setLoading(true, 'Fetching weeks...');
     try {
-      const backendWeeks = await APIService.get('/schedule/weeks');
+      const backendWeeks = await apiService.getAllWeeks();
       const mappedWeeks = mapWeeks(backendWeeks);
       setWeeks(mappedWeeks);
       
       const currentWeek =
-        mappedWeeks.find(w => w.is_current) || mappedWeeks[0];
+        mappedWeeks.find((w: any) => w.is_current) || mappedWeeks[0];
       if (currentWeek) {
         setSelectedWeek(currentWeek);
         logger.info('Successfully fetched weeks and set current week.', { weekCount: mappedWeeks.length, currentWeekId: currentWeek.id });
@@ -75,10 +77,11 @@ export const ScheduleDataProvider: React.FC<{ children: ReactNode }> = ({
 
   // Fetch shifts for a specific week
   const fetchShiftsForWeek = useCallback(async (weekId: string) => {
-    if (!weekId) return;
+    const numericWeekId = parseInt(weekId);
+    if (!numericWeekId) return;
     setLoading(true, `Fetching shifts for week ${weekId}...`);
     try {
-      const backendShifts = await APIService.get(`/schedule/shifts/${weekId}`);
+      const backendShifts = await apiService.getScheduleForWeek(numericWeekId);
       const mappedShifts = mapShifts(backendShifts);
       setShifts(prevShifts => ({
         ...prevShifts,
@@ -96,8 +99,8 @@ export const ScheduleDataProvider: React.FC<{ children: ReactNode }> = ({
 
   // Auto-fetch shifts for the selected week
   useEffect(() => {
-    if (selectedWeek?.id && !shifts[selectedWeek.id]) {
-      fetchShiftsForWeek(selectedWeek.id);
+    if (selectedWeek?.id && !shifts[selectedWeek.id.toString()]) {
+      fetchShiftsForWeek(selectedWeek.id.toString());
     }
   }, [selectedWeek, shifts, fetchShiftsForWeek]);
 
@@ -105,12 +108,12 @@ export const ScheduleDataProvider: React.FC<{ children: ReactNode }> = ({
   const addShift = async (shiftData: Omit<Shift, 'id' | 'status'>): Promise<Shift | null> => {
     setLoading(true, 'Adding new shift...');
     try {
-      const newShiftBackend = await APIService.post('/schedule/shifts', shiftData);
+      const newShiftBackend = await apiService.createShift(shiftData);
       const newShift = mapShifts([newShiftBackend])[0];
       if (newShift.week_id) {
         setShifts(prev => ({
           ...prev,
-          [newShift.week_id]: [...(prev[newShift.week_id] || []), newShift],
+          [newShift.week_id.toString()]: [...(prev[newShift.week_id.toString()] || []), newShift],
         }));
       }
       logger.info('Successfully added shift', { shiftId: newShift.id });
@@ -129,12 +132,12 @@ export const ScheduleDataProvider: React.FC<{ children: ReactNode }> = ({
   const updateShift = async (shiftData: Shift): Promise<Shift | null> => {
     setLoading(true, `Updating shift ${shiftData.id}...`);
     try {
-      const updatedShiftBackend = await APIService.put(`/schedule/shifts/${shiftData.id}`, shiftData);
+      const updatedShiftBackend = await apiService.updateShift(shiftData);
       const updatedShift = mapShifts([updatedShiftBackend])[0];
       if (updatedShift.week_id) {
         setShifts(prev => ({
           ...prev,
-          [updatedShift.week_id]: (prev[updatedShift.week_id] || []).map(s =>
+          [updatedShift.week_id.toString()]: (prev[updatedShift.week_id.toString()] || []).map(s =>
             s.id === updatedShift.id ? updatedShift : s
           ),
         }));
@@ -153,13 +156,14 @@ export const ScheduleDataProvider: React.FC<{ children: ReactNode }> = ({
 
   // Delete a shift
   const deleteShift = async (shiftId: string): Promise<boolean> => {
+    const numericShiftId = parseInt(shiftId);
     setLoading(true, `Deleting shift ${shiftId}...`);
     try {
-      await APIService.delete(`/schedule/shifts/${shiftId}`);
+      await apiService.deleteShift(numericShiftId);
       setShifts(prev => {
         const newShifts = { ...prev };
         for (const weekId in newShifts) {
-          newShifts[weekId] = newShifts[weekId].filter(s => s.id !== shiftId);
+          newShifts[weekId] = newShifts[weekId].filter(s => s.id.toString() !== shiftId);
         }
         return newShifts;
       });
@@ -177,14 +181,15 @@ export const ScheduleDataProvider: React.FC<{ children: ReactNode }> = ({
 
   // Drop a shift
   const dropShift = async (shiftId: string): Promise<boolean> => {
+    const numericShiftId = parseInt(shiftId);
     setLoading(true, `Dropping shift ${shiftId}...`);
     try {
-      const updatedShiftBackend = await APIService.patch(`/schedule/shifts/${shiftId}/status`, { status: ShiftStatus.Dropped });
+      const updatedShiftBackend = await apiService.dropShift(numericShiftId);
       const updatedShift = mapShifts([updatedShiftBackend])[0];
       if (updatedShift.week_id) {
         setShifts(prev => ({
           ...prev,
-          [updatedShift.week_id]: (prev[updatedShift.week_id] || []).map(s =>
+          [updatedShift.week_id.toString()]: (prev[updatedShift.week_id.toString()] || []).map(s =>
             s.id === updatedShift.id ? updatedShift : s
           ),
         }));
@@ -201,11 +206,25 @@ export const ScheduleDataProvider: React.FC<{ children: ReactNode }> = ({
     }
   };
 
+  // Compute schedule from shifts for the selected week
+  const schedule = useMemo(() => {
+    if (!selectedWeek) {
+      return {
+        monday: [], tuesday: [], wednesday: [], thursday: [],
+        friday: [], saturday: [], sunday: []
+      };
+    }
+    
+    const weekShifts = shifts[selectedWeek.id.toString()] || [];
+    return organizeShiftsByDay(weekShifts);
+  }, [selectedWeek, shifts]);
+
   // Construct the context value
   const value = {
     weeks,
     shifts,
     selectedWeek,
+    schedule,
     setSelectedWeek,
     addShift,
     updateShift,
@@ -229,3 +248,7 @@ export const useScheduleData = () => {
   }
   return context;
 };
+
+// Legacy exports for backward compatibility during refactoring
+export const ScheduleProvider = ScheduleDataProvider;
+export const useScheduleContext = useScheduleData;

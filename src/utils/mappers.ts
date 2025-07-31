@@ -192,3 +192,42 @@ export function organizeShiftsByDay(shifts: Shift[] | ShiftBackend[]): WeeklySch
   
   return schedule as WeeklySchedule;
 }
+
+/**
+ * Maps an array of backend shifts to frontend shifts
+ */
+export function mapShifts(backendShifts: ShiftBackend[]): Shift[] {
+  if (!Array.isArray(backendShifts)) {
+    logger.warn('mapShifts received non-array data', { data: backendShifts });
+    return [];
+  }
+  
+  return backendShifts.map(mapShiftFromBackend);
+}
+
+/**
+ * Maps an array of backend caregivers to frontend caregivers
+ */
+export function mapCaregivers(backendCaregivers: CaregiverBackend[]): Caregiver[] {
+  if (!Array.isArray(backendCaregivers)) {
+    logger.warn('mapCaregivers received non-array data', { data: backendCaregivers });
+    return [];
+  }
+  
+  return backendCaregivers.map(mapCaregiverFromBackend);
+}
+
+/**
+ * Maps an array of backend weeks to frontend weeks
+ * Note: Week objects are typically the same in both backend and frontend
+ */
+export function mapWeeks(backendWeeks: any[]): any[] {
+  if (!Array.isArray(backendWeeks)) {
+    logger.warn('mapWeeks received non-array data', { data: backendWeeks });
+    return [];
+  }
+  
+  // For now, weeks have the same structure in backend and frontend
+  // Add any necessary transformations here in the future
+  return backendWeeks;
+}

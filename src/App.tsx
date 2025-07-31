@@ -1,14 +1,23 @@
 import React from 'react';
-import { ScheduleProvider } from './context/ScheduleContext';
+import { AppStatusProvider } from './context/AppStatusContext';
+import { TeamProvider } from './context/TeamContext';
+import { ScheduleDataProvider } from './context/ScheduleContext';
+import { ScheduleInteractionProvider } from './context/ScheduleInteractionContext';
 import { ThemeProvider } from './context/ThemeContext';
 import EnhancedCareSchedulerPage from './pages/EnhancedCareSchedulerPage';
 
 const App: React.FC = () => {
   return (
     <ThemeProvider>
-      <ScheduleProvider>
-        <EnhancedCareSchedulerPage />
-      </ScheduleProvider>
+      <AppStatusProvider>
+        <TeamProvider>
+          <ScheduleDataProvider>
+            <ScheduleInteractionProvider>
+              <EnhancedCareSchedulerPage />
+            </ScheduleInteractionProvider>
+          </ScheduleDataProvider>
+        </TeamProvider>
+      </AppStatusProvider>
     </ThemeProvider>
   );
 };

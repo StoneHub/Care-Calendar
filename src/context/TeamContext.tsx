@@ -1,6 +1,6 @@
 import React, { createContext, useState, useContext, ReactNode, useEffect, useCallback } from 'react';
 import { Caregiver } from '../types';
-import { APIService } from '../services/core';
+import { apiService } from '../services/core';
 import { mapCaregivers } from '../utils/mappers';
 import { useAppStatus } from './AppStatusContext';
 import { logger } from '../utils/logger';
@@ -22,7 +22,7 @@ export const TeamProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   const fetchCaregivers = useCallback(async () => {
     setLoading(true, 'Fetching caregivers...');
     try {
-      const backendCaregivers = await APIService.get('/team');
+      const backendCaregivers = await apiService.getTeamMembers();
       const mappedCaregivers = mapCaregivers(backendCaregivers);
       setCaregivers(mappedCaregivers);
       logger.info('Successfully fetched and mapped caregivers', { count: mappedCaregivers.length });
@@ -42,7 +42,7 @@ export const TeamProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   const addCaregiver = async (caregiver: Omit<Caregiver, 'id'>): Promise<Caregiver | null> => {
     setLoading(true, 'Adding caregiver...');
     try {
-      const newCaregiverBackend = await APIService.post('/team', caregiver);
+      const newCaregiverBackend = await apiService.createTeamMember(caregiver);
       const newCaregiver = mapCaregivers([newCaregiverBackend])[0];
       setCaregivers(prev => [...prev, newCaregiver]);
       logger.info('Successfully added caregiver', { caregiverId: newCaregiver.id });
@@ -60,7 +60,7 @@ export const TeamProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   const updateCaregiver = async (caregiver: Caregiver): Promise<Caregiver | null> => {
     setLoading(true, 'Updating caregiver...');
     try {
-      const updatedCaregiverBackend = await APIService.put(`/team/${caregiver.id}`, caregiver);
+      const updatedCaregiverBackend = await apiService.updateTeamMember(caregiver);
       const updatedCaregiver = mapCaregivers([updatedCaregiverBackend])[0];
       setCaregivers(prev => prev.map(c => c.id === caregiver.id ? updatedCaregiver : c));
       logger.info('Successfully updated caregiver', { caregiverId: caregiver.id });
@@ -76,10 +76,11 @@ export const TeamProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   };
 
   const deleteCaregiver = async (id: string): Promise<boolean> => {
+    const numericId = parseInt(id);
     setLoading(true, 'Deleting caregiver...');
     try {
-      await APIService.delete(`/team/${id}`);
-      setCaregivers(prev => prev.filter(c => c.id !== id));
+      await apiService.deleteTeamMember(numericId);
+      setCaregivers(prev => prev.filter(c => c.id.toString() !== id));
       logger.info('Successfully deleted caregiver', { caregiverId: id });
       return true;
     } catch (e) {

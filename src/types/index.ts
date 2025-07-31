@@ -5,6 +5,14 @@ export type ShiftStatus =
   | 'adjusted' 
   | 'swap-proposed';
 
+export const ShiftStatus = {
+  Confirmed: 'confirmed' as const,
+  RequestedOff: 'requested-off' as const,
+  Dropped: 'dropped' as const,
+  Adjusted: 'adjusted' as const,
+  SwapProposed: 'swap-proposed' as const,
+} as const;
+
 export type DayName = 'monday' | 'tuesday' | 'wednesday' | 'thursday' | 'friday' | 'saturday' | 'sunday';
 
 export interface Week {
