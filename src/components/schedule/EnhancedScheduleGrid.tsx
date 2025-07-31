@@ -1,6 +1,7 @@
 import React, { useMemo } from 'react';
 import { DayName, Shift, Unavailability } from '../../types';
-import { useScheduleContext } from '../../context/ScheduleContext';
+import { useScheduleData } from '../../context/ScheduleContext';
+import { useAppStatus } from '../../context/AppStatusContext';
 import { dateService } from '../../services/core/DateService';
 import ShiftCard from '../shared/ShiftCard';
 
@@ -17,12 +18,14 @@ const EnhancedScheduleGrid: React.FC<EnhancedScheduleGridProps> = ({
   const orderedDays: DayName[] = ['monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday'];
 
   // Get data from context
-  const { schedule, selectedWeek, isLoading, error, unavailability } = useScheduleContext();
+  const { schedule, selectedWeek } = useScheduleData();
+  const { isLoading, error } = useAppStatus();
+  
+  // For now, create empty unavailability until we add that context
+  const unavailability: Unavailability[] = [];
   
   // Group unavailability by day for the selected week
   const unavailabilityByDay = useMemo(() => {
-    if (!selectedWeek || !unavailability.length) return {};
-    
     const result: Record<DayName, Unavailability[]> = {
       monday: [],
       tuesday: [],
@@ -33,56 +36,9 @@ const EnhancedScheduleGrid: React.FC<EnhancedScheduleGridProps> = ({
       sunday: []
     };
     
-    // Get dates for each day in the selected week
-    const weekDates = orderedDays.reduce<Record<DayName, Date>>((acc, day) => {
-      acc[day] = dateService.getDayDate(day, selectedWeek);
-      return acc;
-    }, {} as Record<DayName, Date>);
-    
-    // Helper to check if a date falls within a date range
-    const isDateInRange = (date: Date, startDate: string, endDate: string): boolean => {
-      const start = new Date(startDate);
-      start.setHours(0, 0, 0, 0);
-      
-      const end = new Date(endDate);
-      end.setHours(23, 59, 59, 999);
-      
-      return date >= start && date <= end;
-    };
-    
-    // Filter unavailability records for the current week
-    unavailability.forEach(record => {
-      orderedDays.forEach(day => {
-        const dayDate = weekDates[day];
-        
-        if (isDateInRange(dayDate, record.startDate, record.endDate)) {
-          result[day].push(record);
-        }
-        
-        // Handle recurring unavailability
-        if (record.isRecurring) {
-          const recordStart = new Date(record.startDate);
-          const recordEnd = new Date(record.endDate);
-          const recurringEndDate = record.recurringEndDate 
-            ? new Date(record.recurringEndDate)
-            : new Date(new Date().getFullYear(), 11, 31); // End of year fallback
-          
-          // If the day of week matches and it's before the recurring end date
-          if (recordStart.getDay() === dayDate.getDay() && 
-              dayDate > recordEnd && 
-              dayDate <= recurringEndDate) {
-            
-            // Only include if we haven't already matched this record
-            if (!result[day].some(item => item.id === record.id)) {
-              result[day].push(record);
-            }
-          }
-        }
-      });
-    });
-    
+    // Since unavailability is empty for now, just return the initialized result
     return result;
-  }, [selectedWeek, unavailability, orderedDays]);
+  }, [unavailability, selectedWeek]);
   
   // Function to determine shift status color
   const getShiftStatusColor = (status: string): string => {

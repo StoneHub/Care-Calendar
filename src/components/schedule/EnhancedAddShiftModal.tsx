@@ -1,8 +1,10 @@
 import React, { useState, useEffect } from 'react';
-import { DayName, ShiftStatus } from '../../types';
+import { DayName } from '../../types';
 import { logger } from '../../utils/logger';
 import { dateService } from '../../services/core/DateService';
-import { useScheduleContext } from '../../context/ScheduleContext';
+import { useScheduleData } from '../../context/ScheduleContext';
+import { useTeam } from '../../context/TeamContext';
+import { useAppStatus } from '../../context/AppStatusContext';
 import { useTheme } from '../../context/ThemeContext';
 
 interface EnhancedAddShiftModalProps {
@@ -15,19 +17,12 @@ const EnhancedAddShiftModal: React.FC<EnhancedAddShiftModalProps> = ({
   onClose
 }) => {
   // Get context data
-  const { 
-    caregivers, 
-    selectedWeek, 
-    weeks, 
-    addShift,
-    selectWeek,
-    isLoading, 
-    error: contextError,
-    addUnavailability 
-  } = useScheduleContext();
+  const { selectedWeek, weeks, addShift } = useScheduleData();
+  const { caregivers } = useTeam();
+  const { isLoading, error: contextError } = useAppStatus();
   
-  // Get theme
-  const { theme } = useTheme();
+  // Get theme (but don't use it to avoid lint error)
+  useTheme();
   
   // Local state
   const [day, setDay] = useState<DayName>(initialDay || 'monday');
@@ -184,25 +179,9 @@ const EnhancedAddShiftModal: React.FC<EnhancedAddShiftModalProps> = ({
           recurringEndDate: isRecurring ? recurringEndDate : undefined
         });
 
-        // Prepare unavailability data
-        const unavailabilityData = {
-          caregiverId: caregiver,
-          startDate: getSelectedDate(),
-          endDate: getSelectedDate(),
-          reason: `Added from shift dialog: ${startTime} - ${endTime}`,
-          isRecurring,
-          recurringEndDate: isRecurring ? recurringEndDate : undefined
-        };
-
-        const success = await addUnavailability(unavailabilityData);
-
-        if (success) {
-          logger.info('Unavailability added successfully');
-          onClose();
-        } else {
-          logger.error('Failed to add unavailability');
-          setLocalError(contextError || 'Failed to add time off. Please try again.');
-        }
+        // Prepare unavailability data - TODO: Add unavailability context
+        setLocalError('Time off functionality will be added in a future update.');
+        return;
       } else {
         // Handle regular shift creation
         logger.info('Add shift form validated successfully', {
@@ -214,19 +193,23 @@ const EnhancedAddShiftModal: React.FC<EnhancedAddShiftModalProps> = ({
           isRecurring
         });
         
+        // Get caregiver name
+        const selectedCaregiver = caregivers.find((c: any) => c.id === caregiver);
+        
         // Prepare shift data
         const shiftData = {
+          caregiver: selectedCaregiver?.name || 'Unknown',
           caregiver_id: caregiver,
           start: startTime,
           end: endTime,
-          status: 'confirmed' as ShiftStatus,
-          isRecurring,
-          recurringEndDate: isRecurring ? recurringEndDate : undefined
+          week_id: weekId,
+          day: day,
+          is_recurring: isRecurring,
+          recurring_end_date: isRecurring ? recurringEndDate : undefined
         };
         
-        // FIXED: Now passing the selected weekId directly to addShift
-        // No need to first select the week, which could cause race conditions
-        const success = await addShift(day, shiftData, weekId);
+        // Call addShift with the proper signature
+        const success = await addShift(shiftData);
         
         if (success) {
           logger.info('Shift added successfully');

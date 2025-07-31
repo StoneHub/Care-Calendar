@@ -9,8 +9,9 @@ import { API_BASE_URL } from '../../config';
 class APIService {
   private api: AxiosInstance;
   private requestTimeouts: Map<string, ReturnType<typeof setTimeout>>;
-  private retryLimit: number = 2; 
-  private retryDelay: number = 1000; // 1 second delay between retries
+  // TODO: Implement retry logic
+  // private retryLimit: number = 2; 
+  // private retryDelay: number = 1000;
   
   constructor() {
     this.api = axios.create({
@@ -186,11 +187,11 @@ class APIService {
   }
   
   /**
-   * Promise-based delay function
+   * Promise-based delay function - TODO: Use in retry logic
    */
-  private delay(ms: number): Promise<void> {
-    return new Promise(resolve => setTimeout(resolve, ms));
-  }
+  // private delay(ms: number): Promise<void> {
+  //   return new Promise(resolve => setTimeout(resolve, ms));
+  // }
   
   /**
    * Generic request method with timeout cancellation

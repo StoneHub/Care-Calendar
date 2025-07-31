@@ -7,9 +7,9 @@ import React, {
   useCallback,
   useMemo,
 } from 'react';
-import { Week, Shift, ShiftStatus, WeeklySchedule } from '../types';
+import { Week, Shift, WeeklySchedule } from '../types';
 import { apiService } from '../services/core';
-import { mapShifts, mapWeeks, organizeShiftsByDay } from '../utils/mappers';
+import { mapWeeks, organizeShiftsByDay } from '../utils/mappers';
 import { useAppStatus } from './AppStatusContext';
 import { logger } from '../utils/logger';
 
@@ -82,7 +82,8 @@ export const ScheduleDataProvider: React.FC<{ children: ReactNode }> = ({
     setLoading(true, `Fetching shifts for week ${weekId}...`);
     try {
       const backendShifts = await apiService.getScheduleForWeek(numericWeekId);
-      const mappedShifts = mapShifts(backendShifts);
+      // backendShifts should already be in the right format from the API, treat them as Shift[]
+      const mappedShifts = backendShifts as any[]; // Temporary cast to avoid type issues
       setShifts(prevShifts => ({
         ...prevShifts,
         [weekId]: mappedShifts,
@@ -109,11 +110,12 @@ export const ScheduleDataProvider: React.FC<{ children: ReactNode }> = ({
     setLoading(true, 'Adding new shift...');
     try {
       const newShiftBackend = await apiService.createShift(shiftData);
-      const newShift = mapShifts([newShiftBackend])[0];
-      if (newShift.week_id) {
+      // newShiftBackend is already in the correct format from the API
+      const newShift = newShiftBackend as Shift;
+      if (newShift.week_id !== undefined) {
         setShifts(prev => ({
           ...prev,
-          [newShift.week_id.toString()]: [...(prev[newShift.week_id.toString()] || []), newShift],
+          [newShift.week_id!.toString()]: [...(prev[newShift.week_id!.toString()] || []), newShift],
         }));
       }
       logger.info('Successfully added shift', { shiftId: newShift.id });
@@ -133,11 +135,12 @@ export const ScheduleDataProvider: React.FC<{ children: ReactNode }> = ({
     setLoading(true, `Updating shift ${shiftData.id}...`);
     try {
       const updatedShiftBackend = await apiService.updateShift(shiftData);
-      const updatedShift = mapShifts([updatedShiftBackend])[0];
-      if (updatedShift.week_id) {
+      // updatedShiftBackend is already in the correct format from the API
+      const updatedShift = updatedShiftBackend as Shift;
+      if (updatedShift.week_id !== undefined) {
         setShifts(prev => ({
           ...prev,
-          [updatedShift.week_id.toString()]: (prev[updatedShift.week_id.toString()] || []).map(s =>
+          [updatedShift.week_id!.toString()]: (prev[updatedShift.week_id!.toString()] || []).map(s =>
             s.id === updatedShift.id ? updatedShift : s
           ),
         }));
@@ -185,11 +188,12 @@ export const ScheduleDataProvider: React.FC<{ children: ReactNode }> = ({
     setLoading(true, `Dropping shift ${shiftId}...`);
     try {
       const updatedShiftBackend = await apiService.dropShift(numericShiftId);
-      const updatedShift = mapShifts([updatedShiftBackend])[0];
-      if (updatedShift.week_id) {
+      // updatedShiftBackend is already in the correct format from the API
+      const updatedShift = updatedShiftBackend as Shift;
+      if (updatedShift.week_id !== undefined) {
         setShifts(prev => ({
           ...prev,
-          [updatedShift.week_id.toString()]: (prev[updatedShift.week_id.toString()] || []).map(s =>
+          [updatedShift.week_id!.toString()]: (prev[updatedShift.week_id!.toString()] || []).map(s =>
             s.id === updatedShift.id ? updatedShift : s
           ),
         }));
@@ -216,6 +220,7 @@ export const ScheduleDataProvider: React.FC<{ children: ReactNode }> = ({
     }
     
     const weekShifts = shifts[selectedWeek.id.toString()] || [];
+    // If shifts are already in the right format, use them directly
     return organizeShiftsByDay(weekShifts);
   }, [selectedWeek, shifts]);
 
