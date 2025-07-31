@@ -32,10 +32,10 @@ export const mockSchedule: WeeklySchedule = {
 };
 
 export const mockCaregivers: Caregiver[] = [
-  { id: 1, name: 'Robin', hours: 35, availability: 'Weekdays', role: 'Day Shift' },
-  { id: 2, name: 'Scarlet', hours: 25, availability: 'Weekdays', role: 'Evening Shift' },
-  { id: 3, name: 'Kelly', hours: 12, availability: 'Weekends', role: 'Day Shift' },
-  { id: 4, name: 'Joanne', hours: 12, availability: 'Weekends', role: 'Evening Shift' },
+  { id: 1, name: 'Robin', hours: 35, availability: 'Weekdays', role: 'Day Shift', is_active: true },
+  { id: 2, name: 'Scarlet', hours: 25, availability: 'Weekdays', role: 'Evening Shift', is_active: true },
+  { id: 3, name: 'Kelly', hours: 12, availability: 'Weekends', role: 'Day Shift', is_active: true },
+  { id: 4, name: 'Joanne', hours: 12, availability: 'Weekends', role: 'Evening Shift', is_active: true },
 ];
 
 export const mockNotifications: Notification[] = [

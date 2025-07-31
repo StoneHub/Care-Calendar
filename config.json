@@ -1,6 +1,6 @@
 {
   "api": {
-    "baseUrl": "http://10.1.0.180:3001/api"
+    "baseUrl": "http://172.24.82.57:3001/api"
   },
   "frontend": {
     "port": 8080

@@ -71,6 +71,13 @@ const removeWhere = (table, filter) => {
     dbs[table].get(table).remove(filter).write();
 };
 
+// Reset all collections (clear all data in every table)
+function resetAllCollections() {
+    tables.forEach(table => {
+        dbs[table].set(table, []).write();
+    });
+}
+
 module.exports = {
     getAll,
     find,
@@ -80,5 +87,6 @@ module.exports = {
     remove,
     removeWhere,
     // Expose raw dbs if needed for complex queries
-    rawDb: (table) => dbs[table].get(table)
+    rawDb: (table) => dbs[table].get(table),
+    resetAllCollections, // Export the new function
 };

@@ -280,6 +280,24 @@ const EnhancedCareSchedulerPage: React.FC = () => {
             </div>
           </div>
         )}
+        {/* Loading indicator */}
+        {isLoading && (
+          <div className="mb-4 p-4 rounded-md bg-blue-50 dark:bg-blue-900/30 border border-blue-200 dark:border-blue-800 text-blue-800 dark:text-blue-200 text-center">
+            <svg className="animate-spin h-5 w-5 inline-block mr-2 text-blue-400 dark:text-blue-300" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+              <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+              <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8z"></path>
+            </svg>
+            Loading schedule data...
+          </div>
+        )}
+        {/* Debug: show state for troubleshooting */}
+        <div className="mb-4 p-2 bg-gray-100 dark:bg-gray-800 text-xs rounded">
+          <strong>Debug Info:</strong><br />
+          isLoading: {String(isLoading)}<br />
+          error: {String(error)}<br />
+          selectedDay: {String(selectedDay)}<br />
+          selectedShift: {selectedShift ? JSON.stringify(selectedShift) : 'null'}<br />
+        </div>
         
         {/* Tab content */}
         {activeTab === TabType.Schedule && (
@@ -297,6 +315,35 @@ const EnhancedCareSchedulerPage: React.FC = () => {
           <HistoryView />
         )}
       </main>
+
+      {/* Debug panel for app state transparency */}
+      <div className="fixed bottom-0 left-0 w-full bg-gray-900 bg-opacity-90 text-gray-100 text-xs p-2 z-50 border-t border-gray-700">
+        <details open>
+          <summary className="cursor-pointer font-semibold">Debug Info (click to collapse)</summary>
+          <div className="grid grid-cols-2 gap-4 mt-2">
+            <div>
+              <div><b>isLoading:</b> {String(isLoading)}</div>
+              <div><b>error:</b> {error ? error : 'None'}</div>
+              <div><b>selectedDay:</b> {String(selectedDay)}</div>
+              <div><b>selectedShift:</b> {selectedShift ? JSON.stringify(selectedShift, null, 2) : 'None'}</div>
+              <div><b>activeTab:</b> {activeTab}</div>
+              <div><b>activeModal:</b> {activeModal}</div>
+            </div>
+            <div>
+              <div><b>ScheduleContext:</b></div>
+              <pre className="overflow-x-auto max-h-40 bg-gray-800 p-2 rounded">
+                {JSON.stringify({
+                  selectedDay,
+                  selectedShift,
+                  isLoading,
+                  error,
+                  // Add more context fields if needed
+                }, null, 2)}
+              </pre>
+            </div>
+          </div>
+        </details>
+      </div>
       
       {/* Debug button for logs - only in development */}
       {(typeof process !== 'undefined' && process.env && process.env.NODE_ENV !== 'production') && (

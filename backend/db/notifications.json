@@ -1,3 +1,34 @@
 {
-  "notifications": []
+  "notifications": [
+    {
+      "id": "9644855f-a59b-4352-a9d3-70823e7207d3",
+      "type": "adjust",
+      "from_caregiver_id": "22e9c8cd-31d3-4040-972d-991f65ed3461",
+      "week_id": "e7b665f7-dd15-4734-83e4-574b55114aa7",
+      "message": "Changed shift from 9AM-4PM to 10AM-5PM",
+      "date": "Wed, Jul 30",
+      "time": "14:35",
+      "status": "completed"
+    },
+    {
+      "id": "4d6aae32-9e9a-416c-8632-f32fc55a1cb5",
+      "type": "swap",
+      "from_caregiver_id": "9b620f17-0225-43a7-9df4-ee3d6fd10038",
+      "week_id": "e7b665f7-dd15-4734-83e4-574b55114aa7",
+      "message": "Swapped shift with Joanne",
+      "date": "Sat, Aug 2",
+      "time": "09:15",
+      "status": "pending"
+    },
+    {
+      "id": "d37a93d1-707b-4ec1-b5d8-905f6c3b9cd7",
+      "type": "drop",
+      "from_caregiver_id": "4ce798b3-338b-41bf-aad9-238659b64909",
+      "week_id": "e7b665f7-dd15-4734-83e4-574b55114aa7",
+      "message": "Dropped shift, needs coverage",
+      "date": "Wed, Jul 30",
+      "time": "17:22",
+      "status": "pending"
+    }
+  ]
 }

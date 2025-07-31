@@ -48,38 +48,28 @@ if (process.env.NODE_ENV !== 'production') {
   // Route to get database status
   router.get('/debug/db', async (req, res) => {
     try {
-      const db = require('../utils/db');
-      
-      // Get table counts
-      const [teamCount, weekCount, shiftCount, notificationCount, historyCount, unavailabilityCount] = await Promise.all([
-        db('team_members').count('id as count').first(),
-        db('weeks').count('id as count').first(),
-        db('shifts').count('id as count').first(),
-        db('notifications').count('id as count').first(),
-        db('history_records').count('id as count').catch(() => ({ count: 0 })).then(r => r || { count: 0 }),
-        db('unavailability').count('id as count').catch(() => ({ count: 0 })).then(r => r || { count: 0 })
-      ]);
-      
-      // Get most recent records
-      const [latestTeamMember, latestWeek, latestShift, latestNotification, latestHistory, latestUnavailability] = await Promise.all([
-        db('team_members').orderBy('id', 'desc').first(),
-        db('weeks').orderBy('id', 'desc').first(),
-        db('shifts').orderBy('id', 'desc').first(),
-        db('notifications').orderBy('id', 'desc').first(),
-        db('history_records').orderBy('id', 'desc').first().catch(() => null),
-        db('unavailability').orderBy('id', 'desc').first().catch(() => null)
-      ]);
-      
+      // Use LowDB directly instead of old db util
+      const lowdbUtil = require('../utils/lowdbUtil');
+      const tables = [
+        'team_members',
+        'weeks',
+        'shifts',
+        'notifications',
+        'history',
+        'unavailability',
+        'payroll_records'
+      ];
+      const tableStatus = {};
+      for (const table of tables) {
+        const all = lowdbUtil.getAll(table);
+        tableStatus[table] = {
+          count: all.length,
+          latest: all.length > 0 ? all[all.length - 1] : null
+        };
+      }
       res.status(200).json({
         status: 'connected',
-        tables: {
-          team_members: { count: (teamCount && teamCount.count) || 0, latest: latestTeamMember || null },
-          weeks: { count: (weekCount && weekCount.count) || 0, latest: latestWeek || null },
-          shifts: { count: (shiftCount && shiftCount.count) || 0, latest: latestShift || null },
-          notifications: { count: (notificationCount && notificationCount.count) || 0, latest: latestNotification || null },
-          history_records: { count: (historyCount && historyCount.count) || 0, latest: latestHistory || null },
-          unavailability: { count: (unavailabilityCount && unavailabilityCount.count) || 0, latest: latestUnavailability || null }
-        },
+        tables: tableStatus,
         timestamp: new Date().toISOString()
       });
     } catch (error) {

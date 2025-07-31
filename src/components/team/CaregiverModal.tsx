@@ -17,17 +17,20 @@ const CaregiverModal: React.FC<CaregiverModalProps> = ({
   const [name, setName] = useState(caregiver?.name || '');
   const [role, setRole] = useState(caregiver?.role || 'Day Shift');
   const [availability, setAvailability] = useState(caregiver?.availability || 'Weekdays');
+  const [hours, setHours] = useState<number>(caregiver?.hours || 0);
   const [isActive, setIsActive] = useState(caregiver?.is_active !== false);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    
     // Validate the form
     if (!name.trim()) {
       alert('Name is required');
       return;
     }
-    
+    if (hours < 0) {
+      alert('Hours must be 0 or greater');
+      return;
+    }
     if (mode === 'edit' && caregiver) {
       // Ensure ID is correctly passed for updates
       const updatedCaregiver: Caregiver = {
@@ -35,7 +38,8 @@ const CaregiverModal: React.FC<CaregiverModalProps> = ({
         name,
         role,
         availability,
-        is_active: isActive
+        is_active: isActive,
+        hours
       };
       onSave(updatedCaregiver);
     } else {
@@ -44,7 +48,8 @@ const CaregiverModal: React.FC<CaregiverModalProps> = ({
         name,
         role,
         availability,
-        is_active: true
+        is_active: true,
+        hours
       };
       onSave(newCaregiver);
     }
@@ -96,6 +101,18 @@ const CaregiverModal: React.FC<CaregiverModalProps> = ({
               <option>Weekends</option>
               <option>All days</option>
             </select>
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Hours per week</label>
+            <input
+              type="number"
+              className="w-full p-2 border rounded dark:bg-gray-700 dark:border-gray-600 dark:text-white"
+              placeholder="e.g. 40"
+              value={hours}
+              min={0}
+              onChange={e => setHours(Number(e.target.value))}
+              required
+            />
           </div>
           
           {mode === 'edit' && (

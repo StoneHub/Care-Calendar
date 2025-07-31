@@ -64,6 +64,7 @@ export interface Caregiver {
   availability: string;
   role: string;
   is_active: boolean;
+  hours: number; // Number of hours per week
 }
 
 export interface CaregiverBackend {
@@ -72,6 +73,7 @@ export interface CaregiverBackend {
   availability: string;
   role: string;
   is_active: boolean;
+  hours: number; // Number of hours per week
 }
 
 export type NotificationType = 'adjust' | 'swap' | 'drop' | 'suggestion' | 'coverage';

@@ -1,10 +1,31 @@
 {
   "team_members": [
     {
-      "id": "097f5f9d-5e45-4352-9e5b-a60048305c1e",
-      "name": "Admin User",
-      "role": "Admin",
-      "availability": "All days",
+      "id": "22e9c8cd-31d3-4040-972d-991f65ed3461",
+      "name": "Robin",
+      "role": "Day Shift",
+      "availability": "Weekdays",
+      "is_active": true
+    },
+    {
+      "id": "4ce798b3-338b-41bf-aad9-238659b64909",
+      "name": "Scarlet",
+      "role": "Evening Shift",
+      "availability": "Weekdays",
+      "is_active": true
+    },
+    {
+      "id": "9b620f17-0225-43a7-9df4-ee3d6fd10038",
+      "name": "Kellie",
+      "role": "Day Shift",
+      "availability": "Weekends",
+      "is_active": true
+    },
+    {
+      "id": "2ac6767d-b309-48ee-bcda-08a2c6d57f2a",
+      "name": "Joanne",
+      "role": "Evening Shift",
+      "availability": "Weekends",
       "is_active": true
     }
   ]

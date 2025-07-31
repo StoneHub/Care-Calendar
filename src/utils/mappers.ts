@@ -66,7 +66,8 @@ export function mapCaregiverFromBackend(backendCaregiver: CaregiverBackend): Car
     name: backendCaregiver.name,
     availability: backendCaregiver.availability,
     role: backendCaregiver.role,
-    is_active: backendCaregiver.is_active
+    is_active: backendCaregiver.is_active,
+    hours: backendCaregiver.hours // Map hours
   };
 }
 
@@ -79,7 +80,8 @@ export function mapCaregiverToBackend(caregiver: Caregiver): CaregiverBackend {
     name: caregiver.name,
     availability: caregiver.availability,
     role: caregiver.role,
-    is_active: caregiver.is_active
+    is_active: caregiver.is_active,
+    hours: caregiver.hours // Map hours
   };
 }
 

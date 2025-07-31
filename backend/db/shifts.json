@@ -1,3 +1,130 @@
 {
-  "shifts": []
+  "shifts": [
+    {
+      "id": "ad8d5e08-5553-4193-b83f-78d5c175df15",
+      "week_id": "e7b665f7-dd15-4734-83e4-574b55114aa7",
+      "day_of_week": "monday",
+      "caregiver_id": "22e9c8cd-31d3-4040-972d-991f65ed3461",
+      "start_time": "9:00 AM",
+      "end_time": "4:00 PM",
+      "status": "confirmed"
+    },
+    {
+      "id": "191bdcf3-d345-4cef-acec-8a0801d77260",
+      "week_id": "e7b665f7-dd15-4734-83e4-574b55114aa7",
+      "day_of_week": "monday",
+      "caregiver_id": "4ce798b3-338b-41bf-aad9-238659b64909",
+      "start_time": "4:00 PM",
+      "end_time": "9:00 PM",
+      "status": "confirmed"
+    },
+    {
+      "id": "2faeb5f1-28fc-450a-8e43-39ea029a2358",
+      "week_id": "e7b665f7-dd15-4734-83e4-574b55114aa7",
+      "day_of_week": "tuesday",
+      "caregiver_id": "22e9c8cd-31d3-4040-972d-991f65ed3461",
+      "start_time": "9:00 AM",
+      "end_time": "4:00 PM",
+      "status": "confirmed"
+    },
+    {
+      "id": "45435513-d309-439e-9569-0220accd9950",
+      "week_id": "e7b665f7-dd15-4734-83e4-574b55114aa7",
+      "day_of_week": "tuesday",
+      "caregiver_id": "4ce798b3-338b-41bf-aad9-238659b64909",
+      "start_time": "4:00 PM",
+      "end_time": "9:00 PM",
+      "status": "confirmed"
+    },
+    {
+      "id": "ea62aa3f-6ee7-4029-9c80-f8a49b1af838",
+      "week_id": "e7b665f7-dd15-4734-83e4-574b55114aa7",
+      "day_of_week": "wednesday",
+      "caregiver_id": "22e9c8cd-31d3-4040-972d-991f65ed3461",
+      "start_time": "9:00 AM",
+      "end_time": "4:00 PM",
+      "status": "requested-off"
+    },
+    {
+      "id": "8d5a263b-0af1-4ea2-a93c-9f690a3a24d8",
+      "week_id": "e7b665f7-dd15-4734-83e4-574b55114aa7",
+      "day_of_week": "wednesday",
+      "caregiver_id": "4ce798b3-338b-41bf-aad9-238659b64909",
+      "start_time": "4:00 PM",
+      "end_time": "9:00 PM",
+      "status": "confirmed"
+    },
+    {
+      "id": "99c7d431-c0e3-4b47-b8cf-9346d7225002",
+      "week_id": "e7b665f7-dd15-4734-83e4-574b55114aa7",
+      "day_of_week": "thursday",
+      "caregiver_id": "22e9c8cd-31d3-4040-972d-991f65ed3461",
+      "start_time": "9:00 AM",
+      "end_time": "4:00 PM",
+      "status": "confirmed"
+    },
+    {
+      "id": "728de9a7-98bd-4853-b447-0d58127b8b9d",
+      "week_id": "e7b665f7-dd15-4734-83e4-574b55114aa7",
+      "day_of_week": "thursday",
+      "caregiver_id": "4ce798b3-338b-41bf-aad9-238659b64909",
+      "start_time": "4:00 PM",
+      "end_time": "9:00 PM",
+      "status": "confirmed"
+    },
+    {
+      "id": "6cc679f3-357a-4288-b331-39b485725f9f",
+      "week_id": "e7b665f7-dd15-4734-83e4-574b55114aa7",
+      "day_of_week": "friday",
+      "caregiver_id": "22e9c8cd-31d3-4040-972d-991f65ed3461",
+      "start_time": "9:00 AM",
+      "end_time": "4:00 PM",
+      "status": "confirmed"
+    },
+    {
+      "id": "55180fa7-124e-41d1-a2f4-7f6a1ddeb27d",
+      "week_id": "e7b665f7-dd15-4734-83e4-574b55114aa7",
+      "day_of_week": "friday",
+      "caregiver_id": "4ce798b3-338b-41bf-aad9-238659b64909",
+      "start_time": "4:00 PM",
+      "end_time": "9:00 PM",
+      "status": "confirmed"
+    },
+    {
+      "id": "8fb4931d-8aae-4777-85a2-9f8ef85dc8a9",
+      "week_id": "e7b665f7-dd15-4734-83e4-574b55114aa7",
+      "day_of_week": "saturday",
+      "caregiver_id": "9b620f17-0225-43a7-9df4-ee3d6fd10038",
+      "start_time": "9:00 AM",
+      "end_time": "3:00 PM",
+      "status": "swap-proposed"
+    },
+    {
+      "id": "ed633e9a-da7b-4f07-a3a8-771ba0cc4187",
+      "week_id": "e7b665f7-dd15-4734-83e4-574b55114aa7",
+      "day_of_week": "saturday",
+      "caregiver_id": "2ac6767d-b309-48ee-bcda-08a2c6d57f2a",
+      "start_time": "3:00 PM",
+      "end_time": "9:00 PM",
+      "status": "swap-proposed"
+    },
+    {
+      "id": "31ad2290-aca6-43d6-893a-0dbabd3feeff",
+      "week_id": "e7b665f7-dd15-4734-83e4-574b55114aa7",
+      "day_of_week": "sunday",
+      "caregiver_id": "9b620f17-0225-43a7-9df4-ee3d6fd10038",
+      "start_time": "9:00 AM",
+      "end_time": "3:00 PM",
+      "status": "confirmed"
+    },
+    {
+      "id": "512d0932-3d40-4a11-8835-4356364391aa",
+      "week_id": "e7b665f7-dd15-4734-83e4-574b55114aa7",
+      "day_of_week": "sunday",
+      "caregiver_id": "2ac6767d-b309-48ee-bcda-08a2c6d57f2a",
+      "start_time": "3:00 PM",
+      "end_time": "9:00 PM",
+      "status": "confirmed"
+    }
+  ]
 }
