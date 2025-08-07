@@ -77,11 +77,11 @@ export const ScheduleDataProvider: React.FC<{ children: ReactNode }> = ({
 
   // Fetch shifts for a specific week
   const fetchShiftsForWeek = useCallback(async (weekId: string) => {
-    const numericWeekId = parseInt(weekId);
-    if (!numericWeekId) return;
+    // Remove the parseInt conversion since weekIds are UUIDs, not numbers
+    if (!weekId) return;
     setLoading(true, `Fetching shifts for week ${weekId}...`);
     try {
-      const backendShifts = await apiService.getScheduleForWeek(numericWeekId);
+      const backendShifts = await apiService.getScheduleForWeek(weekId);
       // backendShifts should already be in the right format from the API, treat them as Shift[]
       const mappedShifts = backendShifts as any[]; // Temporary cast to avoid type issues
       setShifts(prevShifts => ({

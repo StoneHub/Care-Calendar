@@ -332,7 +332,7 @@ class APIService {
   }
   
   // Shifts
-  async getScheduleForWeek(weekId: number): Promise<Shift[]> {
+  async getScheduleForWeek(weekId: string | number): Promise<Shift[]> {
     return this.request<Shift[]>('GET', `/schedule/weeks/${weekId}/shifts`);
   }
   
