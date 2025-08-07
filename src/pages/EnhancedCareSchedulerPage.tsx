@@ -1,6 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { DayName, Shift } from '../types';
-import { useScheduleContext } from '../context/ScheduleContext';
+import { useScheduleData } from '../context/ScheduleContext';
+import { useScheduleInteraction } from '../context/ScheduleInteractionContext';
+import { useAppStatus } from '../context/AppStatusContext';
 import { useTheme } from '../context/ThemeContext';
 import EnhancedWeekSelector from '../components/schedule/EnhancedWeekSelector';
 import EnhancedScheduleGrid from '../components/schedule/EnhancedScheduleGrid';
@@ -26,19 +28,16 @@ enum ModalType {
 }
 
 const EnhancedCareSchedulerPage: React.FC = () => {
-  // Get data and operations from context
+  // Get data and operations from multiple contexts
+  const { dropShift, deleteShift } = useScheduleData();
   const { 
     selectedDay, 
     selectedShift, 
     setSelectedDay, 
-    setSelectedShift,
-    isLoading,
-    error,
-    dropShift,
-    deleteShift
-  } = useScheduleContext();
-  
-  const { theme } = useTheme();
+    setSelectedShift 
+  } = useScheduleInteraction();
+  const { isLoading, error } = useAppStatus();
+  useTheme(); // Initialize theme but don't use the variable
   
   // Get active tab from local storage or default to Schedule
   const getInitialActiveTab = (): TabType => {
@@ -95,19 +94,19 @@ const EnhancedCareSchedulerPage: React.FC = () => {
     if (!selectedShift) return;
     
     logger.info('Dropping shift', { shiftId: selectedShift.id });
-    const success = await dropShift(selectedShift.id);
+    const success = await dropShift(selectedShift.id.toString());
     
     if (success) {
       closeModal();
     }
   };
-  
+
   // Handle delete shift action
   const handleDeleteShift = async () => {
     if (!selectedShift) return;
     
     logger.info('Deleting shift', { shiftId: selectedShift.id });
-    const success = await deleteShift(selectedShift.id);
+    const success = await deleteShift(selectedShift.id.toString());
     
     if (success) {
       closeModal();

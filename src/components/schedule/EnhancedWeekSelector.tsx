@@ -1,22 +1,43 @@
 import React from 'react';
-import { useScheduleContext } from '../../context/ScheduleContext';
+import { useScheduleData } from '../../context/ScheduleContext';
+import { useAppStatus } from '../../context/AppStatusContext';
 import { dateService } from '../../services/core/DateService';
 
 const EnhancedWeekSelector: React.FC = () => {
   // Get data and operations from context
-  const { 
-    weeks, 
-    selectedWeek, 
-    currentWeek,
-    selectWeek,
-    goToNextWeek,
-    goToPreviousWeek,
-    goToCurrentWeek,
-    isLoading
-  } = useScheduleContext();
+  const { weeks, selectedWeek, setSelectedWeek } = useScheduleData();
+  const { isLoading } = useAppStatus();
   
   // Get sorted weeks
   const sortedWeeks = dateService.sortWeeksByDate(weeks);
+  
+  // Find current week (first week marked as current, or first week)
+  const currentWeek = weeks.find((w: any) => w.is_current) || weeks[0];
+  
+  // Helper functions for navigation
+  const selectWeek = (week: any) => setSelectedWeek(week);
+  
+  const goToNextWeek = () => {
+    if (!selectedWeek) return;
+    const currentIndex = sortedWeeks.findIndex(w => w.id === selectedWeek.id);
+    if (currentIndex >= 0 && currentIndex < sortedWeeks.length - 1) {
+      setSelectedWeek(sortedWeeks[currentIndex + 1]);
+    }
+  };
+  
+  const goToPreviousWeek = () => {
+    if (!selectedWeek) return;
+    const currentIndex = sortedWeeks.findIndex(w => w.id === selectedWeek.id);
+    if (currentIndex > 0) {
+      setSelectedWeek(sortedWeeks[currentIndex - 1]);
+    }
+  };
+  
+  const goToCurrentWeek = () => {
+    if (currentWeek) {
+      setSelectedWeek(currentWeek);
+    }
+  };
   
   // Determine if we can navigate
   const canGoToPrevious = selectedWeek && sortedWeeks.findIndex(w => w.id === selectedWeek.id) > 0;

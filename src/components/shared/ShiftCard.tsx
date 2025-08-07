@@ -1,5 +1,4 @@
 import React from 'react';
-import { AlertTriangle, Clock } from 'lucide-react';
 import { Shift } from '../../types';
 
 interface ShiftCardProps {

@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import { useScheduleContext } from '../context/ScheduleContext';
+import { useTeam } from '../context/TeamContext';
+import { useAppStatus } from '../context/AppStatusContext';
 import TeamView from '../components/team/TeamView';
 import CaregiverModal from '../components/team/CaregiverModal';
 import UnavailabilityList from '../components/unavailability/UnavailabilityList';
@@ -9,13 +10,8 @@ import { logger } from '../utils/logger';
 
 const TeamManagementPage: React.FC = () => {
   // Get context data
-  const { 
-    caregivers, 
-    isLoading: contextLoading, 
-    error: contextError,
-    refreshSchedule,
-    refreshTeamMembers
-  } = useScheduleContext();
+  const { caregivers, refetchCaregivers } = useTeam();
+  const { isLoading: contextLoading, error: contextError } = useAppStatus();
   
   // State
   const [isModalOpen, setIsModalOpen] = useState<boolean>(false);
@@ -67,7 +63,7 @@ const TeamManagementPage: React.FC = () => {
       setIsModalOpen(false);
       
       // Force caregivers refresh without page reload
-      await refreshTeamMembers();
+      await refetchCaregivers();
     } catch (err: any) {
       const errorMsg = err.message || 'Failed to save team member';
       logger.error('Failed to save caregiver', { error: errorMsg });
@@ -104,13 +100,13 @@ const TeamManagementPage: React.FC = () => {
       logger.info('Caregiver deleted successfully', { id: caregiverId, forceDelete });
       
       // Refresh data
-      await refreshSchedule();
+      await refetchCaregivers();
       
       // Reset confirmation
       setConfirmDelete(null);
       
       // Force caregivers refresh without page reload
-      await refreshTeamMembers();
+      await refetchCaregivers();
     } catch (err: any) {
       const errorMsg = err.message || 'Failed to delete team member';
       if (err.status === 500) {
@@ -144,7 +140,7 @@ const TeamManagementPage: React.FC = () => {
       logger.info(`Caregiver ${isActive ? 'activated' : 'deactivated'} successfully`);
       
       // Force caregivers refresh without page reload
-      await refreshTeamMembers();
+      await refetchCaregivers();
     } catch (err: any) {
       const errorMsg = err.message || `Failed to ${isActive ? 'activate' : 'deactivate'} team member`;
       logger.error(`Failed to ${isActive ? 'activate' : 'deactivate'} caregiver`, { error: errorMsg, id: caregiverId });

@@ -1,6 +1,5 @@
 import React from 'react';
 import { useTheme } from '../../context/ThemeContext';
-import { darkModeClasses } from '../../utils/themeUtils';
 
 const ThemeToggle: React.FC = () => {
   const { themeMode, setThemeMode } = useTheme();
