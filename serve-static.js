@@ -55,13 +55,13 @@ const server = http.createServer((req, res) => {
   // Parse URL
   let filePath = '.' + req.url;
   if (filePath === './') {
-    filePath = './public/index.html';
+    filePath = './dist/index.html';
   } else if (!filePath.includes('.')) {
     // For any path without a file extension, serve the index.html (for SPA routing)
-    filePath = './public/index.html';
+    filePath = './dist/index.html';
   } else {
-    // Prepend 'public' to the path for static files
-    filePath = path.join('./public', req.url);
+    // Prepend 'dist' to the path for static files
+    filePath = path.join('./dist', req.url);
   }
   
   // Get file extension
@@ -73,28 +73,22 @@ const server = http.createServer((req, res) => {
     if (error) {
       if (error.code === 'ENOENT') {
         // File not found - serve index.html for SPA routing
-        fs.readFile('./public/index.html', (err, content) => {
+        fs.readFile('./dist/index.html', (err, content) => {
           if (err) {
             res.writeHead(500);
             res.end('Error loading index.html');
           } else {
             // Update the API URL in the HTML content
             let htmlContent = content.toString();
-            if (htmlContent.includes('__CONFIG__')) {
-              const localIp = getLocalIpAddress();
-              const apiBaseUrl = config.api.baseUrl || `http://${localIp}:3001/api`;
-              
-              htmlContent = htmlContent.replace(
-                /window\.__CONFIG__\s*=\s*{[^}]*}/,
-                `window.__CONFIG__ = { API_BASE_URL: "${apiBaseUrl}" }`
-              );
+            // Insert the config script before the closing </head> tag
+            const localIp = getLocalIpAddress();
+            const apiBaseUrl = config.api.baseUrl || `http://${localIp}:3001/api`;
+            
+            const configScript = `\n  <script>\n    window.__CONFIG__ = { API_BASE_URL: "${apiBaseUrl}" };\n  </script>\n</head>`;
+            htmlContent = htmlContent.replace('</head>', configScript);
               
               res.writeHead(200, { 'Content-Type': 'text/html' });
               res.end(htmlContent, 'utf-8');
-            } else {
-              res.writeHead(200, { 'Content-Type': 'text/html' });
-              res.end(content, 'utf-8');
-            }
           }
         });
       } else {
@@ -106,21 +100,16 @@ const server = http.createServer((req, res) => {
       // For HTML files, make sure we update the API URL
       if (contentType === 'text/html') {
         let htmlContent = content.toString();
-        if (htmlContent.includes('__CONFIG__')) {
-          const localIp = getLocalIpAddress();
-          const apiBaseUrl = config.api.baseUrl || `http://${localIp}:3001/api`;
-          
-          htmlContent = htmlContent.replace(
-            /window\.__CONFIG__\s*=\s*{[^}]*}/,
-            `window.__CONFIG__ = { API_BASE_URL: "${apiBaseUrl}" }`
-          );
-          
-          res.writeHead(200, { 'Content-Type': contentType });
-          res.end(htmlContent, 'utf-8');
-        } else {
-          res.writeHead(200, { 'Content-Type': contentType });
-          res.end(content, 'utf-8');
-        }
+        // Insert the config script before the closing </head> tag
+        const localIp = getLocalIpAddress();
+        // Use localhost for development to avoid CORS issues
+        const apiBaseUrl = `http://localhost:3001/api`;
+        
+        const configScript = `\n  <script>\n    window.__CONFIG__ = { API_BASE_URL: "${apiBaseUrl}" };\n  </script>\n</head>`;
+        htmlContent = htmlContent.replace('</head>', configScript);
+        
+        res.writeHead(200, { 'Content-Type': contentType });
+        res.end(htmlContent, 'utf-8');
       } else {
         // For non-HTML files, serve as-is
         res.writeHead(200, { 'Content-Type': contentType });

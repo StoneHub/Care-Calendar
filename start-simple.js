@@ -25,6 +25,20 @@ function getIPAddress() {
 function startServers() {
   console.log(`[${new Date().toLocaleTimeString()}] [setup] Starting Care Calendar...`);
   
+  // Build the frontend first
+  console.log(`[${new Date().toLocaleTimeString()}] [setup] Building frontend application...`);
+  const buildProcess = require('child_process').spawnSync('npm', ['run', 'build'], {
+    stdio: 'inherit',
+    shell: true
+  });
+  
+  if (buildProcess.status !== 0) {
+    console.error(`[${new Date().toLocaleTimeString()}] [setup] Frontend build failed. Exiting.`);
+    process.exit(1);
+  }
+  
+  console.log(`[${new Date().toLocaleTimeString()}] [setup] Frontend build completed successfully.`);
+  
   // Update configuration
   try {
     const ipAddress = getIPAddress();
