@@ -31,3 +31,12 @@ logs
 *.njsproj
 *.sln
 *.sw?
+
+# Python / Flask app ignores
+workforce-management-system/.venv/
+workforce-management-system/__pycache__/
+workforce-management-system/**/*.pyc
+workforce-management-system/.pytest_cache/
+workforce-management-system/instance/
+workforce-management-system/*.sqlite3
+workforce-management-system/*.db

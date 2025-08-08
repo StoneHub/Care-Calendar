@@ -109,11 +109,18 @@
         .weekday-group.visible { display: flex; flex-wrap: wrap; gap: 8px; }
         .weekday-chip { background:#e0e0e0; padding:4px 8px; border-radius:12px; font-size:12px; }
         .calendar-wrapper { width:100%; max-width:1000px; background:#fff; padding:16px; border-radius:8px; box-shadow:0 2px 5px rgba(0,0,0,.1); margin-bottom:24px; }
+        .calendar-header { display:flex; align-items:center; justify-content:space-between; gap:8px; flex-wrap:wrap; margin-bottom:8px; }
+        .calendar-header .left, .calendar-header .right { display:flex; gap:6px; align-items:center; }
+        .nav-btn { background:#1976d2; color:#fff; border:none; border-radius:4px; padding:6px 10px; cursor:pointer; }
+        .nav-btn:hover { background:#1565c0; }
+        #weekRange { font-weight:600; }
         .calendar-grid { display:grid; grid-template-columns: repeat(7,1fr); gap:4px; }
         .cal-cell { border:1px solid #ccc; min-height:90px; padding:4px; font-size:12px; position:relative; }
         .cal-cell h4 { margin:0 0 4px 0; font-size:11px; }
         .shift-pill { background:#4CAF50; color:#fff; padding:2px 4px; border-radius:4px; margin:2px 0; display:block; font-size:11px; }
-        .batch-actions { margin:10px 0; }
+        .legend { display:flex; flex-wrap:wrap; gap:10px; margin-bottom:8px; }
+        .legend-item { display:flex; align-items:center; gap:6px; font-size:12px; }
+        .legend-swatch { width:12px; height:12px; border-radius:3px; border:1px solid rgba(0,0,0,.2); display:inline-block; }
     </style>
 </head>
 <body>
@@ -150,6 +157,17 @@
 
     <div class="calendar-wrapper">
         <h2>Week View (Current Week)</h2>
+        <div class="calendar-header">
+            <div class="left">
+                <button type="button" id="prevWeek" class="nav-btn" aria-label="Previous week">« Prev</button>
+                <button type="button" id="todayBtn" class="nav-btn" aria-label="Jump to current week">Today</button>
+                <button type="button" id="nextWeek" class="nav-btn" aria-label="Next week">Next »</button>
+            </div>
+            <div class="right">
+                <span id="weekRange" aria-live="polite"></span>
+            </div>
+        </div>
+        <div id="calendarLegend" class="legend" aria-label="Employee color legend"></div>
         <div class="calendar-grid" id="calendarGrid"></div>
     </div>
 
@@ -212,29 +230,107 @@
         function toggleAll(master){
             document.querySelectorAll('input[name="shift_ids"]').forEach(cb=>cb.checked=master.checked);
         }
+
+        // Parse shifts data once
         const shiftsData = JSON.parse(document.getElementById('shifts-data').textContent).map(s=>({
             id: s.id,
             name: s.name,
-            dt: s.shift_time
+            dt: s.shift_time // ISO local, e.g., 2025-08-07T09:00:00
         }));
+
+        // Helpers
+        function pad2(n){ return String(n).padStart(2,'0'); }
+        function formatDateYYYYMMDD(d){ return d.getFullYear()+"-"+pad2(d.getMonth()+1)+"-"+pad2(d.getDate()); }
+        function startOfWeek(date, weekOffset){
+            const d = new Date(date);
+            const day = (d.getDay()+6)%7; // Mon=0
+            d.setHours(0,0,0,0);
+            d.setDate(d.getDate() - day + (weekOffset*7));
+            return d;
+        }
+        function formatWeekRange(monday){
+            const sunday = new Date(monday); sunday.setDate(monday.getDate()+6);
+            const opts = { month:'short', day:'numeric' };
+            const left = monday.toLocaleDateString(undefined, opts);
+            const right = sunday.toLocaleDateString(undefined, { ...opts, year: monday.getFullYear()===sunday.getFullYear() ? undefined : 'numeric' });
+            const year = sunday.getFullYear();
+            return `${left} – ${right}, ${year}`;
+        }
+        function hashString(str){
+            let h=0; for(let i=0;i<str.length;i++){ h = (h<<5) - h + str.charCodeAt(i); h |= 0; }
+            return Math.abs(h);
+        }
+        function hslToHex(h,s,l){
+            s/=100; l/=100;
+            const k=n=> (n+ h/30)%12;
+            const a=s*Math.min(l,1-l);
+            const f=n=> l - a*Math.max(-1, Math.min(k(n)-3, Math.min(9-k(n),1)));
+            const toHex=x=> Math.round(x*255).toString(16).padStart(2,'0');
+            return `#${toHex(f(0))}${toHex(f(8))}${toHex(f(4))}`;
+        }
+        function colorForName(name){
+            const h = hashString(name) % 360;
+            const s = 55; // saturation
+            const l = 60; // lightness
+            return hslToHex(h, s, l);
+        }
+        function contrastYIQ(hex){
+            const rgb = hex.replace('#','');
+            const r = parseInt(rgb.substr(0,2),16);
+            const g = parseInt(rgb.substr(2,2),16);
+            const b = parseInt(rgb.substr(4,2),16);
+            const yiq = (r*299 + g*587 + b*114)/1000;
+            return yiq >= 140 ? '#000' : '#fff';
+        }
+
+        function buildLegend(){
+            const legend = document.getElementById('calendarLegend');
+            if(!legend) return;
+            legend.innerHTML = '';
+            const names = Array.from(new Set(shiftsData.map(s=>s.name))).sort((a,b)=>a.localeCompare(b));
+            names.forEach(name=>{
+                const color = colorForName(name);
+                const item = document.createElement('div'); item.className='legend-item';
+                const sw = document.createElement('span'); sw.className='legend-swatch'; sw.style.background=color; sw.title = name;
+                const label = document.createElement('span'); label.textContent = name;
+                item.appendChild(sw); item.appendChild(label); legend.appendChild(item);
+            });
+        }
+
+        let weekOffset = 0;
         function buildWeekView(){
             const grid = document.getElementById('calendarGrid'); if(!grid) return; grid.innerHTML='';
-            const now = new Date(); const monday = new Date(now); monday.setDate(now.getDate() - ((now.getDay()+6)%7));
+            const monday = startOfWeek(new Date(), weekOffset);
+            const rangeEl = document.getElementById('weekRange'); if(rangeEl) rangeEl.textContent = formatWeekRange(monday);
+
             for(let i=0;i<7;i++){
                 const dayDate = new Date(monday); dayDate.setDate(monday.getDate()+i);
                 const cell = document.createElement('div'); cell.className='cal-cell';
                 const header = document.createElement('h4'); header.textContent = dayDate.toLocaleDateString(undefined,{ weekday:'short', month:'numeric', day:'numeric'});
                 cell.appendChild(header);
-                const dayStr = dayDate.toISOString().substring(0,10);
-                shiftsData.filter(s=>s.dt.startsWith(dayStr)).forEach(s=>{
+                const dayStr = formatDateYYYYMMDD(dayDate); // local date string
+
+                shiftsData.filter(s=> s.dt.slice(0,10) === dayStr).forEach(s=>{
                     const pill = document.createElement('span'); pill.className='shift-pill';
-                    const d = new Date(s.dt); const timeStr = d.toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'});
-                    pill.textContent = timeStr + ' ' + s.name; cell.appendChild(pill);
+                    const d = new Date(s.dt);
+                    const timeStr = d.toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'});
+                    const color = colorForName(s.name);
+                    const textColor = contrastYIQ(color);
+                    pill.style.background = color; pill.style.color = textColor;
+                    pill.textContent = `${timeStr} ${s.name}`;
+                    pill.title = `${s.name} • ${d.toLocaleString()}`;
+                    cell.appendChild(pill);
                 });
                 grid.appendChild(cell);
             }
         }
+
+        // Init and controls
+        buildLegend();
         buildWeekView();
+        document.getElementById('prevWeek').addEventListener('click', ()=>{ weekOffset--; buildWeekView(); });
+        document.getElementById('nextWeek').addEventListener('click', ()=>{ weekOffset++; buildWeekView(); });
+        document.getElementById('todayBtn').addEventListener('click', ()=>{ weekOffset=0; buildWeekView(); });
     </script>
 </body>
 </html>
