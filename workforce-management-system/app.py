@@ -370,6 +370,43 @@ def api_update_series():
         end_date = date(start_date.year, 12, 31)
 
     try:
+        # Determine employee to use: explicit, else infer from existing series BEFORE deletion
+        employee_id_to_use = data.get('employee_id')
+        if employee_id_to_use is not None:
+            try:
+                employee_id_to_use = int(employee_id_to_use)
+            except Exception:
+                return jsonify({ 'ok': False, 'error': 'employee_id must be integer' }), 400
+        else:
+            conn0 = sqlite3.connect('database.db')
+            cur0 = conn0.cursor()
+            # Prefer any occurrence on/after start_date (about to be replaced)
+            cur0.execute(
+                """
+                SELECT employee_id FROM shifts
+                WHERE series_id = ? AND date(shift_time) >= date(?)
+                ORDER BY shift_time ASC LIMIT 1
+                """,
+                (series_id, start_date.isoformat())
+            )
+            row = cur0.fetchone()
+            if not row:
+                # Fall back to the most recent occurrence before start_date
+                cur0.execute(
+                    """
+                    SELECT employee_id FROM shifts
+                    WHERE series_id = ? AND date(shift_time) < date(?)
+                    ORDER BY shift_time DESC LIMIT 1
+                    """,
+                    (series_id, start_date.isoformat())
+                )
+                row = cur0.fetchone()
+            conn0.close()
+            if row:
+                employee_id_to_use = int(row[0])
+            else:
+                return jsonify({ 'ok': False, 'error': 'Could not infer employee for this series. Please choose a caregiver.' }), 400
+
         # delete occurrences on/after start_date in this series
         conn = sqlite3.connect('database.db')
         cur = conn.cursor()
@@ -388,18 +425,7 @@ def api_update_series():
                     continue
                 st_dt = datetime.combine(day, t_parts)
                 et_dt = datetime.combine(day, end_t) if end_t else None
-                # reassign if provided else keep same employee by selecting one existing row in series before deletion
-                employee_id = data.get('employee_id')
-                if employee_id is None:
-                    # try to fetch previous employee from past occurrence (before start_date)
-                    conn2 = sqlite3.connect('database.db')
-                    cur2 = conn2.cursor()
-                    cur2.execute("SELECT employee_id FROM shifts WHERE series_id = ? AND date(shift_time) < date(?) ORDER BY shift_time DESC LIMIT 1", (series_id, start_date.isoformat()))
-                    row = cur2.fetchone()
-                    conn2.close()
-                    if row:
-                        employee_id = row[0]
-                insert_shift(employee_id, st_dt.isoformat(), et_dt.isoformat() if et_dt else None, series_id)
+                insert_shift(employee_id_to_use, st_dt.isoformat(), et_dt and et_dt.isoformat(), series_id)
                 occ += 1
             week_start += timedelta(days=7)
         return jsonify({ 'ok': True, 'updated': occ })

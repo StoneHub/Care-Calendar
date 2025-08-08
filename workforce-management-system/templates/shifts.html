@@ -165,8 +165,25 @@
             <div class="fullw">
                 <div class="mini-label">Coverage window</div>
                 <div class="seg">
-                    <input id="covStart" class="mini-input" type="time" value="09:00" step="900">
-                    <input id="covEnd" class="mini-input" type="time" value="21:00" step="900">
+                    <!-- Replaced native time inputs with 15-min selects -->
+                    <div class="time-selects" aria-label="Coverage start">
+                      <select id="covStartHour" aria-label="Start hour">
+                        <option value="00">00</option><option value="01">01</option><option value="02">02</option><option value="03">03</option><option value="04">04</option><option value="05">05</option><option value="06">06</option><option value="07">07</option><option value="08">08</option><option value="09">09</option><option value="10">10</option><option value="11">11</option><option value="12">12</option><option value="13">13</option><option value="14">14</option><option value="15">15</option><option value="16">16</option><option value="17">17</option><option value="18">18</option><option value="19">19</option><option value="20">20</option><option value="21">21</option><option value="22">22</option><option value="23">23</option>
+                      </select>
+                      <span>:</span>
+                      <select id="covStartMin" aria-label="Start minutes">
+                        <option value="00">00</option><option value="15">15</option><option value="30">30</option><option value="45">45</option>
+                      </select>
+                    </div>
+                    <div class="time-selects" aria-label="Coverage end">
+                      <select id="covEndHour" aria-label="End hour">
+                        <option value="00">00</option><option value="01">01</option><option value="02">02</option><option value="03">03</option><option value="04">04</option><option value="05">05</option><option value="06">06</option><option value="07">07</option><option value="08">08</option><option value="09">09</option><option value="10">10</option><option value="11">11</option><option value="12">12</option><option value="13">13</option><option value="14">14</option><option value="15">15</option><option value="16">16</option><option value="17">17</option><option value="18">18</option><option value="19">19</option><option value="20">20</option><option value="21">21</option><option value="22">22</option><option value="23">23</option>
+                      </select>
+                      <span>:</span>
+                      <select id="covEndMin" aria-label="End minutes">
+                        <option value="00">00</option><option value="15">15</option><option value="30">30</option><option value="45">45</option>
+                      </select>
+                    </div>
                     <button class="btn subtle" id="btnSaveCoverage">Save</button>
                 </div>
             </div>
@@ -448,7 +465,8 @@ function renderDayCell(day, shownMonth, currentWeekStart, grid){
       const timelabel = `${pad2(sh.start.getHours())}:${pad2(sh.start.getMinutes())}${sh.end? '–'+pad2(sh.end.getHours())+':'+pad2(sh.end.getMinutes()): ''}`;
       pill.innerHTML = `<span>${timelabel} ${sh.name}</span>`;
       pill.dataset.shiftId=sh.id; pill.dataset.seriesId=sh.series_id||''; pill.dataset.employeeId=sh.employee_id;
-      pill.addEventListener('click', (e)=>{ if(selectionMode){ toggleSelect(pill, sh.id, sh.series_id); } else { openMenu(e, sh); } });
+      pill.addEventListener('click', (e)=>{ e.stopPropagation(); if(selectionMode){ toggleSelect(pill, sh.id, sh.series_id); } else { openMenu(e, sh); } });
+      pill.addEventListener('contextmenu', (e)=>{ e.preventDefault(); e.stopPropagation(); if(selectionMode){ toggleSelect(pill, sh.id, sh.series_id); } else { openMenu(e, sh); } });
       pills.appendChild(pill);
   });
 
@@ -498,6 +516,23 @@ document.addEventListener('keydown', (e)=>{ if(e.key==='Escape' && selectionMode
 let currentShift=null;
 const menu=document.getElementById('shiftMenu');
 let menuAnchor = { x: 0, y: 0 };
+// Ensure positioning helper exists before use
+function positionMenuNear(x, y){
+  if(!menu) return;
+  // Show to measure
+  menu.style.display='block';
+  // Reset first to get accurate size
+  menu.style.left='0px';
+  menu.style.top='0px';
+  const rect = menu.getBoundingClientRect();
+  const w = rect.width || menu.offsetWidth;
+  const h = rect.height || menu.offsetHeight;
+  const pad = 8;
+  const left = Math.min(Math.max(pad, (typeof x==='number'? x : pad)), Math.max(pad, window.innerWidth - w - pad));
+  const top = Math.min(Math.max(pad, (typeof y==='number'? y : pad)), Math.max(pad, window.innerHeight - h - pad));
+  menu.style.left = left + 'px';
+  menu.style.top = top + 'px';
+}
 function openMenu(evt, sh){
   currentShift=sh;
   document.getElementById('menuTitle').textContent = `${sh.name} • ${sh.start.toLocaleString()}`;
@@ -505,14 +540,22 @@ function openMenu(evt, sh){
   // Show/hide Edit Series row based on whether this is part of a series
   const editRow = document.getElementById('editSeriesRow'); if(editRow){ editRow.classList.toggle('is-hidden', !sh.series_id); }
   const sel=document.getElementById('swapSelect'); sel.innerHTML='<option value="">Swap to…</option>' + employeesData.map(e=>`<option value="${e.id}">${e.name}</option>`).join('');
-  const cov=getCov(); document.getElementById('covStart').value = `${pad2(Math.floor(cov.a/60))}:${pad2(cov.a%60)}`; document.getElementById('covEnd').value = `${pad2(Math.floor(cov.b/60))}:${pad2(cov.b%60)}`;
+  // Prefill coverage window selects from stored minutes
+  const cov=getCov();
+  const shh = pad2(Math.floor(cov.a/60)), smm = pad2(cov.a%60);
+  const ehh = pad2(Math.floor(cov.b/60)), emm = pad2(cov.b%60);
+  const csH=document.getElementById('covStartHour'), csM=document.getElementById('covStartMin');
+  const ceH=document.getElementById('covEndHour'), ceM=document.getElementById('covEndMin');
+  if(csH) csH.value = shh; if(csM) csM.value = smm;
+  if(ceH) ceH.value = ehh; if(ceM) ceM.value = emm;
+  // Position within viewport
   menuAnchor = { x: evt.clientX, y: evt.clientY };
   positionMenuNear(menuAnchor.x, menuAnchor.y);
   // focus for accessibility
   menu.setAttribute('tabindex','-1');
   menu.focus();
 }
-function closeMenu(){ menu.style.display='none'; currentShift=null; }
+function closeMenu(preserveShift=false){ menu.style.display='none'; if(!preserveShift) currentShift=null; }
 
 async function postJSON(url, payload){
   const res = await fetch(url, { method:'POST', headers:{ 'Content-Type':'application/json' }, body: JSON.stringify(payload) });
@@ -569,21 +612,26 @@ document.getElementById('btnSwap').addEventListener('click', async ()=>{
 })();
 
 document.getElementById('btnSaveCoverage').addEventListener('click', ()=>{
-  const a = minsFromHHMM(document.getElementById('covStart').value||'09:00');
-  const b = minsFromHHMM(document.getElementById('covEnd').value||'21:00');
+  // Read 15-min dropdowns
+  const sh = document.getElementById('covStartHour').value || '09';
+  const sm = document.getElementById('covStartMin').value || '00';
+  const eh = document.getElementById('covEndHour').value || '21';
+  const em = document.getElementById('covEndMin').value || '00';
+  const a = parseInt(sh,10)*60 + parseInt(sm,10);
+  const b = parseInt(eh,10)*60 + parseInt(em,10);
   if(b<=a) return alert('Coverage end must be after start');
   setCov(a,b); closeMenu(); render();
 });
 
-document.getElementById('btnCloseMenu').addEventListener('click', closeMenu);
-window.addEventListener('click', (e)=>{ if(menu.style.display==='block' && !menu.contains(e.target) && !e.target.classList.contains('pill')) closeMenu(); });
+document.getElementById('btnCloseMenu').addEventListener('click', ()=> closeMenu());
+window.addEventListener('click', (e)=>{ if(menu.style.display==='block' && !menu.contains(e.target) && !e.target.closest('.pill')) { if(typeof eOverlay !== 'undefined' && eOverlay && eOverlay.style.display==='flex' && !eOverlay.classList.contains('is-hidden')) closeMenu(true); else closeMenu(); } });
 window.addEventListener('resize', ()=>{ if(menu.style.display==='block'){ positionMenuNear(menuAnchor.x, menuAnchor.y); } });
 
 document.addEventListener('keydown', (e)=>{
   if(e.key === 'Escape'){
     if(menu.style.display==='block') closeMenu();
     else if(overlay && overlay.style.display==='flex') closeWizard();
-    else if(editOverlay && !editOverlay.classList.contains('is-hidden')) closeEditWizard();
+    else if(typeof eOverlay !== 'undefined' && eOverlay && !eOverlay.classList.contains('is-hidden')) eClose();
   }
 });
 
@@ -693,6 +741,127 @@ const _openWizard = openWizard; openWizard = function(){ _openWizard(); prefillW
   if(mbtn) mbtn.addEventListener('click', ()=>{ view='month'; localStorage.setItem('view','month'); render(); });
   if(wbtn) wbtn.addEventListener('click', ()=>{ view='week'; localStorage.setItem('view','week'); render(); });
 })();
+
+// --- Edit Series Wizard logic ---
+const btnOpenEditSeries = document.getElementById('btnOpenEditSeries');
+const eSelect = document.getElementById('eEmployee');
+const eDaysCtn = document.getElementById('eDays');
+const eOverlay = document.getElementById('editSeriesOverlay');
+const eBackBtn = document.getElementById('eBack');
+const eNextBtn = document.getElementById('eNext');
+const eCancelBtn = document.getElementById('eCancel');
+const eStartHour = document.getElementById('eStartHour');
+const eStartMin = document.getElementById('eStartMin');
+const eEndHour = document.getElementById('eEndHour');
+const eEndMin = document.getElementById('eEndMin');
+const eUntil = document.getElementById('eUntil');
+const eReview = document.getElementById('eReview');
+
+const eWiz = { step:1, employeeId:null, time:null, end:null, days:new Set(), until:null };
+
+function eShowStep(n){
+  eWiz.step=n;
+  for(let i=1;i<=5;i++){
+    const stepEl = document.getElementById('eStep'+i);
+    if(stepEl) stepEl.classList.toggle('hidden', i!==n);
+  }
+  eBackBtn.classList.toggle('hidden', n===1);
+  eNextBtn.textContent = (n===5? 'Update series' : 'Next');
+  if(n===5) eBuildReview();
+}
+
+function openEditWizard(){
+  if(!currentShift || !currentShift.series_id) return;
+  // Hide the context menu but preserve the selected shift for the wizard flow
+  if(menu && menu.style.display==='block') closeMenu(true);
+  // populate employees select
+  if(eSelect){
+    eSelect.innerHTML = '<option value="">Keep current</option>' + employeesData.map(e=>`<option value="${e.id}">${e.name}</option>`).join('');
+  }
+  // build weekday chips once
+  if(eDaysCtn && !eDaysCtn.dataset.built){
+    const labels=['Mon','Tue','Wed','Thu','Fri','Sat','Sun'];
+    labels.forEach((lb,idx)=>{ const lab=document.createElement('label'); lab.className='chip'; lab.innerHTML=`<input type="checkbox" value="${idx}" class="e-day"> ${lb}`; eDaysCtn.appendChild(lab); });
+    eDaysCtn.dataset.built='1';
+    eDaysCtn.addEventListener('change', (e)=>{ if(e.target && e.target.classList.contains('e-day')){ const v=parseInt(e.target.value,10); if(e.target.checked) eWiz.days.add(v); else eWiz.days.delete(v); } });
+  }
+  // reset selections
+  eWiz.step=1; eWiz.employeeId=null; eWiz.time=null; eWiz.end=null; eWiz.days.clear(); eWiz.until=null;
+  if(eSelect) eSelect.value='';
+  if(eStartHour) eStartHour.value = pad2(currentShift.start.getHours());
+  if(eStartMin) eStartMin.value = pad2(currentShift.start.getMinutes());
+  if(eEndHour) eEndHour.value = currentShift.end ? pad2(currentShift.end.getHours()) : '';
+  if(eEndMin) eEndMin.value = currentShift.end ? pad2(currentShift.end.getMinutes()) : '';
+  if(eUntil) eUntil.value = '';
+  // preselect weekday of current shift
+  const curWd = (currentShift.start.getDay()+6)%7; // 0=Mon
+  eDaysCtn.querySelectorAll('input.e-day').forEach((cb,idx)=>{ cb.checked = (idx===curWd); if(idx===curWd) eWiz.days.add(idx); else eWiz.days.delete(idx); });
+
+  // Explicitly show overlay (base .overlay has display:none)
+  eOverlay.classList.remove('is-hidden');
+  eOverlay.style.display='flex';
+  eShowStep(1);
+}
+
+function eClose(){ eOverlay.classList.add('is-hidden'); eOverlay.style.display='none'; }
+
+function eBuildReview(){
+  const empId = eSelect && eSelect.value ? parseInt(eSelect.value,10) : null;
+  const empName = empId ? (employeesData.find(e=>e.id===empId)||{}).name : 'Keep current';
+  const timeStr = `${eStartHour.value}:${eStartMin.value}`;
+  const endStr = (eEndHour.value && eEndMin.value) ? `${eEndHour.value}:${eEndMin.value}` : 'None';
+  const days=[...eWiz.days].sort().map(d=>['Mon','Tue','Wed','Thu','Fri','Sat','Sun'][d]).join(', ');
+  const untilStr = eUntil.value || 'End of year';
+  eReview.textContent = `${empName} • ${timeStr} – ${endStr} • ${days||'none'} • until ${untilStr}`;
+}
+
+if(btnOpenEditSeries){ btnOpenEditSeries.addEventListener('click', (ev)=>{ ev.stopPropagation(); openEditWizard(); }); }
+if(eCancelBtn){ eCancelBtn.addEventListener('click', (ev)=>{ ev.stopPropagation(); eClose(); }); }
+if(eBackBtn){ eBackBtn.addEventListener('click', (ev)=>{ ev.stopPropagation(); eShowStep(Math.max(1, eWiz.step-1)); }); }
+if(eNextBtn){ eNextBtn.addEventListener('click', async (ev)=>{
+  ev.stopPropagation();
+  if(eWiz.step===1){
+    eWiz.employeeId = eSelect && eSelect.value ? parseInt(eSelect.value,10) : null; eShowStep(2); return;
+  }
+  if(eWiz.step===2){
+    const sh = eStartHour ? eStartHour.value : pad2(currentShift.start.getHours());
+    const sm = eStartMin ? eStartMin.value : pad2(currentShift.start.getMinutes());
+    if(!sh || !sm) return alert('Pick a start time');
+    if(eEndHour && eEndMin && eEndHour.value && eEndMin.value){
+      const st = parseInt(sh,10)*60 + parseInt(sm,10);
+      const et = parseInt(eEndHour.value,10)*60 + parseInt(eEndMin.value,10);
+      if(et<=st) return alert('End must be after start');
+    }
+    eShowStep(3); return;
+  }
+  if(eWiz.step===3){ if(!eWiz.days.size) return alert('Select at least one weekday'); eShowStep(4); return; }
+  if(eWiz.step===4){ eWiz.until = eUntil && eUntil.value ? eUntil.value : null; eShowStep(5); return; }
+  if(eWiz.step===5){
+    try{
+      const startDate = (function(){ const d=new Date(currentShift.start); const w=(d.getDay()+6)%7; d.setHours(0,0,0,0); d.setDate(d.getDate()-w); return `${d.getFullYear()}-${pad2(d.getMonth()+1)}-${pad2(d.getDate())}`; })();
+      const sh = eStartHour ? eStartHour.value : pad2(currentShift.start.getHours());
+      const sm = eStartMin ? eStartMin.value : pad2(currentShift.start.getMinutes());
+      const time = `${sh}:${sm}`;
+      const end_time = (eEndHour && eEndMin && eEndHour.value && eEndMin.value) ? `${eEndHour.value}:${eEndMin.value}` : null;
+      const payload = {
+        series_id: currentShift.series_id,
+        start_date: startDate,
+        time,
+        end_time,
+        weekdays: [...eWiz.days].sort(),
+        repeat_until: eWiz.until,
+      };
+      if(eWiz.employeeId) payload.employee_id = eWiz.employeeId;
+      console.log('[EditSeries] POST', API.updateSeries, payload);
+      const resp = await postJSON(API.updateSeries, payload);
+      console.log('[EditSeries] response', resp);
+      location.reload();
+    }catch(err){ console.error('[EditSeries] failed', err); alert('Failed to update series: '+(err && err.message ? err.message : err)); }
+  }
+}); }
+
+// Close edit wizard when clicking outside modal
+if(eOverlay){ eOverlay.addEventListener('click', (e)=>{ if(e.target===eOverlay) eClose(); }); }
 </script>
 </body>
 </html>
