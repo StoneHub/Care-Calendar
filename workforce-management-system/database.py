@@ -6,10 +6,16 @@ def connect_db():
     """Connect to the SQLite database."""
     conn = sqlite3.connect(DATABASE)
     conn.row_factory = sqlite3.Row  # To return rows as dictionaries
+    # Ensure foreign keys if we ever add them
+    conn.execute('PRAGMA foreign_keys = ON')
     return conn
 
+def _column_exists(conn, table, column):
+    cur = conn.execute(f"PRAGMA table_info({table})")
+    return any(row[1] == column for row in cur.fetchall())
+
 def init_db():
-    """Initialize the database with necessary tables."""
+    """Initialize the database with necessary tables and columns."""
     conn = connect_db()
     cursor = conn.cursor()
     
@@ -25,6 +31,9 @@ def init_db():
             id INTEGER PRIMARY KEY AUTOINCREMENT,
             employee_id INTEGER,
             shift_time TEXT NOT NULL,
+            -- Optional fields added by migration helpers
+            end_time TEXT,
+            series_id TEXT,
             FOREIGN KEY (employee_id) REFERENCES employees (id)
         )
     ''')
@@ -55,6 +64,12 @@ def init_db():
         )
     ''')
     
+    # Lightweight migration: ensure new columns on existing DBs
+    # SQLite doesn't support IF NOT EXISTS for columns; guard manually
+    if not _column_exists(conn, 'shifts', 'end_time'):
+        conn.execute('ALTER TABLE shifts ADD COLUMN end_time TEXT')
+    if not _column_exists(conn, 'shifts', 'series_id'):
+        conn.execute('ALTER TABLE shifts ADD COLUMN series_id TEXT')
     
     conn.commit()
     conn.close()
@@ -92,12 +107,22 @@ def get_employees():
     conn.close()
     return employees
 
-def insert_shift(employee_id, shift_time):
-    """Insert a new shift into the database."""
+def insert_shift(employee_id, shift_time, end_time=None, series_id=None):
+    """Insert a new shift into the database. Idempotent on (employee_id, shift_time)."""
     conn = connect_db()
     cursor = conn.cursor()
-    cursor.execute("INSERT INTO shifts (employee_id, shift_time) VALUES (?, ?)", (employee_id, shift_time))
-    conn.commit()
+    # Guard against duplicate recurrence submissions
+    cursor.execute(
+        "SELECT 1 FROM shifts WHERE employee_id = ? AND shift_time = ? LIMIT 1",
+        (employee_id, shift_time),
+    )
+    exists = cursor.fetchone() is not None
+    if not exists:
+        cursor.execute(
+            "INSERT INTO shifts (employee_id, shift_time, end_time, series_id) VALUES (?, ?, ?, ?)",
+            (employee_id, shift_time, end_time, series_id)
+        )
+        conn.commit()
     conn.close()
 
 def get_shifts():
@@ -108,6 +133,22 @@ def get_shifts():
     shifts = cursor.fetchall()
     conn.close()
     return shifts
+
+def get_shifts_in_range(start_iso_date, end_iso_date):
+    """Get shifts where date(shift_time) between start and end inclusive."""
+    conn = connect_db()
+    cursor = conn.cursor()
+    cursor.execute(
+        """
+        SELECT * FROM shifts
+        WHERE date(shift_time) BETWEEN date(?) AND date(?)
+        """,
+        (start_iso_date, end_iso_date)
+    )
+    rows = cursor.fetchall()
+    conn.close()
+    return rows
+
 
 def insert_attendance(employee_id, date, status):
     """Insert a new attendance record into the database."""
@@ -145,9 +186,11 @@ def get_tasks():
     return tasks
 
 def delete_employee(employee_id):
-    """Delete an employee from the database."""
+    """Delete an employee and their shifts from the database."""
     conn = connect_db()
     cursor = conn.cursor()
+    # Delete related shifts first (soft cascade)
+    cursor.execute("DELETE FROM shifts WHERE employee_id = ?", (employee_id,))
     cursor.execute("DELETE FROM employees WHERE id = ?", (employee_id,))
     conn.commit()
     conn.close()
@@ -157,6 +200,21 @@ def delete_shift(shift_id):
     conn = connect_db()
     cursor = conn.cursor()
     cursor.execute("DELETE FROM shifts WHERE id = ?", (shift_id,))
+    conn.commit()
+    conn.close()
+
+def delete_shifts_by_series(series_id):
+    """Delete all shifts belonging to a series."""
+    conn = connect_db()
+    cursor = conn.cursor()
+    cursor.execute("DELETE FROM shifts WHERE series_id = ?", (series_id,))
+    conn.commit()
+    conn.close()
+
+def update_shift_employee(shift_id, new_employee_id):
+    conn = connect_db()
+    cursor = conn.cursor()
+    cursor.execute("UPDATE shifts SET employee_id = ? WHERE id = ?", (new_employee_id, shift_id))
     conn.commit()
     conn.close()
 
@@ -180,11 +238,14 @@ def get_shifts_with_names():
     """Get all shifts from the database with employee names."""
     conn = connect_db()
     cursor = conn.cursor()
-    cursor.execute("""
-        SELECT shifts.id, employees.name, shifts.shift_time 
+    cursor.execute(
+        """
+        SELECT shifts.id, employees.name, employees.id as employee_id, shifts.shift_time, shifts.end_time, shifts.series_id
         FROM shifts 
         JOIN employees ON shifts.employee_id = employees.id
-    """)
+        ORDER BY shifts.shift_time
+        """
+    )
     shifts = cursor.fetchall()
     conn.close()
     return shifts
@@ -193,11 +254,13 @@ def get_attendance_with_names():
     """Get all attendance records from the database with employee names."""
     conn = connect_db()
     cursor = conn.cursor()
-    cursor.execute("""
+    cursor.execute(
+        """
         SELECT attendance.id, employees.name, attendance.date, attendance.status 
         FROM attendance 
         JOIN employees ON attendance.employee_id = employees.id
-    """)
+        """
+    )
     attendance_records = cursor.fetchall()
     conn.close()
     return attendance_records
@@ -206,11 +269,24 @@ def get_tasks_with_names():
     """Get all tasks from the database with employee names."""
     conn = connect_db()
     cursor = conn.cursor()
-    cursor.execute("""
+    cursor.execute(
+        """
         SELECT tasks.id, employees.name, tasks.task, tasks.status 
         FROM tasks 
         JOIN employees ON tasks.employee_id = employees.id
-    """)
+        """
+    )
     tasks = cursor.fetchall()
     conn.close()
     return tasks
+
+def get_series_start_date(series_id: str):
+    """Return the earliest date (YYYY-MM-DD) for a given series_id, or None if not found."""
+    conn = connect_db()
+    cur = conn.cursor()
+    cur.execute("SELECT MIN(date(shift_time)) AS start_date FROM shifts WHERE series_id = ?", (series_id,))
+    row = cur.fetchone()
+    conn.close()
+    if not row or row[0] is None:
+        return None
+    return row[0]

@@ -15,10 +15,16 @@
             margin: 0;
             padding: 0;
             display: flex;
-            justify-content: center;
+            flex-direction: column;
             align-items: center;
             min-height: 100vh;
         }
+        header{ width:100%; background:#fff; border-bottom:1px solid #e5e7eb; margin-bottom: 20px; }
+        .nav{ max-width:1100px; margin:0 auto; display:flex; align-items:center; justify-content:space-between; padding:10px 16px; }
+        .nav a{ color:#222; text-decoration:none; padding:6px 10px; border-radius:6px; }
+        .nav a:hover{ background:#f0f3f8; }
+        .nav .left{ display:flex; gap:12px; align-items:center; }
+        .logo{ font-weight:700; color:#1976d2; }
 
         .container {
             background-color: white;
@@ -89,6 +95,23 @@
     </style>
 </head>
 <body>
+    <header>
+        <nav class="nav">
+            <div class="left">
+                <span class="logo">Care Calendar</span>
+                <a href="{{ url_for('index') }}">Home</a>
+                <a href="{{ url_for('employees') }}">Employees</a>
+                <a href="{{ url_for('shifts') }}">Shifts</a>
+                <a href="{{ url_for('attendance') }}">Attendance</a>
+                <a href="{{ url_for('tasks') }}">Tasks</a>
+                <a href="{{ url_for('performance') }}">Performance</a>
+                <a href="{{ url_for('hours_report') }}">Hours</a>
+            </div>
+            <div class="right">
+                <a href="{{ url_for('logout') }}">Logout</a>
+            </div>
+        </nav>
+    </header>
     <div class="container">
         <h1>Performance Metrics Dashboard</h1>
 

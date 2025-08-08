@@ -7,330 +7,396 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.3/css/all.min.css">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Kanit:ital,wght@0,100;0,200;0,300;0,400;0,500;0,600;0,700;0,800;0,900;1,100;1,200;1,300;1,400;1,500;1,600;1,700;1,800;1,900&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Kanit:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <style>
-        body {
-            font-family: Kanit, sans-serif;
-            line-height: 1.6;
-            margin: 0;
-            padding: 20px;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            background-color: #f4f4f4;
-        }
-        .container {
-            width: 100%;
-            max-width: 1000px;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-        }
-        h1, h2 {
-            color: #333;
-            text-align: center;
-            width: 100%;
-        }
-        form {
-            background-color: #fff;
-            padding: 20px;
-            border-radius: 5px;
-            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
-            margin-bottom: 20px;
-            width: 100%;
-            max-width: 500px;
-        }
-        input, select {
-            width: 100%;
-            padding: 8px;
-            margin-bottom: 10px;
-            border: 1px solid #ddd;
-            border-radius: 4px;
-        }
-        button {
-            background-color: #4CAF50;
-            color: white;
-            padding: 10px 15px;
-            border: none;
-            border-radius: 4px;
-            cursor: pointer;
-        }
-        button:hover {
-            background-color: #45a049;
-        }
-        .table-container {
-            width: 100%;
-            overflow-x: auto;
-            padding: 0 20px;
-            box-sizing: border-box;
-            border-radius: 20%;
-        }
-        table {
-            width: 60%;
-            border-collapse: collapse;
-            margin-bottom: 20px;
-            background-color: #fff;
-            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
-        }
-        th, td {
-            text-align: center;
-            padding: 12px;
-            border: 1px solid #000;
-        }
-        th {
-            background-color: #f2f2f2;
-            font-weight: bold;
-        }
-        a {
-            color: #333;
-            text-decoration: none;
-        }
-        .delete-icon {
-            color: #ff4444;
-            cursor: pointer;
-        }
-        .back-link {
-            display: inline-block;
-            margin-top: 20px;
-            padding: 10px 15px;
-            background-color: #333;
-            color: #fff;
-            border-radius: 4px;
-            text-decoration: none;
-        }
-        .back-link:hover {
-            background-color: #555;
-        }
-        .block-label { display: block; margin: 8px 0; }
-        .repeat-until-container { display: none; }
-        .repeat-until-container.visible { display: block; }
-        .sr-only { position: absolute; left: -10000px; top: auto; width: 1px; height: 1px; overflow: hidden; }
-        .weekday-group { display: none; margin-bottom: 10px; }
-        .weekday-group.visible { display: flex; flex-wrap: wrap; gap: 8px; }
-        .weekday-chip { background:#e0e0e0; padding:4px 8px; border-radius:12px; font-size:12px; }
-        .calendar-wrapper { width:100%; max-width:1000px; background:#fff; padding:16px; border-radius:8px; box-shadow:0 2px 5px rgba(0,0,0,.1); margin-bottom:24px; }
-        .calendar-header { display:flex; align-items:center; justify-content:space-between; gap:8px; flex-wrap:wrap; margin-bottom:8px; }
-        .calendar-header .left, .calendar-header .right { display:flex; gap:6px; align-items:center; }
-        .nav-btn { background:#1976d2; color:#fff; border:none; border-radius:4px; padding:6px 10px; cursor:pointer; }
-        .nav-btn:hover { background:#1565c0; }
-        #weekRange { font-weight:600; }
-        .calendar-grid { display:grid; grid-template-columns: repeat(7,1fr); gap:4px; }
-        .cal-cell { border:1px solid #ccc; min-height:90px; padding:4px; font-size:12px; position:relative; }
-        .cal-cell h4 { margin:0 0 4px 0; font-size:11px; }
-        .shift-pill { background:#4CAF50; color:#fff; padding:2px 4px; border-radius:4px; margin:2px 0; display:block; font-size:11px; }
-        .legend { display:flex; flex-wrap:wrap; gap:10px; margin-bottom:8px; }
-        .legend-item { display:flex; align-items:center; gap:6px; font-size:12px; }
-        .legend-swatch { width:12px; height:12px; border-radius:3px; border:1px solid rgba(0,0,0,.2); display:inline-block; }
+        :root{ --bg:#f6f7fb; --card:#ffffff; --txt:#222; --muted:#6b7280; --brand:#1976d2; --brand-2:#1565c0; --ok:#2e7d32; --warn:#e53935; --grid-border:#e5e7eb; --pill:#e0f2fe; }
+        *{ box-sizing: border-box; }
+        body{ font-family: Kanit, system-ui, -apple-system, Segoe UI, Roboto, sans-serif; margin:0; background:var(--bg); color:var(--txt); }
+        header{ background:var(--card); border-bottom:1px solid var(--grid-border); position:sticky; top:0; z-index:10; }
+        .nav{ max-width:1100px; margin:0 auto; display:flex; align-items:center; justify-content:space-between; padding:10px 16px; }
+        .nav .left{ display:flex; gap:12px; align-items:center; }
+        .logo{ font-weight:700; color:var(--brand); }
+        .nav a{ color:var(--txt); text-decoration:none; padding:6px 10px; border-radius:6px; }
+        .nav a:hover{ background:#f0f3f8; }
+        .hidden{ display:none; }
+        .fullw{ width:100%; }
+
+        main{ max-width:1100px; margin:18px auto; padding:0 12px; }
+
+        .card{ background:var(--card); border:1px solid var(--grid-border); border-radius:10px; box-shadow:0 1px 2px rgba(0,0,0,.03); }
+        .section{ padding:14px; }
+        h1{ font-size:22px; margin:0 0 10px; }
+        h2{ font-size:18px; margin:0 0 10px; }
+
+        /* Form */
+        .form-grid{ display:grid; grid-template-columns: repeat(3, 1fr); gap:10px; }
+        .form-row{ display:flex; flex-direction:column; gap:6px; }
+        label{ font-size:13px; color:var(--muted); }
+        input, select{ width:100%; padding:10px; border:1px solid var(--grid-border); border-radius:8px; background:#fff; }
+        .actions{ display:flex; gap:8px; flex-wrap:wrap; align-items:center; margin-top:10px; }
+        .btn{ background:var(--brand); color:#fff; border:none; padding:10px 12px; border-radius:8px; cursor:pointer; font-weight:600; }
+        .btn:hover{ background:var(--brand-2); }
+        .checkline{ display:flex; align-items:center; gap:10px; padding:8px 10px; border:1px solid var(--grid-border); border-radius:8px; }
+        .checkline input{ transform: scale(1.2); }
+        .checkline span{ font-weight:600; }
+        .weekday-group{ display:none; gap:8px; flex-wrap:wrap; }
+        .weekday-group.visible{ display:flex; }
+        .weekday-chip{ background:#eef2f7; border:1px solid var(--grid-border); padding:4px 8px; border-radius:16px; font-size:12px; }
+        .inline-hint{ font-size:12px; color:var(--muted); }
+        .btn-group{ display:flex; gap:8px; align-items:center; flex-wrap:wrap; }
+        #swapSelect{ flex:1; padding:8px; border:1px solid var(--grid-border); border-radius:6px; }
+
+        /* Calendar */
+        .calendar{ margin-top:14px; }
+        .cal-head{ display:flex; justify-content:space-between; align-items:center; gap:10px; padding:10px 14px; border-bottom:1px solid var(--grid-border); }
+        .nav-btn{ background:var(--brand); color:#fff; border:none; border-radius:6px; padding:7px 10px; cursor:pointer; }
+        .nav-btn:hover{ background:var(--brand-2); }
+        .month-label{ font-weight:700; }
+        .legend{ display:flex; flex-wrap:wrap; gap:10px; padding:10px 14px; border-bottom:1px solid var(--grid-border); }
+        .legend-item{ display:flex; align-items:center; gap:6px; font-size:12px; }
+        .legend-swatch{ width:12px; height:12px; border-radius:3px; border:1px solid rgba(0,0,0,.15); }
+
+        .grid{ display:grid; grid-template-columns: repeat(7, 1fr); border-top:1px solid var(--grid-border); }
+        .dow{ background:#f8fafc; color:#111827; font-weight:600; padding:8px 6px; border-right:1px solid var(--grid-border); font-size:12px; }
+        .dow:last-child{ border-right:none; }
+        .cells{ display:grid; grid-template-columns: repeat(7, 1fr); }
+        .cell{ min-height:110px; padding:6px; border-right:1px solid var(--grid-border); border-bottom:1px solid var(--grid-border); position:relative; background:#fff; }
+        .cell.dim{ background:#fafafa; color:#9ca3af; }
+        .date-tag{ font-weight:600; font-size:12px; color:#111827; }
+        .pills{ margin-top:4px; display:flex; flex-direction:column; gap:4px; }
+        .pill{ padding:2px 4px; border-radius:6px; font-size:11px; color:#fff; display:flex; align-items:center; justify-content:space-between; gap:6px; cursor:pointer; }
+        .pill small{ opacity:.9; }
+        .gap-badge{ position:absolute; top:6px; right:6px; font-size:10px; background:#fdecea; color:#b71c1c; padding:2px 6px; border-radius:10px; border:1px solid #f5c6cb; }
+        .current-week{ box-shadow: inset 0 0 0 2px #c7d2fe; }
+        .needs-attention{ background:#ffebee; }
+
+        /* Shift menu */
+        .menu{ position:fixed; z-index:50; background:#fff; border:1px solid var(--grid-border); border-radius:8px; padding:10px; box-shadow:0 6px 18px rgba(0,0,0,.12); width:260px; display:none; }
+        .menu h4{ margin:0 0 6px; font-size:14px; }
+        .menu .row{ display:flex; align-items:center; justify-content:space-between; gap:8px; margin:6px 0; flex-wrap:wrap; }
+        .menu .danger{ background:#d32f2f; }
+        .menu .danger:hover{ background:#b71c1c; }
+        .menu .subtle{ background:#e5e7eb; color:#111827; }
+        .menu .subtle:hover{ background:#d1d5db; }
+        .mini-label{ font-size:12px; color:var(--muted); }
+        .mini-input{ width:100%; padding:6px 8px; border:1px solid var(--grid-border); border-radius:6px; }
+        .seg{ display:flex; gap:6px; }
+
+        .footer-links{ margin-top:12px; display:flex; gap:8px; }
     </style>
 </head>
 <body>
-    <h1>Shift Scheduling</h1>
-    
-    <form action="{{ url_for('shifts') }}" method="post">
-        <h2>Add Shift</h2>
-        <label for="employee_id_select">Employee</label>
-        <select id="employee_id_select" name="employee_id" required title="Select Employee">
-            <option value="">Select Employee</option>
-            {% for employee in employees %}
-            <option value="{{ employee['id'] }}">{{ employee['name'] }}</option>
-            {% endfor %}
-        </select>
-        <label for="shift_time_input">Shift Date & Time</label>
-        <input id="shift_time_input" type="datetime-local" name="shift_time" required title="Shift start date and time" placeholder="Select date and time">
-        <label class="block-label" for="repeat_weekly_cb">
-            <input type="checkbox" name="repeat_weekly" id="repeat_weekly_cb" onchange="toggleRepeatUntil()"> Repeat Weekly (select days)
-        </label>
-        <div id="weekday_group" class="weekday-group" aria-hidden="true">
-            {% set weekdays = ['Mon','Tue','Wed','Thu','Fri','Sat','Sun'] %}
-            {% for wd in range(0,7) %}
-            <label class="weekday-chip"><input type="checkbox" name="selected_days" value="{{ wd }}"> {{ weekdays[wd] }}</label>
-            {% endfor %}
+<header>
+    <nav class="nav">
+        <div class="left">
+            <span class="logo">Care Calendar</span>
+            <a href="{{ url_for('index') }}">Home</a>
+            <a href="{{ url_for('employees') }}">Employees</a>
+            <a href="{{ url_for('shifts') }}">Shifts</a>
+            <a href="{{ url_for('attendance') }}">Attendance</a>
+            <a href="{{ url_for('tasks') }}">Tasks</a>
+            <a href="{{ url_for('performance') }}">Performance</a>
+            <a href="{{ url_for('hours_report') }}">Hours</a>
         </div>
-        <div id="repeat_until_container" class="repeat-until-container" aria-hidden="true">
-            <label for="repeat_until_input">Repeat Until (optional)
-                <input id="repeat_until_input" type="date" name="repeat_until" title="Last date to repeat shift">
+        <div class="right">
+            <a href="{{ url_for('logout') }}">Logout</a>
+        </div>
+    </nav>
+</header>
+<main>
+    <section class="card section">
+        <h1>Shift Scheduling</h1>
+        <div class="form-grid">
+            <div class="form-row">
+                <label for="employee_id_select">Employee</label>
+                <select id="employee_id_select" name="employee_id" form="addShiftForm" required>
+                    <option value="">Select Employee</option>
+                    {% for employee in employees %}
+                    <option value="{{ employee['id'] }}">{{ employee['name'] }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="form-row">
+                <label for="shift_time_input">Start Date & Time</label>
+                <input id="shift_time_input" type="datetime-local" name="shift_time" form="addShiftForm" required>
+            </div>
+            <div class="form-row">
+                <label for="end_time_input">End Time (optional)</label>
+                <input id="end_time_input" type="time" name="end_time" form="addShiftForm" placeholder="HH:MM">
+            </div>
+        </div>
+        <div class="actions">
+            <label class="checkline" for="repeat_weekly_cb">
+                <input type="checkbox" name="repeat_weekly" id="repeat_weekly_cb" form="addShiftForm" onchange="toggleRepeat()">
+                <span>Repeat Weekly (select days)</span>
             </label>
-            <small>If left blank, repeats until end of the year.</small>
-        </div>
-        <button type="submit">Add Shift</button>
-    </form>
-
-    <div class="calendar-wrapper">
-        <h2>Week View (Current Week)</h2>
-        <div class="calendar-header">
-            <div class="left">
-                <button type="button" id="prevWeek" class="nav-btn" aria-label="Previous week">« Prev</button>
-                <button type="button" id="todayBtn" class="nav-btn" aria-label="Jump to current week">Today</button>
-                <button type="button" id="nextWeek" class="nav-btn" aria-label="Next week">Next »</button>
-            </div>
-            <div class="right">
-                <span id="weekRange" aria-live="polite"></span>
-            </div>
-        </div>
-        <div id="calendarLegend" class="legend" aria-label="Employee color legend"></div>
-        <div class="calendar-grid" id="calendarGrid"></div>
-    </div>
-
-    <h2>Shift List</h2>
-    <form method="post" action="{{ url_for('delete_shifts_batch') }}" id="batchDeleteForm">
-        <div class="batch-actions">
-            <button type="submit" onclick="return confirm('Delete selected shifts?')">Delete Selected</button>
-        </div>
-        <table>
-            <thead>
-                <tr>
-                    <th>
-                        <label for="select_all" class="sr-only">Select All Shifts</label>
-                        <input type="checkbox" id="select_all" onclick="toggleAll(this)" title="Select all shifts">
-                    </th>
-                    <th>ID</th>
-                    <th>Employee Name</th>
-                    <th>Shift Time</th>
-                    <th>Action</th>
-                </tr>
-            </thead>
-            <tbody>
-                {% for shift in shifts %}
-                <tr>
-                    <td>
-                        <label class="sr-only" for="shift_cb_{{ shift['id'] }}">Select shift {{ shift['id'] }}</label>
-                        <input id="shift_cb_{{ shift['id'] }}" type="checkbox" name="shift_ids" value="{{ shift['id'] }}" title="Select shift {{ shift['id'] }}">
-                    </td>
-                    <td>{{ shift['id'] }}</td>
-                    <td>{{ shift['name'] }}</td>
-                    <td>{{ shift['shift_time'] }}</td>
-                    <td>
-                        <a href="{{ url_for('delete_shift_route', shift_id=shift['id']) }}" title="Delete shift {{ shift['id'] }}" aria-label="Delete shift {{ shift['id'] }}" onclick="return confirm('Are you sure you want to delete this shift?')">
-                            <i class="fas fa-trash-alt delete-icon" aria-hidden="true"></i><span class="sr-only">Delete</span>
-                        </a>
-                    </td>
-                </tr>
+            <div id="weekday_group" class="weekday-group" aria-hidden="true">
+                {% set weekdays = ['Mon','Tue','Wed','Thu','Fri','Sat','Sun'] %}
+                {% for wd in range(0,7) %}
+                <label class="weekday-chip"><input type="checkbox" name="selected_days" value="{{ wd }}" form="addShiftForm"> {{ weekdays[wd] }}</label>
                 {% endfor %}
-            </tbody>
-        </table>
-    </form>
+            </div>
+            <div class="form-row hidden" id="repeat_until_ctn">
+                <label for="repeat_until_input">Repeat Until (optional)</label>
+                <input id="repeat_until_input" type="date" name="repeat_until" form="addShiftForm">
+                <span class="inline-hint">If empty, repeats until end of the year.</span>
+            </div>
+            <form id="addShiftForm" action="{{ url_for('shifts') }}" method="post" onsubmit="return validateShiftForm()">
+                <button class="btn" type="submit" id="addShiftBtn">Add Shift</button>
+            </form>
+        </div>
+    </section>
 
-    <a href="{{ url_for('index') }}" class="back-link">Back</a>
+    <section class="card calendar">
+        <div class="cal-head">
+            <div class="btn-group">
+                <button class="nav-btn" id="prevPeriod" aria-label="Previous">« Prev</button>
+                <button class="nav-btn" id="todayBtn" aria-label="Current">Today</button>
+                <button class="nav-btn" id="nextPeriod" aria-label="Next">Next »</button>
+            </div>
+            <div class="btn-group">
+                <button class="nav-btn" id="viewMonth">Month</button>
+                <button class="nav-btn" id="viewWeek">Week</button>
+            </div>
+            <div class="month-label" id="periodLabel"></div>
+        </div>
+        <div class="legend" id="calendarLegend" aria-label="Employee color legend"></div>
+        <div class="grid">
+            <div class="dow">Mon</div><div class="dow">Tue</div><div class="dow">Wed</div><div class="dow">Thu</div><div class="dow">Fri</div><div class="dow">Sat</div><div class="dow">Sun</div>
+        </div>
+        <div class="cells" id="grid"></div>
+    </section>
 
-    <script id="shifts-data" type="application/json">{{ shifts | tojson }}</script>
-    <script>
-        function toggleRepeatUntil(){
-            const cb = document.getElementById('repeat_weekly_cb');
-            const ctn = document.getElementById('repeat_until_container');
-            const weekdays = document.getElementById('weekday_group');
-            const active = cb.checked;
-            if(active){
-                ctn.classList.add('visible'); ctn.setAttribute('aria-hidden','false');
-                weekdays.classList.add('visible'); weekdays.setAttribute('aria-hidden','false');
-            } else {
-                ctn.classList.remove('visible'); ctn.setAttribute('aria-hidden','true');
-                weekdays.classList.remove('visible'); weekdays.setAttribute('aria-hidden','true');
-            }
-        }
-        function toggleAll(master){
-            document.querySelectorAll('input[name="shift_ids"]').forEach(cb=>cb.checked=master.checked);
-        }
+    <div class="menu" id="shiftMenu" role="dialog" aria-modal="true">
+        <h4 id="menuTitle">Shift</h4>
+        <div class="row"><button class="btn danger" id="btnDeleteShift">Delete shift</button><button class="btn subtle hidden" id="btnDeleteSeries">Delete series</button></div>
+        <div class="row">
+            <select id="swapSelect"><option value="">Swap to…</option></select>
+            <button class="btn" id="btnSwap">Swap</button>
+        </div>
+        <div class="row">
+            <div class="fullw">
+                <div class="mini-label">Update series (from this week)</div>
+                <div class="seg">
+                    <input id="seriesTime" class="mini-input" type="time" value="09:00">
+                    <input id="seriesEnd" class="mini-input" type="time" placeholder="End">
+                </div>
+                <div class="seg">
+                    <label class="weekday-chip"><input type="checkbox" class="series-wd" value="0"> Mon</label>
+                    <label class="weekday-chip"><input type="checkbox" class="series-wd" value="1"> Tue</label>
+                    <label class="weekday-chip"><input type="checkbox" class="series-wd" value="2"> Wed</label>
+                    <label class="weekday-chip"><input type="checkbox" class="series-wd" value="3"> Thu</label>
+                    <label class="weekday-chip"><input type="checkbox" class="series-wd" value="4"> Fri</label>
+                    <label class="weekday-chip"><input type="checkbox" class="series-wd" value="5"> Sat</label>
+                    <label class="weekday-chip"><input type="checkbox" class="series-wd" value="6"> Sun</label>
+                </div>
+                <div class="seg">
+                    <input id="seriesUntil" class="mini-input" type="date">
+                    <button class="btn" id="btnUpdateSeries">Apply</button>
+                </div>
+            </div>
+        </div>
+        <div class="row">
+            <div class="fullw">
+                <div class="mini-label">Coverage window</div>
+                <div class="seg">
+                    <input id="covStart" class="mini-input" type="time" value="09:00">
+                    <input id="covEnd" class="mini-input" type="time" value="21:00">
+                    <button class="btn subtle" id="btnSaveCoverage">Save</button>
+                </div>
+            </div>
+        </div>
+        <div class="footer-links">
+            <button class="btn subtle" id="btnCloseMenu">Close</button>
+        </div>
+    </div>
+</main>
 
-        // Parse shifts data once
-        const shiftsData = JSON.parse(document.getElementById('shifts-data').textContent).map(s=>({
-            id: s.id,
-            name: s.name,
-            dt: s.shift_time // ISO local, e.g., 2025-08-07T09:00:00
-        }));
+<script id="shifts-data" type="application/json">{{ shifts | tojson }}</script>
+<script id="employees-data" type="application/json">{{ employees | tojson }}</script>
+<script>
+// --- Utilities ---
+function pad2(n){ return String(n).padStart(2,'0'); }
+function localDateStr(d){ return `${d.getFullYear()}-${pad2(d.getMonth()+1)}-${pad2(d.getDate())}`; }
+function startOfWeek(d){ const x=new Date(d); const w=(x.getDay()+6)%7; x.setHours(0,0,0,0); x.setDate(x.getDate()-w); return x; }
+function startOfMonth(d){ const x=new Date(d.getFullYear(), d.getMonth(), 1); x.setHours(0,0,0,0); return x; }
+function addDays(d,n){ const x=new Date(d); x.setDate(x.getDate()+n); return x; }
+function hashString(str){ let h=0; for(let i=0;i<str.length;i++){ h=(h<<5)-h+str.charCodeAt(i); h|=0; } return Math.abs(h); }
+function hslToHex(h,s,l){ s/=100; l/=100; const k=n=>(n+h/30)%12; const a=s*Math.min(l,1-l); const f=n=> l - a*Math.max(-1,Math.min(k(n)-3,Math.min(9-k(n),1))); const toHex=x=> Math.round(x*255).toString(16).padStart(2,'0'); return `#${toHex(f(0))}${toHex(f(8))}${toHex(f(4))}`; }
+function colorForName(name){ const h=hashString(name)%360; return hslToHex(h,55,60); }
+function contrast(hex){ const r=parseInt(hex.slice(1,3),16), g=parseInt(hex.slice(3,5),16), b=parseInt(hex.slice(5,7),16); const yiq=(r*299+g*587+b*114)/1000; return yiq>=140?'#000':'#fff'; }
 
-        // Helpers
-        function pad2(n){ return String(n).padStart(2,'0'); }
-        function formatDateYYYYMMDD(d){ return d.getFullYear()+"-"+pad2(d.getMonth()+1)+"-"+pad2(d.getDate()); }
-        function startOfWeek(date, weekOffset){
-            const d = new Date(date);
-            const day = (d.getDay()+6)%7; // Mon=0
-            d.setHours(0,0,0,0);
-            d.setDate(d.getDate() - day + (weekOffset*7));
-            return d;
-        }
-        function formatWeekRange(monday){
-            const sunday = new Date(monday); sunday.setDate(monday.getDate()+6);
-            const opts = { month:'short', day:'numeric' };
-            const left = monday.toLocaleDateString(undefined, opts);
-            const right = sunday.toLocaleDateString(undefined, { ...opts, year: monday.getFullYear()===sunday.getFullYear() ? undefined : 'numeric' });
-            const year = sunday.getFullYear();
-            return `${left} – ${right}, ${year}`;
-        }
-        function hashString(str){
-            let h=0; for(let i=0;i<str.length;i++){ h = (h<<5) - h + str.charCodeAt(i); h |= 0; }
-            return Math.abs(h);
-        }
-        function hslToHex(h,s,l){
-            s/=100; l/=100;
-            const k=n=> (n+ h/30)%12;
-            const a=s*Math.min(l,1-l);
-            const f=n=> l - a*Math.max(-1, Math.min(k(n)-3, Math.min(9-k(n),1)));
-            const toHex=x=> Math.round(x*255).toString(16).padStart(2,'0');
-            return `#${toHex(f(0))}${toHex(f(8))}${toHex(f(4))}`;
-        }
-        function colorForName(name){
-            const h = hashString(name) % 360;
-            const s = 55; // saturation
-            const l = 60; // lightness
-            return hslToHex(h, s, l);
-        }
-        function contrastYIQ(hex){
-            const rgb = hex.replace('#','');
-            const r = parseInt(rgb.substr(0,2),16);
-            const g = parseInt(rgb.substr(2,2),16);
-            const b = parseInt(rgb.substr(4,2),16);
-            const yiq = (r*299 + g*587 + b*114)/1000;
-            return yiq >= 140 ? '#000' : '#fff';
-        }
+// --- Data ---
+const shiftsData = JSON.parse(document.getElementById('shifts-data').textContent);
+const employeesData = JSON.parse(document.getElementById('employees-data').textContent);
+const API = {
+  deleteShift: "{{ url_for('api_delete_shift') }}",
+  deleteSeries: "{{ url_for('api_delete_series') }}",
+  swapShift: "{{ url_for('api_swap_shift') }}",
+  updateSeries: "{{ url_for('api_update_series') }}"
+};
 
-        function buildLegend(){
-            const legend = document.getElementById('calendarLegend');
-            if(!legend) return;
-            legend.innerHTML = '';
-            const names = Array.from(new Set(shiftsData.map(s=>s.name))).sort((a,b)=>a.localeCompare(b));
-            names.forEach(name=>{
-                const color = colorForName(name);
-                const item = document.createElement('div'); item.className='legend-item';
-                const sw = document.createElement('span'); sw.className='legend-swatch'; sw.style.background=color; sw.title = name;
-                const label = document.createElement('span'); label.textContent = name;
-                item.appendChild(sw); item.appendChild(label); legend.appendChild(item);
-            });
-        }
+// Coverage prefs
+function getCov(){ try{ const s=localStorage.getItem('cov'); if(!s) return { a:540, b:1260 }; const {a,b}=JSON.parse(s); return { a, b }; }catch{ return { a:540, b:1260 }; } }
+function setCov(a,b){ localStorage.setItem('cov', JSON.stringify({a,b})); }
+function minsFromHHMM(t){ const [hh,mm]=t.split(':').map(x=>parseInt(x,10)||0); return hh*60+mm; }
 
-        let weekOffset = 0;
-        function buildWeekView(){
-            const grid = document.getElementById('calendarGrid'); if(!grid) return; grid.innerHTML='';
-            const monday = startOfWeek(new Date(), weekOffset);
-            const rangeEl = document.getElementById('weekRange'); if(rangeEl) rangeEl.textContent = formatWeekRange(monday);
+// --- Legend ---
+function buildLegend(){
+  const legend = document.getElementById('calendarLegend'); legend.innerHTML='';
+  const names=[...new Set(shiftsData.map(s=>s.name))].sort((a,b)=>a.localeCompare(b));
+  names.forEach(n=>{ const color=colorForName(n); const item=document.createElement('div'); item.className='legend-item'; const sw=document.createElement('span'); sw.className='legend-swatch'; sw.style.background=color; const label=document.createElement('span'); label.textContent=n; item.append(sw,label); legend.appendChild(item); });
+}
 
-            for(let i=0;i<7;i++){
-                const dayDate = new Date(monday); dayDate.setDate(monday.getDate()+i);
-                const cell = document.createElement('div'); cell.className='cal-cell';
-                const header = document.createElement('h4'); header.textContent = dayDate.toLocaleDateString(undefined,{ weekday:'short', month:'numeric', day:'numeric'});
-                cell.appendChild(header);
-                const dayStr = formatDateYYYYMMDD(dayDate); // local date string
+// --- Views ---
+let view = localStorage.getItem('view')||'month';
+let anchor = new Date();
 
-                shiftsData.filter(s=> s.dt.slice(0,10) === dayStr).forEach(s=>{
-                    const pill = document.createElement('span'); pill.className='shift-pill';
-                    const d = new Date(s.dt);
-                    const timeStr = d.toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'});
-                    const color = colorForName(s.name);
-                    const textColor = contrastYIQ(color);
-                    pill.style.background = color; pill.style.color = textColor;
-                    pill.textContent = `${timeStr} ${s.name}`;
-                    pill.title = `${s.name} • ${d.toLocaleString()}`;
-                    cell.appendChild(pill);
-                });
-                grid.appendChild(cell);
-            }
-        }
+function render(){
+  if(view==='month') buildMonth(); else buildWeek();
+}
 
-        // Init and controls
-        buildLegend();
-        buildWeekView();
-        document.getElementById('prevWeek').addEventListener('click', ()=>{ weekOffset--; buildWeekView(); });
-        document.getElementById('nextWeek').addEventListener('click', ()=>{ weekOffset++; buildWeekView(); });
-        document.getElementById('todayBtn').addEventListener('click', ()=>{ weekOffset=0; buildWeekView(); });
-    </script>
+function buildMonth(){
+  const grid=document.getElementById('grid'); grid.innerHTML='';
+  const today=new Date(anchor);
+  const shown=new Date(today.getFullYear(), today.getMonth(), 1);
+  const monthStart=startOfMonth(shown);
+  const firstCell=startOfWeek(monthStart); // Monday alignment
+  const label=document.getElementById('periodLabel'); label.textContent = shown.toLocaleDateString(undefined,{month:'long', year:'numeric'});
+
+  const currentWeekStart=startOfWeek(new Date());
+  for(let i=0;i<42;i++) renderDayCell(addDays(firstCell,i), shown.getMonth(), currentWeekStart, grid);
+}
+
+function buildWeek(){
+  const grid=document.getElementById('grid'); grid.innerHTML='';
+  const weekStart=startOfWeek(anchor);
+  const label=document.getElementById('periodLabel');
+  const weekEnd=addDays(weekStart,6);
+  label.textContent = `${weekStart.toLocaleDateString(undefined,{month:'short',day:'numeric'})} – ${weekEnd.toLocaleDateString(undefined,{month:'short',day:'numeric',year:'numeric'})}`;
+  for(let i=0;i<7;i++) renderDayCell(addDays(weekStart,i), weekStart.getMonth(), weekStart, grid);
+}
+
+function renderDayCell(day, shownMonth, currentWeekStart, grid){
+  const cell=document.createElement('div'); cell.className='cell';
+  if(day.getMonth()!==shownMonth) cell.classList.add('dim');
+  const isCurrentWeek = startOfWeek(day).getTime()===currentWeekStart.getTime();
+  if(isCurrentWeek) cell.classList.add('current-week');
+
+  const dateTag=document.createElement('div'); dateTag.className='date-tag'; dateTag.textContent=day.getDate(); cell.appendChild(dateTag);
+  const pills=document.createElement('div'); pills.className='pills'; cell.appendChild(pills);
+
+  const dayStr=localDateStr(day);
+  const dayShifts = shiftsData.filter(s=> s.shift_time.slice(0,10)===dayStr).map(s=>({
+      id:s.id, name:s.name, start:new Date(s.shift_time), end: s.end_time ? new Date(`${dayStr}T${s.end_time.slice(11,16)}`) : null, series_id:s.series_id, employee_id:s.employee_id
+  }));
+
+  // Coverage gap check using configurable window
+  const cov=getCov(); const ATT_START=cov.a, ATT_END=cov.b;
+  let intervals=[];
+  for(const sh of dayShifts){
+      const st=sh.start.getHours()*60 + sh.start.getMinutes();
+      const et=sh.end ? sh.end.getHours()*60 + sh.end.getMinutes() : (st+60);
+      const a=Math.max(ATT_START, st), b=Math.min(ATT_END, et);
+      if(b>a) intervals.push([a,b]);
+  }
+  intervals.sort((x,y)=>x[0]-y[0]);
+  let merged=[]; for(const iv of intervals){ if(!merged.length || iv[0]>merged[merged.length-1][1]) merged.push(iv); else merged[merged.length-1][1]=Math.max(merged[merged.length-1][1], iv[1]); }
+  let covered=0; merged.forEach(([a,b])=> covered+= (b-a));
+  if(covered < (ATT_END-ATT_START)){
+      const badge=document.createElement('span'); badge.className='gap-badge'; badge.textContent='Coverage gap'; cell.classList.add('needs-attention'); cell.appendChild(badge);
+  }
+
+  dayShifts.forEach(sh=>{
+      const color=colorForName(sh.name); const text=contrast(color);
+      const pill=document.createElement('div'); pill.className='pill'; pill.style.background=color; pill.style.color=text;
+      const timelabel = `${pad2(sh.start.getHours())}:${pad2(sh.start.getMinutes())}${sh.end? '–'+pad2(sh.end.getHours())+':'+pad2(sh.end.getMinutes()): ''}`;
+      pill.innerHTML = `<span>${timelabel} ${sh.name}</span>`;
+      pill.dataset.shiftId=sh.id; pill.dataset.seriesId=sh.series_id||''; pill.dataset.employeeId=sh.employee_id;
+      pill.addEventListener('click', (e)=> openMenu(e, sh));
+      pills.appendChild(pill);
+  });
+
+  grid.appendChild(cell);
+}
+
+// --- Menu ---
+let currentShift=null;
+const menu=document.getElementById('shiftMenu');
+function openMenu(evt, sh){
+  currentShift=sh;
+  document.getElementById('menuTitle').textContent = `${sh.name} • ${sh.start.toLocaleString()}`;
+  const btnSeries=document.getElementById('btnDeleteSeries'); btnSeries.classList.toggle('hidden', !sh.series_id);
+  const sel=document.getElementById('swapSelect'); sel.innerHTML='<option value="">Swap to…</option>' + employeesData.map(e=>`<option value="${e.id}">${e.name}</option>`).join('');
+  const r=menu.getBoundingClientRect(); const x=evt.clientX, y=evt.clientY; menu.style.left = Math.min(x, window.innerWidth-280)+'px'; menu.style.top = Math.min(y, window.innerHeight-260)+'px';
+  // load coverage inputs
+  const cov=getCov(); document.getElementById('covStart').value = `${pad2(Math.floor(cov.a/60))}:${pad2(cov.a%60)}`; document.getElementById('covEnd').value = `${pad2(Math.floor(cov.b/60))}:${pad2(cov.b%60)}`;
+  menu.style.display='block';
+}
+function closeMenu(){ menu.style.display='none'; currentShift=null; }
+
+async function postJSON(url, payload){
+  const res = await fetch(url, { method:'POST', headers:{ 'Content-Type':'application/json' }, body: JSON.stringify(payload) });
+  if(!res.ok){ const t=await res.text(); throw new Error(t); }
+  return res.json();
+}
+
+document.getElementById('btnDeleteShift').addEventListener('click', async ()=>{
+  if(!currentShift) return; try{ await postJSON(API.deleteShift, { shift_id: currentShift.id }); location.reload(); }catch(e){ alert('Failed to delete: '+e.message); }
+});
+
+document.getElementById('btnDeleteSeries').addEventListener('click', async ()=>{
+  if(!currentShift || !currentShift.series_id) return; if(!confirm('Delete the entire series?')) return;
+  try{ await postJSON(API.deleteSeries, { series_id: currentShift.series_id }); location.reload(); }catch(e){ alert('Failed to delete series: '+e.message); }
+});
+
+document.getElementById('btnSwap').addEventListener('click', async ()=>{
+  if(!currentShift) return; const sel=document.getElementById('swapSelect'); const val=sel.value; if(!val) return alert('Select a caregiver to swap to');
+  try{ await postJSON(API.swapShift, { shift_id: currentShift.id, new_employee_id: parseInt(val,10) }); location.reload(); }catch(e){ alert('Failed to swap: '+e.message); }
+});
+
+document.getElementById('btnUpdateSeries').addEventListener('click', async ()=>{
+  if(!currentShift || !currentShift.series_id) return alert('Series not available');
+  const time = document.getElementById('seriesTime').value; if(!time) return alert('Time required');
+  const end = document.getElementById('seriesEnd').value; const until = document.getElementById('seriesUntil').value || null;
+  const wds = Array.from(document.querySelectorAll('.series-wd:checked')).map(el=>parseInt(el.value,10)); if(!wds.length) return alert('Select weekdays');
+  const startDate = localDateStr(startOfWeek(currentShift.start));
+  try{ await postJSON(API.updateSeries, { series_id: currentShift.series_id, start_date: startDate, time, end_time:end||null, weekdays:wds, repeat_until: until }); location.reload(); }catch(e){ alert('Failed to update series: '+e.message); }
+});
+
+document.getElementById('btnSaveCoverage').addEventListener('click', ()=>{
+  const a = minsFromHHMM(document.getElementById('covStart').value||'09:00');
+  const b = minsFromHHMM(document.getElementById('covEnd').value||'21:00');
+  if(b<=a) return alert('Coverage end must be after start');
+  setCov(a,b); closeMenu(); render();
+});
+
+document.getElementById('btnCloseMenu').addEventListener('click', closeMenu);
+window.addEventListener('click', (e)=>{ if(menu.style.display==='block' && !menu.contains(e.target) && !e.target.classList.contains('pill')) closeMenu(); });
+
+// --- Form interactions ---
+function toggleRepeat(){
+  const on = document.getElementById('repeat_weekly_cb').checked;
+  document.getElementById('weekday_group').classList.toggle('visible', on);
+  document.getElementById('repeat_until_ctn').classList.toggle('hidden', !on);
+}
+function validateShiftForm(){
+  const start = document.getElementById('shift_time_input').value;
+  const end = document.getElementById('end_time_input').value;
+  if(end && start){ const sh = new Date(start); const [hh,mm] = end.split(':'); const eh = new Date(start); eh.setHours(parseInt(hh,10), parseInt(mm,10), 0, 0); if(eh<=sh){ alert('End time must be after start time'); return false; } }
+  const btn=document.getElementById('addShiftBtn'); if(btn){ btn.disabled=true; btn.textContent='Adding…'; }
+  return true;
+}
+
+// --- Init & navigation ---
+buildLegend();
+render();
+
+document.getElementById('prevPeriod').addEventListener('click', ()=>{ anchor = view==='month' ? new Date(anchor.getFullYear(), anchor.getMonth()-1, 1) : addDays(anchor,-7); render(); });
+document.getElementById('nextPeriod').addEventListener('click', ()=>{ anchor = view==='month' ? new Date(anchor.getFullYear(), anchor.getMonth()+1, 1) : addDays(anchor,7); render(); });
+document.getElementById('todayBtn').addEventListener('click', ()=>{ anchor=new Date(); render(); });
+document.getElementById('viewMonth').addEventListener('click', ()=>{ view='month'; localStorage.setItem('view',view); render(); });
+document.getElementById('viewWeek').addEventListener('click', ()=>{ view='week'; localStorage.setItem('view',view); render(); });
+</script>
 </body>
 </html>
