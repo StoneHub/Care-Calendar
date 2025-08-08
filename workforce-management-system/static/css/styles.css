@@ -1,0 +1,216 @@
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+body {
+    display: flex;
+    flex-direction: column;
+    min-height: 100vh;
+    background: #f0f0f0;
+    font-family: 'Kanit', sans-serif;
+}
+
+header {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    padding: 20px 60px;
+    display: flex;
+    background: white;
+    justify-content: space-between;
+    align-items: center;
+    z-index: 99;
+    font-size: 15px;
+    font-weight: 500;
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+}
+
+.logo {
+    display: flex;
+    align-items: center;
+    margin-bottom: 20px;
+}
+
+.logo img {
+    height: 40px;
+    width: auto;
+    margin-right: 10px;
+}
+
+.logo h1 {
+    font-size: 24px;
+    color: #333;
+    margin: 0;
+    font-family: 'Kanit', sans-serif;
+}
+
+.navigation {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.navigation a {
+    position: relative;
+    font-size: 1.1em;
+    color: #333;
+    text-decoration: none;
+    font-weight: 500;
+    margin-left: 40px;
+}
+
+.navigation a::after {
+    content: '';
+    position: absolute;
+    left: 0;
+    bottom: -6px;
+    width: 100%;
+    height: 3px;
+    background: #333;
+    border-radius: 5px;
+    transform-origin: right;
+    transform: scaleX(0);
+    transition: transform .5s;
+}
+
+.navigation a:hover::after {
+    transform-origin: left;
+    transform: scaleX(1);
+}
+
+.main-content {
+    display: flex;
+    margin-top: 80px;
+    height: calc(100vh - 80px);
+}
+
+.image-container {
+    flex: 1;
+    overflow: hidden;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    padding: 20px;
+    background: url('path/to/your/background.jpg') no-repeat center center;
+    background-size: cover;
+}
+
+.main-image {
+    max-width: 100%;
+    max-height: 80vh;
+    object-fit: contain;
+    border-radius: 8px;
+}
+
+.options-container {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    padding: 20px;
+    row-gap: 20px;
+}
+
+.btn-custom {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 80%;
+    padding: 20px 40px;
+    margin: 10px 0;
+    background-color: white;
+    color: #333;
+    font-size: 18px;
+    font-weight: bold;
+    text-decoration: none;
+    border-radius: 10px;
+    transition: all 0.3s ease;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+}
+
+.btn-custom i {
+    margin-right: 15px;
+    font-size: 24px;
+}
+
+.btn-custom:nth-child(1) i { color: #4285F4; }
+.btn-custom:nth-child(2) i { color: #34A853; }
+.btn-custom:nth-child(3) i { color: #FBBC05; }
+.btn-custom:nth-child(4) i { color: #EA4335; }
+
+.btn-custom:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 6px 8px rgba(0, 0, 0, 0.15);
+}
+
+.menu-toggle {
+    display: none;
+    color: #333;
+    font-size: 1.5em;
+    cursor: pointer;
+}
+
+/* Logout button styling */
+.logout-option {
+    background-color: red;
+    padding: 10px 20px;
+    border-radius: 5px;
+    color: white !important;
+    text-decoration: none;
+    font-weight: bold;
+}
+
+.logout-option:hover {
+    background-color: rgb(255, 91, 91);
+}
+
+
+@media (max-width: 768px) {
+    header {
+        padding: 10px 20px;
+    }
+
+    .navigation {
+        display: none;
+    }
+
+    .navigation.active {
+        display: flex;
+        flex-direction: column;
+        position: absolute;
+        top: 60px;
+        left: 0;
+        width: 100%;
+        background-color: white;
+        padding: 20px;
+    }
+
+    .menu-toggle {
+        display: block;
+    }
+
+    .navigation a {
+        margin: 10px 0;
+    }
+
+    .main-content {
+        flex-direction: column;
+    }
+
+    .image-container, .options-container {
+        flex: none;
+        width: 100%;
+    }
+
+    .image-container {
+        height: 30vh;
+    }
+
+    .btn-custom {
+        width: 90%;
+    }
+}

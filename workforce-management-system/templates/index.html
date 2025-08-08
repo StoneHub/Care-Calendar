@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link href="https://stackpath.bootstrapcdn.com/bootstrap/5.3.0/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Kanit:ital,wght@0,100;0,200;0,300;0,400;0,500;0,600;0,700;0,800;0,900;1,100;1,200;1,300;1,400;1,500;1,600;1,700;1,800;1,900&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/styles.css') }}">
+    <title>NOKIA Workforce Management System</title>
+</head>
+<body>
+    <header>
+        <div class="logo"><img src="{{ url_for('static', filename='images/Alex-Logo.png') }}" alt="WFMS Logo" /></div>
+        <nav class="navigation" id="nav">
+            <a href="/employees">Employees</a>
+            <a href="/shifts">Shifts</a>
+            <a href="/attendance">Attendance</a>
+            <a href="/tasks">Tasks</a>
+            <a href="/performance">Performance</a>
+            <a href="{{ url_for('logout') }}" class="logout-option">Logout</a>
+        </nav>
+        <div class="menu-toggle" id="mobile-menu">
+            <i class="fas fa-bars"></i>
+        </div>
+    </header>
+    
+    <div class="main-content">
+        <div class="image-container">
+            <img src="{{ url_for('static', filename='images/home.png') }}" alt="Workforce Management" class="main-image">
+        </div>
+        <div class="options-container">
+            <a href="/employees" class="btn-custom">
+                <i class="fas fa-users"></i>
+                Manage Employees
+            </a>
+            <a href="/shifts" class="btn-custom">
+                <i class="fas fa-calendar-alt"></i>
+                Shift Scheduling
+            </a>
+            <a href="/attendance" class="btn-custom">
+                <i class="fas fa-clipboard-check"></i>
+                Attendance Tracking
+            </a>
+            <a href="/tasks" class="btn-custom">
+                <i class="fas fa-tasks"></i>
+                Task Assignment
+            </a>
+            <a href="/performance" class="btn-custom">
+                <i class="fas fa-chart-line"></i>
+                Performance Overview
+            </a>
+        </div>
+    </div>
+
+    <script src="https://stackpath.bootstrapcdn.com/bootstrap/5.3.0/js/bootstrap.bundle.min.js"></script>
+    <script>
+        document.getElementById('mobile-menu').addEventListener('click', function() {
+            const nav = document.getElementById('nav');
+            nav.classList.toggle('active');
+        });
+    </script>
+</body>
+</html>

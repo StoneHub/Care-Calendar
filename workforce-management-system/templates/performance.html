@@ -1,0 +1,131 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+	<link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Kanit:ital,wght@0,100;0,200;0,300;0,400;0,500;0,600;0,700;0,800;0,900;1,100;1,200;1,300;1,400;1,500;1,600;1,700;1,800;1,900&display=swap" rel="stylesheet">
+    <title>Performance Metrics Dashboard</title>
+    <style>
+        body {
+            font-family: Kanit, sans-serif;
+            background-color: #f4f4f4;
+            margin: 0;
+            padding: 0;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+        }
+
+        .container {
+            background-color: white;
+            padding: 30px;
+            box-shadow: 0 0 15px rgba(0, 0, 0, 0.15);
+            border-radius: 12px;
+            text-align: center;
+            max-width: 700px;
+            width: 90%;
+        }
+
+        h1 {
+            margin-bottom: 20px;
+            font-size: 26px;
+            color: #333;
+        }
+
+        .stat-box {
+            display: flex;
+            justify-content: space-around;
+            flex-wrap: wrap;
+            margin-bottom: 25px;
+        }
+
+        .stat-box div {
+            background-color: #e7f3ff;
+            padding: 25px;
+            width: 140px; /* Adjusted width for 5 boxes */
+            border-radius: 12px;
+            text-align: center;
+            font-size: 18px;
+            box-shadow: 0 8px 20px rgba(0, 0, 0, 0.1);
+            margin: 10px; /* Margin for spacing */
+        }
+
+        .stat-box div span {
+            font-size: 20px;
+            display: block;
+            margin-bottom: 10px;
+        }
+
+        .stat-box div i {
+            font-size: 40px;
+            color: #007bff;
+            margin-bottom: 10px;
+        }
+
+        .footer {
+            margin-top: 20px;
+            font-size: 14px;
+            color: #777;
+        }
+
+        .back-button {
+            margin-top: 30px;
+            display: inline-block;
+            padding: 10px 20px;
+            background-color: #007bff;
+            color: white;
+            border-radius: 5px;
+            text-decoration: none;
+            font-size: 16px;
+        }
+
+        .back-button:hover {
+            background-color: #0056b3;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Performance Metrics Dashboard</h1>
+
+        <div class="stat-box">
+            <div>
+                <i class="fas fa-users"></i>
+                <span>{{ no_of_employees }}</span>
+                Employees
+            </div>
+            <div>
+                <i class="fas fa-tasks"></i>
+                <span>{{ no_of_tasks }}</span>
+                Tasks
+            </div>
+            <div>
+                <i class="fas fa-calendar-alt"></i>
+                <span>{{ no_of_shifts }}</span>
+                Shifts
+            </div>
+            <div>
+                <i class="fas fa-check-circle"></i>
+                <span>{{ no_of_present }}</span>
+                Attendance Present
+            </div>
+            <div>
+                <i class="fas fa-times-circle"></i>
+                <span>{{ no_of_absent }}</span>
+                Attendance Absent
+            </div>
+        </div>
+
+        <div class="footer">
+            Updated as of today
+        </div>
+
+        <!-- Back Button -->
+        <a href="/" class="back-button">Back</a>
+    </div>
+</body>
+</html>

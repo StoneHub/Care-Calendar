@@ -1,0 +1,240 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Shift Scheduling</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.3/css/all.min.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Kanit:ital,wght@0,100;0,200;0,300;0,400;0,500;0,600;0,700;0,800;0,900;1,100;1,200;1,300;1,400;1,500;1,600;1,700;1,800;1,900&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: Kanit, sans-serif;
+            line-height: 1.6;
+            margin: 0;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            background-color: #f4f4f4;
+        }
+        .container {
+            width: 100%;
+            max-width: 1000px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+        h1, h2 {
+            color: #333;
+            text-align: center;
+            width: 100%;
+        }
+        form {
+            background-color: #fff;
+            padding: 20px;
+            border-radius: 5px;
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+            margin-bottom: 20px;
+            width: 100%;
+            max-width: 500px;
+        }
+        input, select {
+            width: 100%;
+            padding: 8px;
+            margin-bottom: 10px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+        }
+        button {
+            background-color: #4CAF50;
+            color: white;
+            padding: 10px 15px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+        button:hover {
+            background-color: #45a049;
+        }
+        .table-container {
+            width: 100%;
+            overflow-x: auto;
+            padding: 0 20px;
+            box-sizing: border-box;
+            border-radius: 20%;
+        }
+        table {
+            width: 60%;
+            border-collapse: collapse;
+            margin-bottom: 20px;
+            background-color: #fff;
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+        }
+        th, td {
+            text-align: center;
+            padding: 12px;
+            border: 1px solid #000;
+        }
+        th {
+            background-color: #f2f2f2;
+            font-weight: bold;
+        }
+        a {
+            color: #333;
+            text-decoration: none;
+        }
+        .delete-icon {
+            color: #ff4444;
+            cursor: pointer;
+        }
+        .back-link {
+            display: inline-block;
+            margin-top: 20px;
+            padding: 10px 15px;
+            background-color: #333;
+            color: #fff;
+            border-radius: 4px;
+            text-decoration: none;
+        }
+        .back-link:hover {
+            background-color: #555;
+        }
+        .block-label { display: block; margin: 8px 0; }
+        .repeat-until-container { display: none; }
+        .repeat-until-container.visible { display: block; }
+        .sr-only { position: absolute; left: -10000px; top: auto; width: 1px; height: 1px; overflow: hidden; }
+        .weekday-group { display: none; margin-bottom: 10px; }
+        .weekday-group.visible { display: flex; flex-wrap: wrap; gap: 8px; }
+        .weekday-chip { background:#e0e0e0; padding:4px 8px; border-radius:12px; font-size:12px; }
+        .calendar-wrapper { width:100%; max-width:1000px; background:#fff; padding:16px; border-radius:8px; box-shadow:0 2px 5px rgba(0,0,0,.1); margin-bottom:24px; }
+        .calendar-grid { display:grid; grid-template-columns: repeat(7,1fr); gap:4px; }
+        .cal-cell { border:1px solid #ccc; min-height:90px; padding:4px; font-size:12px; position:relative; }
+        .cal-cell h4 { margin:0 0 4px 0; font-size:11px; }
+        .shift-pill { background:#4CAF50; color:#fff; padding:2px 4px; border-radius:4px; margin:2px 0; display:block; font-size:11px; }
+        .batch-actions { margin:10px 0; }
+    </style>
+</head>
+<body>
+    <h1>Shift Scheduling</h1>
+    
+    <form action="{{ url_for('shifts') }}" method="post">
+        <h2>Add Shift</h2>
+        <label for="employee_id_select">Employee</label>
+        <select id="employee_id_select" name="employee_id" required title="Select Employee">
+            <option value="">Select Employee</option>
+            {% for employee in employees %}
+            <option value="{{ employee['id'] }}">{{ employee['name'] }}</option>
+            {% endfor %}
+        </select>
+        <label for="shift_time_input">Shift Date & Time</label>
+        <input id="shift_time_input" type="datetime-local" name="shift_time" required title="Shift start date and time" placeholder="Select date and time">
+        <label class="block-label" for="repeat_weekly_cb">
+            <input type="checkbox" name="repeat_weekly" id="repeat_weekly_cb" onchange="toggleRepeatUntil()"> Repeat Weekly (select days)
+        </label>
+        <div id="weekday_group" class="weekday-group" aria-hidden="true">
+            {% set weekdays = ['Mon','Tue','Wed','Thu','Fri','Sat','Sun'] %}
+            {% for wd in range(0,7) %}
+            <label class="weekday-chip"><input type="checkbox" name="selected_days" value="{{ wd }}"> {{ weekdays[wd] }}</label>
+            {% endfor %}
+        </div>
+        <div id="repeat_until_container" class="repeat-until-container" aria-hidden="true">
+            <label for="repeat_until_input">Repeat Until (optional)
+                <input id="repeat_until_input" type="date" name="repeat_until" title="Last date to repeat shift">
+            </label>
+            <small>If left blank, repeats until end of the year.</small>
+        </div>
+        <button type="submit">Add Shift</button>
+    </form>
+
+    <div class="calendar-wrapper">
+        <h2>Week View (Current Week)</h2>
+        <div class="calendar-grid" id="calendarGrid"></div>
+    </div>
+
+    <h2>Shift List</h2>
+    <form method="post" action="{{ url_for('delete_shifts_batch') }}" id="batchDeleteForm">
+        <div class="batch-actions">
+            <button type="submit" onclick="return confirm('Delete selected shifts?')">Delete Selected</button>
+        </div>
+        <table>
+            <thead>
+                <tr>
+                    <th>
+                        <label for="select_all" class="sr-only">Select All Shifts</label>
+                        <input type="checkbox" id="select_all" onclick="toggleAll(this)" title="Select all shifts">
+                    </th>
+                    <th>ID</th>
+                    <th>Employee Name</th>
+                    <th>Shift Time</th>
+                    <th>Action</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for shift in shifts %}
+                <tr>
+                    <td>
+                        <label class="sr-only" for="shift_cb_{{ shift['id'] }}">Select shift {{ shift['id'] }}</label>
+                        <input id="shift_cb_{{ shift['id'] }}" type="checkbox" name="shift_ids" value="{{ shift['id'] }}" title="Select shift {{ shift['id'] }}">
+                    </td>
+                    <td>{{ shift['id'] }}</td>
+                    <td>{{ shift['name'] }}</td>
+                    <td>{{ shift['shift_time'] }}</td>
+                    <td>
+                        <a href="{{ url_for('delete_shift_route', shift_id=shift['id']) }}" title="Delete shift {{ shift['id'] }}" aria-label="Delete shift {{ shift['id'] }}" onclick="return confirm('Are you sure you want to delete this shift?')">
+                            <i class="fas fa-trash-alt delete-icon" aria-hidden="true"></i><span class="sr-only">Delete</span>
+                        </a>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </form>
+
+    <a href="{{ url_for('index') }}" class="back-link">Back</a>
+
+    <script id="shifts-data" type="application/json">{{ shifts | tojson }}</script>
+    <script>
+        function toggleRepeatUntil(){
+            const cb = document.getElementById('repeat_weekly_cb');
+            const ctn = document.getElementById('repeat_until_container');
+            const weekdays = document.getElementById('weekday_group');
+            const active = cb.checked;
+            if(active){
+                ctn.classList.add('visible'); ctn.setAttribute('aria-hidden','false');
+                weekdays.classList.add('visible'); weekdays.setAttribute('aria-hidden','false');
+            } else {
+                ctn.classList.remove('visible'); ctn.setAttribute('aria-hidden','true');
+                weekdays.classList.remove('visible'); weekdays.setAttribute('aria-hidden','true');
+            }
+        }
+        function toggleAll(master){
+            document.querySelectorAll('input[name="shift_ids"]').forEach(cb=>cb.checked=master.checked);
+        }
+        const shiftsData = JSON.parse(document.getElementById('shifts-data').textContent).map(s=>({
+            id: s.id,
+            name: s.name,
+            dt: s.shift_time
+        }));
+        function buildWeekView(){
+            const grid = document.getElementById('calendarGrid'); if(!grid) return; grid.innerHTML='';
+            const now = new Date(); const monday = new Date(now); monday.setDate(now.getDate() - ((now.getDay()+6)%7));
+            for(let i=0;i<7;i++){
+                const dayDate = new Date(monday); dayDate.setDate(monday.getDate()+i);
+                const cell = document.createElement('div'); cell.className='cal-cell';
+                const header = document.createElement('h4'); header.textContent = dayDate.toLocaleDateString(undefined,{ weekday:'short', month:'numeric', day:'numeric'});
+                cell.appendChild(header);
+                const dayStr = dayDate.toISOString().substring(0,10);
+                shiftsData.filter(s=>s.dt.startsWith(dayStr)).forEach(s=>{
+                    const pill = document.createElement('span'); pill.className='shift-pill';
+                    const d = new Date(s.dt); const timeStr = d.toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'});
+                    pill.textContent = timeStr + ' ' + s.name; cell.appendChild(pill);
+                });
+                grid.appendChild(cell);
+            }
+        }
+        buildWeekView();
+    </script>
+</body>
+</html>
