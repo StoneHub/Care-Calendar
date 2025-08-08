@@ -84,6 +84,8 @@
         /* Add a little spacing for inline time selects */
         .time-selects{ display:flex; gap:6px; align-items:center; }
         .time-selects select{ padding:6px 8px; border:1px solid var(--grid-border); border-radius:6px; }
+
+        .is-hidden{ display:none !important; }
     </style>
 </head>
 <body>
@@ -151,26 +153,11 @@
             <select id="swapSelect"><option value="">Swap to…</option></select>
             <button class="btn" id="btnSwap">Swap</button>
         </div>
-        <div class="row">
+        <!-- Replace bulky inline update UI with a single button that opens a wizard -->
+        <div class="row is-hidden" id="editSeriesRow">
             <div class="fullw">
-                <div class="mini-label">Update series (from this week)</div>
-                <div class="seg">
-                    <input id="seriesTime" class="mini-input" type="time" value="09:00" step="900">
-                    <input id="seriesEnd" class="mini-input" type="time" placeholder="End" step="900">
-                </div>
-                <div class="seg">
-                    <label class="weekday-chip"><input type="checkbox" class="series-wd" value="0"> Mon</label>
-                    <label class="weekday-chip"><input type="checkbox" class="series-wd" value="1"> Tue</label>
-                    <label class="weekday-chip"><input type="checkbox" class="series-wd" value="2"> Wed</label>
-                    <label class="weekday-chip"><input type="checkbox" class="series-wd" value="3"> Thu</label>
-                    <label class="weekday-chip"><input type="checkbox" class="series-wd" value="4"> Fri</label>
-                    <label class="weekday-chip"><input type="checkbox" class="series-wd" value="5"> Sat</label>
-                    <label class="weekday-chip"><input type="checkbox" class="series-wd" value="6"> Sun</label>
-                </div>
-                <div class="seg">
-                    <input id="seriesUntil" class="mini-input" type="date">
-                    <button class="btn" id="btnUpdateSeries">Apply</button>
-                </div>
+                <div class="mini-label">Series</div>
+                <button class="btn" id="btnOpenEditSeries">Edit series…</button>
             </div>
         </div>
         <div class="row">
@@ -207,12 +194,12 @@
                 <select id="wizStartHour" aria-label="Start hour">
                   <!-- hours 00-23 -->
                   <option value="">HH</option>
-                  <option value="00">00</option><option value="01">01</option><option value="02">02</option><option value="03">03</option><option value="04">04</option><option value="05">05</option><option value="06">06</option><option value="07">07</option><option value="08">08</option><option value="09">09</option><option value="10">10</option><option value="11">11</option><option value="12">12</option><option value="13">13</option><option value="14">14</option><option value="15">15</option><option value="16">16</option><option value="17">17</option><option value="18">18</option><option value="19">19</option><option value="20">20</option><option value="21">21</option><option value="22">22</option><option value="23">23</option>
+                  <option value="00">00</option><option value="01">01</option><option value="02">02</option><option value="03">03</option><option value="04">04</option><option value="05">05</option><option value="06">06</option><option value="07">07</option><option value="08">08</option><option value="09" selected>09</option><option value="10">10</option><option value="11">11</option><option value="12">12</option><option value="13">13</option><option value="14">14</option><option value="15">15</option><option value="16">16</option><option value="17">17</option><option value="18">18</option><option value="19">19</option><option value="20">20</option><option value="21">21</option><option value="22">22</option><option value="23">23</option>
                 </select>
                 <span>:</span>
                 <select id="wizStartMin" aria-label="Start minutes">
                   <option value="">MM</option>
-                  <option value="00">00</option>
+                  <option value="00" selected>00</option>
                   <option value="15">15</option>
                   <option value="30">30</option>
                   <option value="45">45</option>
@@ -262,6 +249,77 @@
           <button class="btn subtle" id="wizCancel">Cancel</button>
           <button class="btn hidden" id="wizBack">Back</button>
           <button class="btn" id="wizNext">Next</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Edit Series Wizard Modal -->
+    <div class="overlay is-hidden" id="editSeriesOverlay" role="dialog" aria-modal="true" aria-labelledby="editTitle">
+      <div class="modal" id="editSeriesModal">
+        <div class="hd" id="editTitle">Edit Series</div>
+        <div class="bd">
+          <div class="step" id="eStep1">
+            <div class="rowx">
+              <label>Scope</label>
+              <div class="muted">Changes apply to future occurrences in this series starting this week.</div>
+            </div>
+            <div class="rowx">
+              <label for="eEmployee">Reassign caregiver (optional)</label>
+              <select id="eEmployee"><option value="">Keep current</option></select>
+            </div>
+          </div>
+          <div class="step hidden" id="eStep2">
+            <div class="rowx">
+              <label>Start time</label>
+              <div class="time-selects">
+                <select id="eStartHour" aria-label="Start hour">
+                  <option value="00">00</option><option value="01">01</option><option value="02">02</option><option value="03">03</option><option value="04">04</option><option value="05">05</option><option value="06">06</option><option value="07">07</option><option value="08">08</option><option value="09">09</option><option value="10">10</option><option value="11">11</option><option value="12">12</option><option value="13">13</option><option value="14">14</option><option value="15">15</option><option value="16">16</option><option value="17">17</option><option value="18">18</option><option value="19">19</option><option value="20">20</option><option value="21">21</option><option value="22">22</option><option value="23">23</option>
+                </select>
+                <span>:</span>
+                <select id="eStartMin" aria-label="Start minutes">
+                  <option value="00">00</option><option value="15">15</option><option value="30">30</option><option value="45">45</option>
+                </select>
+              </div>
+            </div>
+            <div class="rowx">
+              <label>End time (optional)</label>
+              <div class="time-selects">
+                <select id="eEndHour" aria-label="End hour">
+                  <option value="">HH</option>
+                  <option value="00">00</option><option value="01">01</option><option value="02">02</option><option value="03">03</option><option value="04">04</option><option value="05">05</option><option value="06">06</option><option value="07">07</option><option value="08">08</option><option value="09">09</option><option value="10">10</option><option value="11">11</option><option value="12">12</option><option value="13">13</option><option value="14">14</option><option value="15">15</option><option value="16">16</option><option value="17">17</option><option value="18">18</option><option value="19">19</option><option value="20">20</option><option value="21">21</option><option value="22">22</option><option value="23">23</option>
+                </select>
+                <span>:</span>
+                <select id="eEndMin" aria-label="End minutes">
+                  <option value="">MM</option>
+                  <option value="00">00</option><option value="15">15</option><option value="30">30</option><option value="45">45</option>
+                </select>
+              </div>
+            </div>
+          </div>
+          <div class="step hidden" id="eStep3">
+            <div class="rowx">
+              <label>Weekdays</label>
+              <div class="seg" id="eDays"></div>
+            </div>
+          </div>
+          <div class="step hidden" id="eStep4">
+            <div class="rowx">
+              <label>Repeat until (optional)</label>
+              <input type="date" id="eUntil" class="mini-input">
+              <div class="muted">Defaults to end of year if empty.</div>
+            </div>
+          </div>
+          <div class="step hidden" id="eStep5">
+            <div class="rowx">
+              <strong>Review</strong>
+              <div id="eReview" class="muted"></div>
+            </div>
+          </div>
+        </div>
+        <div class="ft">
+          <button class="btn subtle" id="eCancel">Cancel</button>
+          <button class="btn hidden" id="eBack">Back</button>
+          <button class="btn" id="eNext">Next</button>
         </div>
       </div>
     </div>
@@ -440,6 +498,8 @@ function openMenu(evt, sh){
   currentShift=sh;
   document.getElementById('menuTitle').textContent = `${sh.name} • ${sh.start.toLocaleString()}`;
   const btnSeries=document.getElementById('btnDeleteSeries'); btnSeries.classList.toggle('hidden', !sh.series_id);
+  // Show/hide Edit Series row based on whether this is part of a series
+  const editRow = document.getElementById('editSeriesRow'); if(editRow){ editRow.classList.toggle('is-hidden', !sh.series_id); }
   const sel=document.getElementById('swapSelect'); sel.innerHTML='<option value="">Swap to…</option>' + employeesData.map(e=>`<option value="${e.id}">${e.name}</option>`).join('');
   const cov=getCov(); document.getElementById('covStart').value = `${pad2(Math.floor(cov.a/60))}:${pad2(cov.a%60)}`; document.getElementById('covEnd').value = `${pad2(Math.floor(cov.b/60))}:${pad2(cov.b%60)}`;
   menuAnchor = { x: evt.clientX, y: evt.clientY };
@@ -489,14 +549,20 @@ document.getElementById('btnSwap').addEventListener('click', async ()=>{
   try{ await postJSON(API.swapShift, { shift_id: currentShift.id, new_employee_id: parseInt(val,10) }); location.reload(); }catch(e){ alert('Failed to swap: '+e.message); }
 });
 
-document.getElementById('btnUpdateSeries').addEventListener('click', async ()=>{
-  if(!currentShift || !currentShift.series_id) return alert('Series not available');
-  const time = document.getElementById('seriesTime').value; if(!time) return alert('Time required');
-  const end = document.getElementById('seriesEnd').value; const until = document.getElementById('seriesUntil').value || null;
-  const wds = Array.from(document.querySelectorAll('.series-wd:checked')).map(el=>parseInt(el.value,10)); if(!wds.length) return alert('Select weekdays');
-  const startDate = localDateStr(startOfWeek(currentShift.start));
-  try{ await postJSON(API.updateSeries, { series_id: currentShift.series_id, start_date: startDate, time, end_time:end||null, weekdays:wds, repeat_until: until }); location.reload(); }catch(e){ alert('Failed to update series: '+e.message); }
-});
+// Remove legacy inline series update handler if element not present
+(function(){
+  const btn = document.getElementById('btnUpdateSeries');
+  if(btn){
+    btn.addEventListener('click', async ()=>{
+      if(!currentShift || !currentShift.series_id) return alert('Series not available');
+      const time = document.getElementById('seriesTime').value; if(!time) return alert('Time required');
+      const end = document.getElementById('seriesEnd').value; const until = document.getElementById('seriesUntil').value || null;
+      const wds = Array.from(document.querySelectorAll('.series-wd:checked')).map(el=>parseInt(el.value,10)); if(!wds.length) return alert('Select weekdays');
+      const startDate = localDateStr(startOfWeek(currentShift.start));
+      try{ await postJSON(API.updateSeries, { series_id: currentShift.series_id, start_date: startDate, time, end_time:end||null, weekdays:wds, repeat_until: until }); location.reload(); }catch(e){ alert('Failed to update series: '+e.message); }
+    });
+  }
+})();
 
 document.getElementById('btnSaveCoverage').addEventListener('click', ()=>{
   const a = minsFromHHMM(document.getElementById('covStart').value||'09:00');
@@ -513,6 +579,7 @@ document.addEventListener('keydown', (e)=>{
   if(e.key === 'Escape'){
     if(menu.style.display==='block') closeMenu();
     else if(overlay && overlay.style.display==='flex') closeWizard();
+    else if(editOverlay && !editOverlay.classList.contains('is-hidden')) closeEditWizard();
   }
 });
 
@@ -644,11 +711,151 @@ function positionMenuNear(x, y){
   menu.style.visibility='visible';
 }
 
-// --- Legend (existing) ---
-// ...existing code...
+// --- Edit Series Wizard ---
+const editOverlay = document.getElementById('editSeriesOverlay');
+let editCtx = {
+  seriesId: null,
+  startWeek: null, // YYYY-MM-DD monday
+  employeeId: null,
+  timeHH: '09',
+  timeMM: '00',
+  endHH: '',
+  endMM: '',
+  days: new Set(),
+  until: null,
+  step: 1,
+  shiftRef: null,
+};
 
-// --- Views (existing) ---
-// ...existing code...
+function showEStep(n){
+  editCtx.step = n;
+  for(let i=1;i<=5;i++){ const el=document.getElementById('eStep'+i); if(el) el.classList.toggle('hidden', i!==n); }
+  document.getElementById('eBack').classList.toggle('hidden', n===1);
+  document.getElementById('eNext').textContent = (n===5? 'Apply':'Next');
+  if(n===5) buildEReview();
+}
+
+function openEditWizard(){
+  if(!currentShift || !currentShift.series_id){ return; }
+  // Series context
+  editCtx.seriesId = currentShift.series_id;
+  editCtx.shiftRef = currentShift;
+  // Start week Monday
+  const d = currentShift.start; const monday = new Date(d); const w=(monday.getDay()+6)%7; monday.setDate(monday.getDate()-w); monday.setHours(0,0,0,0);
+  editCtx.startWeek = `${monday.getFullYear()}-${pad2(monday.getMonth()+1)}-${pad2(monday.getDate())}`;
+  // Prefill caregiver list
+  const sel=document.getElementById('eEmployee');
+  sel.innerHTML = '<option value="">Keep current</option>' + employeesData.map(e=>`<option value="${e.id}">${e.name}</option>`).join('');
+  sel.value = '';
+  // Prefill time from current shift
+  editCtx.timeHH = pad2(currentShift.start.getHours());
+  editCtx.timeMM = pad2(currentShift.start.getMinutes());
+  document.getElementById('eStartHour').value = editCtx.timeHH;
+  document.getElementById('eStartMin').value = editCtx.timeMM;
+  // Prefill end if present
+  if(currentShift.end){
+    editCtx.endHH = pad2(currentShift.end.getHours());
+    editCtx.endMM = pad2(currentShift.end.getMinutes());
+  } else { editCtx.endHH=''; editCtx.endMM=''; }
+  document.getElementById('eEndHour').value = editCtx.endHH;
+  document.getElementById('eEndMin').value = editCtx.endMM;
+  // Build weekday chips once
+  const daysCtn = document.getElementById('eDays');
+  if(daysCtn && !daysCtn.dataset.built){
+    const labels=['Mon','Tue','Wed','Thu','Fri','Sat','Sun'];
+    labels.forEach((lb,idx)=>{
+      const lab=document.createElement('label'); lab.className='chip'; lab.innerHTML=`<input type="checkbox" value="${idx}"> ${lb}`; daysCtn.appendChild(lab);
+    });
+    daysCtn.dataset.built='1';
+  }
+  // Default selected weekday to this shift's weekday (Mon=0)
+  editCtx.days = new Set([ (currentShift.start.getDay()+6)%7 ]);
+  // Sync checkboxes
+  if(daysCtn){ daysCtn.querySelectorAll('input[type="checkbox"]').forEach(cb=>{ const v=parseInt(cb.value,10); cb.checked = editCtx.days.has(v); }); }
+  // Reset until
+  editCtx.until = null; const until=document.getElementById('eUntil'); if(until) until.value='';
+  // Reset employee selection
+  editCtx.employeeId = null;
+  // Show wizard
+  editOverlay.classList.remove('is-hidden');
+  setTimeout(()=>{ try{ document.getElementById('eEmployee').focus(); }catch{} }, 0);
+  showEStep(1);
+}
+
+function closeEditWizard(){ editOverlay.classList.add('is-hidden'); }
+
+function buildEReview(){
+  const empId = editCtx.employeeId; const emp = empId ? employeesData.find(e=> String(e.id)===String(empId)) : null;
+  const days=[...editCtx.days].sort().map(d=>['Mon','Tue','Wed','Thu','Fri','Sat','Sun'][d]).join(', ');
+  const until= editCtx.until || '(end of year)';
+  const start=`${editCtx.timeHH}:${editCtx.timeMM}`;
+  const end = (editCtx.endHH && editCtx.endMM) ? `${editCtx.endHH}:${editCtx.endMM}` : 'None';
+  document.getElementById('eReview').textContent = `Apply from week of ${editCtx.startWeek} • Start ${start} • End ${end} • Days ${days || '—'} • Until ${until} • Caregiver ${emp?emp.name:'(unchanged)'}`;
+}
+
+// Wire buttons
+const btnOpenEditSeries = document.getElementById('btnOpenEditSeries');
+if(btnOpenEditSeries){ btnOpenEditSeries.addEventListener('click', ()=>{ closeMenu(); openEditWizard(); }); }
+
+document.getElementById('eCancel').addEventListener('click', closeEditWizard);
+
+document.getElementById('eBack').addEventListener('click', ()=> showEStep(Math.max(1, editCtx.step-1)) );
+
+document.getElementById('eNext').addEventListener('click', async ()=>{
+  if(editCtx.step===1){
+    const sel=document.getElementById('eEmployee'); editCtx.employeeId = sel && sel.value ? parseInt(sel.value,10) : null; showEStep(2); return;
+  }
+  if(editCtx.step===2){
+    const sh=document.getElementById('eStartHour').value; const sm=document.getElementById('eStartMin').value;
+    if(!sh || !sm) return alert('Select start time');
+    editCtx.timeHH=sh; editCtx.timeMM=sm;
+    const eh=document.getElementById('eEndHour').value; const em=document.getElementById('eEndMin').value;
+    if((eh && !em) || (!eh && em)) return alert('End time incomplete');
+    if(eh && em){
+      // validate end > start
+      const st = new Date(`2000-01-01T${sh}:${sm}:00`);
+      const et = new Date(`2000-01-01T${eh}:${em}:00`);
+      if(et<=st) return alert('End time must be after start');
+      editCtx.endHH=eh; editCtx.endMM=em;
+    } else { editCtx.endHH=''; editCtx.endMM=''; }
+    showEStep(3); return;
+  }
+  if(editCtx.step===3){ showEStep(4); return; }
+  if(editCtx.step===4){
+    editCtx.until = document.getElementById('eUntil').value || null; showEStep(5); return;
+  }
+  if(editCtx.step===5){
+    // Prepare payload and call API
+    const payload = {
+      series_id: editCtx.seriesId,
+      start_date: editCtx.startWeek,
+      time: `${editCtx.timeHH}:${editCtx.timeMM}`,
+      end_time: (editCtx.endHH && editCtx.endMM) ? `${editCtx.endHH}:${editCtx.endMM}` : null,
+      weekdays: [...editCtx.days].sort(),
+      repeat_until: editCtx.until,
+    };
+    if(editCtx.employeeId) payload.employee_id = editCtx.employeeId;
+    try{
+      await postJSON(API.updateSeries, payload);
+      location.reload();
+    }catch(e){ alert('Failed to update series: '+e.message); }
+  }
+});
+
+// Weekday changes
+const eDaysCtn=document.getElementById('eDays');
+if(eDaysCtn){ eDaysCtn.addEventListener('change', (e)=>{ if(e.target && e.target.type==='checkbox'){ const v=parseInt(e.target.value,10); if(e.target.checked) editCtx.days.add(v); else editCtx.days.delete(v); }}); }
+
+// Extend ESC handler to close edit wizard (ensure we check class visibility)
+(function(){
+  const _escHandler = (e)=>{
+    if(e.key === 'Escape'){
+      if(menu.style.display==='block') closeMenu();
+      else if(!editOverlay.classList.contains('is-hidden')) closeEditWizard();
+    }
+  };
+  document.addEventListener('keydown', _escHandler);
+})();
 
 // --- Form validation (keep, now reads hidden inputs) ---
 function validateShiftForm(){
@@ -668,6 +875,22 @@ document.getElementById('nextPeriod').addEventListener('click', ()=>{ anchor = v
 document.getElementById('todayBtn').addEventListener('click', ()=>{ anchor=new Date(); render(); });
 document.getElementById('viewMonth').addEventListener('click', ()=>{ view='month'; localStorage.setItem('view',view); render(); });
 document.getElementById('viewWeek').addEventListener('click', ()=>{ view='week'; localStorage.setItem('view',view); render(); });
+
+// After DOM defined: prefill wiz.start from defaults on open
+function prefillWizardDefaults(){
+  const hSel=document.getElementById('wizStartHour');
+  const mSel=document.getElementById('wizStartMin');
+  if(hSel && !hSel.value) hSel.value='09';
+  if(mSel && !mSel.value) mSel.value='00';
+}
+// Hook into openWizard
+const _openWizard = openWizard;
+openWizard = function(){
+  _openWizard();
+  prefillWizardDefaults();
+  // recompute start in case user goes straight to Next
+  if(typeof updateStartFromControls==='function') updateStartFromControls();
+};
 </script>
 </body>
 </html>
