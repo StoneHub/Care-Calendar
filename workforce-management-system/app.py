@@ -227,23 +227,6 @@ def shifts():
     employees_serializable = [ { 'id': e['id'], 'name': e['name'] } for e in employees ]
     return render_template('shifts.html', shifts=shifts_serializable, employees=employees_serializable)
 
-@app.route('/delete_shifts', methods=['POST'])
-@login_required
-def delete_shifts_batch():
-    ids = request.form.getlist('shift_ids')
-    deleted = 0
-    for sid in ids:
-        try:
-            delete_shift(int(sid))
-            deleted += 1
-        except Exception:
-            continue
-    if deleted:
-        flash(f'Deleted {deleted} shift(s).', 'success')
-    else:
-        flash('No shifts deleted.', 'error')
-    return redirect(url_for('shifts'))
-
 @app.route('/delete_shift/<int:shift_id>')
 @login_required
 def delete_shift_route(shift_id):

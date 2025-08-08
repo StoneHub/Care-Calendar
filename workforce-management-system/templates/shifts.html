@@ -28,23 +28,10 @@
         h1{ font-size:22px; margin:0 0 10px; }
         h2{ font-size:18px; margin:0 0 10px; }
 
-        /* Form */
-        .form-grid{ display:grid; grid-template-columns: repeat(3, 1fr); gap:10px; }
-        .form-row{ display:flex; flex-direction:column; gap:6px; }
-        label{ font-size:13px; color:var(--muted); }
-        input, select{ width:100%; padding:10px; border:1px solid var(--grid-border); border-radius:8px; background:#fff; }
-        .actions{ display:flex; gap:8px; flex-wrap:wrap; align-items:center; margin-top:10px; }
         .btn{ background:var(--brand); color:#fff; border:none; padding:10px 12px; border-radius:8px; cursor:pointer; font-weight:600; }
         .btn:hover{ background:var(--brand-2); }
-        .checkline{ display:flex; align-items:center; gap:10px; padding:8px 10px; border:1px solid var(--grid-border); border-radius:8px; }
-        .checkline input{ transform: scale(1.2); }
-        .checkline span{ font-weight:600; }
-        .weekday-group{ display:none; gap:8px; flex-wrap:wrap; }
-        .weekday-group.visible{ display:flex; }
-        .weekday-chip{ background:#eef2f7; border:1px solid var(--grid-border); padding:4px 8px; border-radius:16px; font-size:12px; }
-        .inline-hint{ font-size:12px; color:var(--muted); }
-        .btn-group{ display:flex; gap:8px; align-items:center; flex-wrap:wrap; }
-        #swapSelect{ flex:1; padding:8px; border:1px solid var(--grid-border); border-radius:6px; }
+        .btn.danger{ background:#d32f2f; }
+        .btn.danger:hover{ background:#b71c1c; }
 
         /* Calendar */
         .calendar{ margin-top:14px; }
@@ -66,12 +53,13 @@
         .pills{ margin-top:4px; display:flex; flex-direction:column; gap:4px; }
         .pill{ padding:2px 4px; border-radius:6px; font-size:11px; color:#fff; display:flex; align-items:center; justify-content:space-between; gap:6px; cursor:pointer; }
         .pill small{ opacity:.9; }
+        .pill.selected{ outline:2px solid #111827; box-shadow: inset 0 0 0 2px rgba(255,255,255,.6); }
         .gap-badge{ position:absolute; top:6px; right:6px; font-size:10px; background:#fdecea; color:#b71c1c; padding:2px 6px; border-radius:10px; border:1px solid #f5c6cb; }
         .current-week{ box-shadow: inset 0 0 0 2px #c7d2fe; }
         .needs-attention{ background:#ffebee; }
 
-        /* Shift menu */
-        .menu{ position:fixed; z-index:50; background:#fff; border:1px solid var(--grid-border); border-radius:8px; padding:10px; box-shadow:0 6px 18px rgba(0,0,0,.12); width:260px; display:none; }
+        /* Dialogs */
+        .menu{ position:fixed; z-index:50; background:#fff; border:1px solid var(--grid-border); border-radius:8px; padding:10px; box-shadow:0 6px 18px rgba(0,0,0,.12); width:260px; display:none; max-height:min(80vh, 420px); overflow:auto; }
         .menu h4{ margin:0 0 6px; font-size:14px; }
         .menu .row{ display:flex; align-items:center; justify-content:space-between; gap:8px; margin:6px 0; flex-wrap:wrap; }
         .menu .danger{ background:#d32f2f; }
@@ -80,9 +68,22 @@
         .menu .subtle:hover{ background:#d1d5db; }
         .mini-label{ font-size:12px; color:var(--muted); }
         .mini-input{ width:100%; padding:6px 8px; border:1px solid var(--grid-border); border-radius:6px; }
-        .seg{ display:flex; gap:6px; }
+        .seg{ display:flex; gap:6px; flex-wrap:wrap; }
 
-        .footer-links{ margin-top:12px; display:flex; gap:8px; }
+        /* Wizard modal */
+        .overlay{ position:fixed; inset:0; background:rgba(0,0,0,.35); display:none; align-items:center; justify-content:center; z-index:60; }
+        .modal{ background:#fff; border-radius:10px; width:min(560px, 92vw); border:1px solid var(--grid-border); box-shadow:0 12px 28px rgba(0,0,0,.2); }
+        .modal .hd{ padding:12px 16px; border-bottom:1px solid var(--grid-border); font-weight:700; }
+        .modal .bd{ padding:14px; display:flex; flex-direction:column; gap:10px; max-height:70vh; overflow:auto; }
+        .modal .ft{ padding:12px 16px; display:flex; gap:8px; justify-content:flex-end; border-top:1px solid var(--grid-border); }
+        .rowx{ display:flex; flex-direction:column; gap:6px; }
+        .chip{ background:#eef2f7; border:1px solid var(--grid-border); padding:4px 8px; border-radius:16px; font-size:12px; cursor:pointer; }
+        .chip input{ margin-right:6px; }
+        .muted{ color:var(--muted); font-size:13px; }
+
+        /* Add a little spacing for inline time selects */
+        .time-selects{ display:flex; gap:6px; align-items:center; }
+        .time-selects select{ padding:6px 8px; border:1px solid var(--grid-border); border-radius:6px; }
     </style>
 </head>
 <body>
@@ -106,43 +107,19 @@
 <main>
     <section class="card section">
         <h1>Shift Scheduling</h1>
-        <div class="form-grid">
-            <div class="form-row">
-                <label for="employee_id_select">Employee</label>
-                <select id="employee_id_select" name="employee_id" form="addShiftForm" required>
-                    <option value="">Select Employee</option>
-                    {% for employee in employees %}
-                    <option value="{{ employee['id'] }}">{{ employee['name'] }}</option>
-                    {% endfor %}
-                </select>
-            </div>
-            <div class="form-row">
-                <label for="shift_time_input">Start Date & Time</label>
-                <input id="shift_time_input" type="datetime-local" name="shift_time" form="addShiftForm" required>
-            </div>
-            <div class="form-row">
-                <label for="end_time_input">End Time (optional)</label>
-                <input id="end_time_input" type="time" name="end_time" form="addShiftForm" placeholder="HH:MM">
-            </div>
-        </div>
-        <div class="actions">
-            <label class="checkline" for="repeat_weekly_cb">
-                <input type="checkbox" name="repeat_weekly" id="repeat_weekly_cb" form="addShiftForm" onchange="toggleRepeat()">
-                <span>Repeat Weekly (select days)</span>
-            </label>
-            <div id="weekday_group" class="weekday-group" aria-hidden="true">
-                {% set weekdays = ['Mon','Tue','Wed','Thu','Fri','Sat','Sun'] %}
-                {% for wd in range(0,7) %}
-                <label class="weekday-chip"><input type="checkbox" name="selected_days" value="{{ wd }}" form="addShiftForm"> {{ weekdays[wd] }}</label>
-                {% endfor %}
-            </div>
-            <div class="form-row hidden" id="repeat_until_ctn">
-                <label for="repeat_until_input">Repeat Until (optional)</label>
-                <input id="repeat_until_input" type="date" name="repeat_until" form="addShiftForm">
-                <span class="inline-hint">If empty, repeats until end of the year.</span>
+        <div class="rowx">
+            <div class="seg">
+              <button class="btn" id="btnNewShift">New Shift</button>
+              <button class="btn" id="btnSelectMode">Select shifts</button>
+              <button class="btn danger hidden" id="btnDeleteSelected">Delete selected (0)</button>
             </div>
             <form id="addShiftForm" action="{{ url_for('shifts') }}" method="post" onsubmit="return validateShiftForm()">
-                <button class="btn" type="submit" id="addShiftBtn">Add Shift</button>
+                <input type="hidden" id="employee_id_select" name="employee_id" required>
+                <input type="hidden" id="shift_time_input" name="shift_time" required>
+                <input type="hidden" id="end_time_input" name="end_time">
+                <input type="hidden" id="repeat_until_input" name="repeat_until">
+                <!-- selected_days and repeat_weekly will be injected dynamically -->
+                <button class="btn hidden" type="submit" id="addShiftBtn">Add Shift</button>
             </form>
         </div>
     </section>
@@ -167,7 +144,7 @@
         <div class="cells" id="grid"></div>
     </section>
 
-    <div class="menu" id="shiftMenu" role="dialog" aria-modal="true">
+    <div class="menu" id="shiftMenu" role="dialog" aria-modal="true" aria-labelledby="menuTitle" tabindex="-1">
         <h4 id="menuTitle">Shift</h4>
         <div class="row"><button class="btn danger" id="btnDeleteShift">Delete shift</button><button class="btn subtle hidden" id="btnDeleteSeries">Delete series</button></div>
         <div class="row">
@@ -178,8 +155,8 @@
             <div class="fullw">
                 <div class="mini-label">Update series (from this week)</div>
                 <div class="seg">
-                    <input id="seriesTime" class="mini-input" type="time" value="09:00">
-                    <input id="seriesEnd" class="mini-input" type="time" placeholder="End">
+                    <input id="seriesTime" class="mini-input" type="time" value="09:00" step="900">
+                    <input id="seriesEnd" class="mini-input" type="time" placeholder="End" step="900">
                 </div>
                 <div class="seg">
                     <label class="weekday-chip"><input type="checkbox" class="series-wd" value="0"> Mon</label>
@@ -200,8 +177,8 @@
             <div class="fullw">
                 <div class="mini-label">Coverage window</div>
                 <div class="seg">
-                    <input id="covStart" class="mini-input" type="time" value="09:00">
-                    <input id="covEnd" class="mini-input" type="time" value="21:00">
+                    <input id="covStart" class="mini-input" type="time" value="09:00" step="900">
+                    <input id="covEnd" class="mini-input" type="time" value="21:00" step="900">
                     <button class="btn subtle" id="btnSaveCoverage">Save</button>
                 </div>
             </div>
@@ -209,6 +186,84 @@
         <div class="footer-links">
             <button class="btn subtle" id="btnCloseMenu">Close</button>
         </div>
+    </div>
+
+    <!-- Wizard Modal -->
+    <div class="overlay" id="wizardOverlay" role="dialog" aria-modal="true" aria-labelledby="wizTitle">
+      <div class="modal" id="wizardModal">
+        <div class="hd" id="wizTitle">Create Shift</div>
+        <div class="bd">
+          <div class="step" id="step1">
+            <div class="rowx">
+              <label>Employee</label>
+              <select id="wizEmployee"></select>
+            </div>
+          </div>
+          <div class="step hidden" id="step2">
+            <div class="rowx">
+              <label for="wizStartDate">Start date & time</label>
+              <div class="time-selects">
+                <input type="date" id="wizStartDate" class="mini-input">
+                <select id="wizStartHour" aria-label="Start hour">
+                  <!-- hours 00-23 -->
+                  <option value="">HH</option>
+                  <option value="00">00</option><option value="01">01</option><option value="02">02</option><option value="03">03</option><option value="04">04</option><option value="05">05</option><option value="06">06</option><option value="07">07</option><option value="08">08</option><option value="09">09</option><option value="10">10</option><option value="11">11</option><option value="12">12</option><option value="13">13</option><option value="14">14</option><option value="15">15</option><option value="16">16</option><option value="17">17</option><option value="18">18</option><option value="19">19</option><option value="20">20</option><option value="21">21</option><option value="22">22</option><option value="23">23</option>
+                </select>
+                <span>:</span>
+                <select id="wizStartMin" aria-label="Start minutes">
+                  <option value="">MM</option>
+                  <option value="00">00</option>
+                  <option value="15">15</option>
+                  <option value="30">30</option>
+                  <option value="45">45</option>
+                </select>
+              </div>
+            </div>
+            <div class="rowx">
+              <label for="wizEndHour">End time (optional)</label>
+              <div class="time-selects">
+                <select id="wizEndHour" aria-label="End hour">
+                  <option value="">HH</option>
+                  <option value="00">00</option><option value="01">01</option><option value="02">02</option><option value="03">03</option><option value="04">04</option><option value="05">05</option><option value="06">06</option><option value="07">07</option><option value="08">08</option><option value="09">09</option><option value="10">10</option><option value="11">11</option><option value="12">12</option><option value="13">13</option><option value="14">14</option><option value="15">15</option><option value="16">16</option><option value="17">17</option><option value="18">18</option><option value="19">19</option><option value="20">20</option><option value="21">21</option><option value="22">22</option><option value="23">23</option>
+                </select>
+                <span>:</span>
+                <select id="wizEndMin" aria-label="End minutes">
+                  <option value="">MM</option>
+                  <option value="00">00</option>
+                  <option value="15">15</option>
+                  <option value="30">30</option>
+                  <option value="45">45</option>
+                </select>
+              </div>
+            </div>
+          </div>
+          <div class="step hidden" id="step3">
+            <div class="rowx">
+              <label><input type="checkbox" id="wizRepeat"> Repeat weekly</label>
+            </div>
+            <div class="rowx hidden" id="wizDaysCtn">
+              <label>Weekdays</label>
+              <div class="seg" id="wizDays"></div>
+            </div>
+            <div class="rowx hidden" id="wizUntilCtn">
+              <label>Repeat until (optional)</label>
+              <input type="date" id="wizUntil" class="mini-input">
+              <div class="muted">Defaults to end of year if empty.</div>
+            </div>
+          </div>
+          <div class="step hidden" id="step4">
+            <div class="rowx">
+              <strong>Review</strong>
+              <div id="wizReview" class="muted"></div>
+            </div>
+          </div>
+        </div>
+        <div class="ft">
+          <button class="btn subtle" id="wizCancel">Cancel</button>
+          <button class="btn hidden" id="wizBack">Back</button>
+          <button class="btn" id="wizNext">Next</button>
+        </div>
+      </div>
     </div>
 </main>
 
@@ -236,6 +291,17 @@ const API = {
   updateSeries: "{{ url_for('api_update_series') }}"
 };
 
+// Pre-index shifts by YYYY-MM-DD for faster rendering
+function buildDayIndex(shifts){
+  const idx = {};
+  for(const s of shifts){
+    const day = s.shift_time.slice(0,10);
+    (idx[day] ||= []).push(s);
+  }
+  return idx;
+}
+const dayIndex = buildDayIndex(shiftsData);
+
 // Coverage prefs
 function getCov(){ try{ const s=localStorage.getItem('cov'); if(!s) return { a:540, b:1260 }; const {a,b}=JSON.parse(s); return { a, b }; }catch{ return { a:540, b:1260 }; } }
 function setCov(a,b){ localStorage.setItem('cov', JSON.stringify({a,b})); }
@@ -249,7 +315,13 @@ function buildLegend(){
 }
 
 // --- Views ---
-let view = localStorage.getItem('view')||'month';
+let view = (function(){
+  const saved = localStorage.getItem('view');
+  if(saved) return saved;
+  const v = window.innerWidth < 800 ? 'week' : 'month';
+  localStorage.setItem('view', v);
+  return v;
+})();
 let anchor = new Date();
 
 function render(){
@@ -287,7 +359,8 @@ function renderDayCell(day, shownMonth, currentWeekStart, grid){
   const pills=document.createElement('div'); pills.className='pills'; cell.appendChild(pills);
 
   const dayStr=localDateStr(day);
-  const dayShifts = shiftsData.filter(s=> s.shift_time.slice(0,10)===dayStr).map(s=>({
+  const items = dayIndex[dayStr] || [];
+  const dayShifts = items.map(s=>({
       id:s.id, name:s.name, start:new Date(s.shift_time), end: s.end_time ? new Date(`${dayStr}T${s.end_time.slice(11,16)}`) : null, series_id:s.series_id, employee_id:s.employee_id
   }));
 
@@ -313,25 +386,67 @@ function renderDayCell(day, shownMonth, currentWeekStart, grid){
       const timelabel = `${pad2(sh.start.getHours())}:${pad2(sh.start.getMinutes())}${sh.end? '–'+pad2(sh.end.getHours())+':'+pad2(sh.end.getMinutes()): ''}`;
       pill.innerHTML = `<span>${timelabel} ${sh.name}</span>`;
       pill.dataset.shiftId=sh.id; pill.dataset.seriesId=sh.series_id||''; pill.dataset.employeeId=sh.employee_id;
-      pill.addEventListener('click', (e)=> openMenu(e, sh));
+      pill.addEventListener('click', (e)=>{ if(selectionMode){ toggleSelect(pill, sh.id, sh.series_id); } else { openMenu(e, sh); } });
       pills.appendChild(pill);
   });
 
   grid.appendChild(cell);
 }
 
+// --- Selection mode & batch delete ---
+let selectionMode=false;
+const selected=new Set();
+const selectedMap=new Map(); // id -> series_id|null
+function updateDeleteSelectedLabel(){ const b=document.getElementById('btnDeleteSelected'); if(b) b.textContent=`Delete selected (${selected.size})`; }
+function toggleSelect(pill, id, seriesId){ if(selected.has(id)){ selected.delete(id); selectedMap.delete(id); pill.classList.remove('selected'); } else { selected.add(id); selectedMap.set(id, seriesId||null); pill.classList.add('selected'); } updateDeleteSelectedLabel(); }
+
+document.getElementById('btnSelectMode').addEventListener('click', ()=>{
+  selectionMode = !selectionMode;
+  document.getElementById('btnDeleteSelected').classList.toggle('hidden', !selectionMode);
+  document.getElementById('btnSelectMode').textContent = selectionMode ? 'Cancel selection' : 'Select shifts';
+  selected.clear(); selectedMap.clear(); updateDeleteSelectedLabel();
+  document.querySelectorAll('.pill.selected').forEach(el=> el.classList.remove('selected'));
+});
+
+document.getElementById('btnDeleteSelected').addEventListener('click', async ()=>{
+  if(!selected.size) return alert('No shifts selected');
+  const hasSeries = [...selectedMap.values()].some(v=>!!v);
+  let deleteSeriesToo=false;
+  if(hasSeries){
+    deleteSeriesToo = confirm('Some selected shifts are part of a series. Press OK to delete entire series for those; Cancel to delete only selected occurrences.');
+  }
+  try{
+    const ops=[];
+    if(deleteSeriesToo){
+      const seriesIds=[...new Set([...selectedMap.values()].filter(Boolean))];
+      seriesIds.forEach(sid=> ops.push(postJSON(API.deleteSeries, { series_id: sid })));
+      const singles=[...selectedMap.entries()].filter(([id,sid])=>!sid).map(([id])=>id);
+      singles.forEach(id=> ops.push(postJSON(API.deleteShift, { shift_id: id })));
+    } else {
+      [...selected].forEach(id=> ops.push(postJSON(API.deleteShift, { shift_id: id })));
+    }
+    await Promise.all(ops);
+    location.reload();
+  }catch(e){ alert('Failed to delete selected: '+e.message); }
+});
+
+document.addEventListener('keydown', (e)=>{ if(e.key==='Escape' && selectionMode){ document.getElementById('btnSelectMode').click(); }});
+
 // --- Menu ---
 let currentShift=null;
 const menu=document.getElementById('shiftMenu');
+let menuAnchor = { x: 0, y: 0 };
 function openMenu(evt, sh){
   currentShift=sh;
   document.getElementById('menuTitle').textContent = `${sh.name} • ${sh.start.toLocaleString()}`;
   const btnSeries=document.getElementById('btnDeleteSeries'); btnSeries.classList.toggle('hidden', !sh.series_id);
   const sel=document.getElementById('swapSelect'); sel.innerHTML='<option value="">Swap to…</option>' + employeesData.map(e=>`<option value="${e.id}">${e.name}</option>`).join('');
-  const r=menu.getBoundingClientRect(); const x=evt.clientX, y=evt.clientY; menu.style.left = Math.min(x, window.innerWidth-280)+'px'; menu.style.top = Math.min(y, window.innerHeight-260)+'px';
-  // load coverage inputs
   const cov=getCov(); document.getElementById('covStart').value = `${pad2(Math.floor(cov.a/60))}:${pad2(cov.a%60)}`; document.getElementById('covEnd').value = `${pad2(Math.floor(cov.b/60))}:${pad2(cov.b%60)}`;
-  menu.style.display='block';
+  menuAnchor = { x: evt.clientX, y: evt.clientY };
+  positionMenuNear(menuAnchor.x, menuAnchor.y);
+  // focus for accessibility
+  menu.setAttribute('tabindex','-1');
+  menu.focus();
 }
 function closeMenu(){ menu.style.display='none'; currentShift=null; }
 
@@ -341,9 +456,28 @@ async function postJSON(url, payload){
   return res.json();
 }
 
-document.getElementById('btnDeleteShift').addEventListener('click', async ()=>{
-  if(!currentShift) return; try{ await postJSON(API.deleteShift, { shift_id: currentShift.id }); location.reload(); }catch(e){ alert('Failed to delete: '+e.message); }
-});
+// --- Menu ---
+// Replace Delete button node to clear any prior listeners, then attach series-aware delete
+(function(){
+  const oldBtn = document.getElementById('btnDeleteShift');
+  if(oldBtn){
+    const newBtn = oldBtn.cloneNode(true);
+    oldBtn.parentNode.replaceChild(newBtn, oldBtn);
+    newBtn.addEventListener('click', async ()=>{
+      if(!currentShift) return;
+      try{
+        if(currentShift.series_id){
+          const all = confirm('This shift is part of a series. Press OK to delete the entire series, or Cancel to delete only this occurrence.');
+          if(all){ await postJSON(API.deleteSeries, { series_id: currentShift.series_id }); }
+          else { await postJSON(API.deleteShift, { shift_id: currentShift.id }); }
+        } else {
+          await postJSON(API.deleteShift, { shift_id: currentShift.id });
+        }
+        location.reload();
+      }catch(e){ alert('Failed to delete: '+e.message); }
+    });
+  }
+})();
 
 document.getElementById('btnDeleteSeries').addEventListener('click', async ()=>{
   if(!currentShift || !currentShift.series_id) return; if(!confirm('Delete the entire series?')) return;
@@ -373,13 +507,150 @@ document.getElementById('btnSaveCoverage').addEventListener('click', ()=>{
 
 document.getElementById('btnCloseMenu').addEventListener('click', closeMenu);
 window.addEventListener('click', (e)=>{ if(menu.style.display==='block' && !menu.contains(e.target) && !e.target.classList.contains('pill')) closeMenu(); });
+window.addEventListener('resize', ()=>{ if(menu.style.display==='block'){ positionMenuNear(menuAnchor.x, menuAnchor.y); } });
 
-// --- Form interactions ---
-function toggleRepeat(){
-  const on = document.getElementById('repeat_weekly_cb').checked;
-  document.getElementById('weekday_group').classList.toggle('visible', on);
-  document.getElementById('repeat_until_ctn').classList.toggle('hidden', !on);
+document.addEventListener('keydown', (e)=>{
+  if(e.key === 'Escape'){
+    if(menu.style.display==='block') closeMenu();
+    else if(overlay && overlay.style.display==='flex') closeWizard();
+  }
+});
+
+// --- Wizard ---
+const overlay = document.getElementById('wizardOverlay');
+const wiz = {
+  step:1,
+  employeeId:null,
+  start:null, // 'YYYY-MM-DDTHH:MM'
+  end:null,   // 'HH:MM'
+  repeat:false,
+  days:new Set(),
+  until:null
+};
+
+function showStep(n){
+  wiz.step=n;
+  for(let i=1;i<=4;i++) document.getElementById('step'+i).classList.toggle('hidden', i!==n);
+  document.getElementById('wizBack').classList.toggle('hidden', n===1);
+  document.getElementById('wizNext').textContent = (n===4?'Create':'Next');
+  if(n===4) buildReview();
 }
+
+function openWizard(){
+  // populate employees
+  const sel=document.getElementById('wizEmployee');
+  sel.innerHTML='<option value="">Select Employee</option>'+employeesData.map(e=>`<option value="${e.id}">${e.name}</option>`).join('');
+  // weekdays chips
+  const daysCtn=document.getElementById('wizDays');
+  if(!daysCtn.dataset.built){
+    const labels=['Mon','Tue','Wed','Thu','Fri','Sat','Sun'];
+    labels.forEach((lb,idx)=>{
+      const lab=document.createElement('label'); lab.className='chip';
+      lab.innerHTML=`<input type="checkbox" value="${idx}"> ${lb}`;
+      daysCtn.appendChild(lab);
+    });
+    daysCtn.dataset.built='1';
+  }
+  overlay.style.display='flex';
+  // focus first control for accessibility
+  setTimeout(()=>{ try{ document.getElementById('wizEmployee').focus(); }catch{} }, 0);
+  showStep(1);
+}
+function closeWizard(){ overlay.style.display='none'; }
+
+function buildReview(){
+  const emp = employeesData.find(e=> String(e.id)===String(wiz.employeeId));
+  const startStr = wiz.start ? new Date(wiz.start).toLocaleString() : 'Not set';
+  const endStr = wiz.end || 'None';
+  let rec='No'; if(wiz.repeat){ const days=[...wiz.days].sort().map(d=>['Mon','Tue','Wed','Thu','Fri','Sat','Sun'][d]).join(', '); rec=`Yes • ${days || 'Base day'}${wiz.until? ' • until '+wiz.until: ''}`; }
+  document.getElementById('wizReview').textContent = `${emp?emp.name:'(none)'} • ${startStr} • End ${endStr} • Repeat ${rec}`;
+}
+
+// Compute start/end from selects (15-minute increments enforced)
+function updateStartFromControls(){
+  const d = document.getElementById('wizStartDate').value;
+  const hh = document.getElementById('wizStartHour').value;
+  const mm = document.getElementById('wizStartMin').value;
+  if(d && hh && mm){ wiz.start = `${d}T${hh}:${mm}`; } else { wiz.start = null; }
+}
+function updateEndFromControls(){
+  const hh = document.getElementById('wizEndHour').value;
+  const mm = document.getElementById('wizEndMin').value;
+  if(hh && mm){ wiz.end = `${hh}:${mm}`; } else { wiz.end = null; }
+}
+
+// Buttons
+ document.getElementById('btnNewShift').addEventListener('click', openWizard);
+ document.getElementById('wizCancel').addEventListener('click', closeWizard);
+ document.getElementById('wizBack').addEventListener('click', ()=> showStep(Math.max(1, wiz.step-1)) );
+ document.getElementById('wizNext').addEventListener('click', ()=>{
+    if(wiz.step===1){
+      const val = document.getElementById('wizEmployee').value; if(!val) return alert('Select an employee'); wiz.employeeId = val; showStep(2); return;
+    }
+    if(wiz.step===2){
+      updateStartFromControls(); updateEndFromControls();
+      if(!wiz.start) return alert('Pick a start date & time');
+      if(wiz.end){
+        const st=new Date(wiz.start);
+        const [eh,em]=wiz.end.split(':');
+        const et=new Date(wiz.start); et.setHours(parseInt(eh,10), parseInt(em,10), 0, 0);
+        if(et<=st) return alert('End time must be after start');
+      }
+      showStep(3); return;
+    }
+    if(wiz.step===3){ showStep(4); return; }
+    if(wiz.step===4){
+      const form=document.getElementById('addShiftForm');
+      document.getElementById('employee_id_select').value = wiz.employeeId;
+      document.getElementById('shift_time_input').value = wiz.start;
+      document.getElementById('end_time_input').value = wiz.end || '';
+      document.getElementById('repeat_until_input').value = wiz.until || '';
+      // cleanup previous dynamic fields
+      [...form.querySelectorAll('input[name="selected_days"]'), ...form.querySelectorAll('input[name="repeat_weekly"]')].forEach(n=>n.remove());
+      if(wiz.repeat){
+        const rw = document.createElement('input'); rw.type='hidden'; rw.name='repeat_weekly'; rw.value='on'; form.appendChild(rw);
+        wiz.days.forEach(d=>{ const hid=document.createElement('input'); hid.type='hidden'; hid.name='selected_days'; hid.value=String(d); form.appendChild(hid); });
+      }
+      form.requestSubmit();
+      closeWizard();
+    }
+  });
+
+// New event wiring for selects
+['wizStartDate','wizStartHour','wizStartMin'].forEach(id=>{
+  const el=document.getElementById(id); if(el) el.addEventListener('change', updateStartFromControls);
+});
+['wizEndHour','wizEndMin'].forEach(id=>{
+  const el=document.getElementById(id); if(el) el.addEventListener('change', updateEndFromControls);
+});
+
+document.getElementById('wizRepeat').addEventListener('change', (e)=>{
+  wiz.repeat = e.target.checked; document.getElementById('wizDaysCtn').classList.toggle('hidden', !wiz.repeat); document.getElementById('wizUntilCtn').classList.toggle('hidden', !wiz.repeat);
+});
+document.getElementById('wizDays').addEventListener('change', (e)=>{ if(e.target && e.target.type==='checkbox'){ const v=parseInt(e.target.value,10); if(e.target.checked) wiz.days.add(v); else wiz.days.delete(v); } });
+document.getElementById('wizUntil').addEventListener('change', (e)=>{ wiz.until = e.target.value || null; });
+
+// Ensure menu stays within viewport
+function positionMenuNear(x, y){
+  menu.style.display='block';
+  menu.style.visibility='hidden';
+  menu.style.left='0px'; menu.style.top='0px';
+  const rect = menu.getBoundingClientRect();
+  const margin = 8;
+  const left = Math.min(Math.max(margin, x), window.innerWidth - rect.width - margin);
+  const top = Math.min(Math.max(margin, y), window.innerHeight - rect.height - margin);
+  menu.style.left = left + 'px';
+  menu.style.top = top + 'px';
+  menu.style.visibility='visible';
+}
+
+// --- Legend (existing) ---
+// ...existing code...
+
+// --- Views (existing) ---
+// ...existing code...
+
+// --- Form validation (keep, now reads hidden inputs) ---
 function validateShiftForm(){
   const start = document.getElementById('shift_time_input').value;
   const end = document.getElementById('end_time_input').value;
@@ -388,7 +659,7 @@ function validateShiftForm(){
   return true;
 }
 
-// --- Init & navigation ---
+// --- Init rest (legend, render, nav) ...existing code...
 buildLegend();
 render();
 
