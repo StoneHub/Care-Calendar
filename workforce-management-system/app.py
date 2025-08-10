@@ -8,10 +8,13 @@ from database import insert_user, get_user_by_email
 from database import delete_shifts_by_series, update_shift_employee
 import sqlite3
 from datetime import datetime, timedelta, date, time as dtime
+import os
 import uuid
 
 app = Flask(__name__)
-app.secret_key = 'your_secret_key'  # Change this to a random secret key
+app.secret_key = os.environ.get('FLASK_SECRET_KEY', 'dev-secret-change-me')
+# Kiosk-friendly: keep sessions alive longer unless explicitly logged out
+app.permanent_session_lifetime = timedelta(days=30)
 
 def login_required(f):
     @wraps(f)
@@ -23,7 +26,9 @@ def login_required(f):
     return decorated_function
 
 def get_statistics():
-    conn = sqlite3.connect('database.db')
+    # DB lives next to this file
+    db_path = os.path.join(os.path.dirname(__file__), 'database.db')
+    conn = sqlite3.connect(db_path)
     cursor = conn.cursor()
 
     # Count number of employees
@@ -71,6 +76,7 @@ def login():
         
         if user and check_password_hash(user[3], password):  # Assuming password is the 4th column
             session['user_id'] = user[0]  # Assuming id is the 1st column
+            session.permanent = True
             flash('Logged in successfully', 'success')
             return redirect(url_for('index'))
         else:

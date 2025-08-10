@@ -26,7 +26,10 @@ def main() -> None:
     # Initialize DB and start the server
     if hasattr(legacy_app, "init_db"):
         legacy_app.init_db()  # type: ignore[attr-defined]
-    legacy_app.app.run(debug=True)
+    host = os.environ.get("HOST", "127.0.0.1")
+    port = int(os.environ.get("PORT", "5000"))
+    debug = os.environ.get("FLASK_DEBUG", "1") not in ("0", "false", "False")
+    legacy_app.app.run(host=host, port=port, debug=debug)
 
 
 if __name__ == "__main__":

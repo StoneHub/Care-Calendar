@@ -1,6 +1,7 @@
+import os
 import sqlite3
 
-DATABASE = 'database.db'
+DATABASE = os.path.join(os.path.dirname(__file__), 'database.db')
 
 def connect_db():
     """Connect to the SQLite database."""
@@ -75,15 +76,14 @@ def init_db():
     conn.close()
     
 def insert_user(name, email, password):
-    conn = sqlite3.connect('database.db')
+    conn = connect_db()
     c = conn.cursor()
-    c.execute("INSERT INTO users (name, email, password) VALUES (?, ?, ?)",
-              (name, email, password))
+    c.execute("INSERT INTO users (name, email, password) VALUES (?, ?, ?)", (name, email, password))
     conn.commit()
     conn.close()
 
 def get_user_by_email(email):
-    conn = sqlite3.connect('database.db')
+    conn = connect_db()
     c = conn.cursor()
     c.execute("SELECT * FROM users WHERE email = ?", (email,))
     user = c.fetchone()

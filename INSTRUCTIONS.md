@@ -29,12 +29,54 @@ pip install -r requirements.txt
 python main.py
 ```
 
+## Raspberry Pi (host on your LAN)
+
+Use a Python venv on the Pi, then run the app bound to all interfaces so your smart fridge or other devices can reach it.
+
+```bash
+sudo apt update && sudo apt install -y python3-venv python3-pip
+git clone <your repo url> Care-Calendar && cd Care-Calendar
+python3 -m venv .venv && source .venv/bin/activate
+pip install -r requirements.txt
+HOST=0.0.0.0 PORT=8080 FLASK_DEBUG=0 python main.py
+```
+
+Open `http://PI_IP:8080` on your fridge (replace PI_IP with your device IP).
+
+### Optional: Run as a service on Raspberry Pi
+
+1. Copy the service file:
+
+- sudo cp deployment/raspi-care-calendar.service /etc/systemd/system/care-calendar.service
+
+1. Reload and enable:
+
+- sudo systemctl daemon-reload && sudo systemctl enable --now care-calendar
+
+1. Logs:
+
+- journalctl -u care-calendar -f
+
+### Backups
+
+Run the backup script (in WSL/bash):
+
+```bash
+bash scripts/backup_db.sh
+```
+
 ## Development tips
 
 - App module: The Flask app lives in `workforce-management-system/app.py` and imports `database.py` from the same folder.
 - Templates/static: Still located under `workforce-management-system/templates` and `workforce-management-system/static`.
 - Root runner: `main.py` adjusts `sys.path` so the existing module layout works unchanged.
 - Database: The SQLite file is `workforce-management-system/database.db`. You can delete it to reset the DB. On next run it will be re-created.
+
+### Environment variables
+
+- HOST: bind address (default 127.0.0.1). Use 0.0.0.0 on the Pi.
+- PORT: port to listen on (default 5000).
+- FLASK_DEBUG: 1 for dev, 0 for prod.
 
 ## Common tasks
 
