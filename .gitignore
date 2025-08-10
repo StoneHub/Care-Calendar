@@ -40,3 +40,8 @@ workforce-management-system/.pytest_cache/
 workforce-management-system/instance/
 workforce-management-system/*.sqlite3
 workforce-management-system/*.db
+
+# Root-level virtual env and DB (when running from repo root)
+.venv/
+*.sqlite3
+database.db
