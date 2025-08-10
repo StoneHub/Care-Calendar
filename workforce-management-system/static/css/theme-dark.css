@@ -42,6 +42,11 @@
   --radius: 10px;
   --shadow-1: 0 6px 20px rgba(0,0,0,.35);
   --shadow-2: 0 2px 8px rgba(0,0,0,.25);
+
+  /* Contrast helpers */
+  --row-zebra: rgba(255,255,255,.06);
+  --row-hover: rgba(255,255,255,.10);
+  --cell-hover: rgba(255,255,255,.04);
 }
 
 /* Legacy variable aliases for compatibility with older templates/styles */
@@ -93,8 +98,10 @@ nav a.active { color: var(--text-1); background: var(--bg-1); }
 /* 7) Tables */
 .table { width: 100%; border-collapse: separate; border-spacing: 0; }
 .table thead th { background: var(--bg-1); color: #fff; font-weight: 700; border-bottom: 1px solid var(--divider); padding: .7rem .8rem; text-align: left; }
-.table tbody td { padding: .65rem .8rem; border-bottom: 1px solid var(--divider); color: var(--text-2); }
-.table tbody tr:nth-child(odd) { background: rgba(255,255,255,.02); }
+.table tbody td { padding: .65rem .8rem; border-bottom: 1px solid var(--divider); color: var(--text-1); }
+.table tbody tr { transition: background .15s ease; }
+.table tbody tr:nth-child(odd) { background: var(--row-zebra); }
+.table tbody tr:hover { background: var(--row-hover); }
 .table .cell-muted { color: var(--text-3); }
 
 /* 8) Performance dashboard */
@@ -106,8 +113,9 @@ nav a.active { color: var(--text-1); background: var(--bg-1); }
 /* 9) Calendar */
 .calendar .grid, .calendar .cells { background: var(--bg-1); }
 .calendar .dow { background: var(--bg-1); color: var(--text-1); font-weight: 600; padding: 8px 6px; border-right: 1px solid var(--divider); font-size: 12px; }
-.calendar .cell { min-height: 110px; padding: 6px; border-right: 1px solid var(--divider); border-bottom: 1px solid var(--divider); position: relative; background: var(--bg-2); }
-.calendar .cell.dim { background: #0e1626; color: var(--text-3); }
+.calendar .cell { min-height: 110px; padding: 6px; border-right: 1px solid var(--border); border-bottom: 1px solid var(--border); position: relative; background: var(--bg-2); transition: background .15s ease; }
+.calendar .cell:hover { background: var(--cell-hover); }
+.calendar .cell.dim { background: #0b1424; color: var(--text-3); }
 .calendar .today-cell { outline: 2px solid var(--focus); outline-offset: -2px; }
 .calendar .date-tag { font-weight: 700; font-size: 13px; color: var(--text-1); display: flex; align-items: center; justify-content: space-between; letter-spacing: .2px; }
 .calendar .gap-badge { position: absolute; top: 6px; left: 6px; font-size: 10px; background: #334155; color: #e5e7eb; padding: 2px 6px; border-radius: 10px; border: 1px solid var(--border); }
