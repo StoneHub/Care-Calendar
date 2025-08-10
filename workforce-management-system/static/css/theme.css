@@ -1,0 +1,67 @@
+/* Site-wide theme variables + light/dark palettes */
+:root{
+  --bg:#f5f7fb;
+  --card:#ffffff;
+  --field:#ffffff;
+  --txt:#1f2937;
+  --muted:#6b7280;
+  --brand:#1976d2;
+  --brand-2:#1565c0;
+  --grid-border:#e5e7eb;
+  --pill:#e9f3ff;
+  --th-bg:#f8fafc;
+  --subtle-bg:#e5e7eb;
+  --radius:10px;
+  --focus-ring:0 0 0 3px rgba(25,118,210,.35);
+}
+@media (prefers-color-scheme: dark){
+  :root{
+    --bg:#152238;
+    --card:#1e2b40;
+    --field:#243754;
+    --txt:#e8eef6;
+    --muted:#b0b9c6;
+    --brand:#7eb3ff;
+    --brand-2:#5598ff;
+    --grid-border:#2a3b55;
+    --pill:#243754;
+    --th-bg:#23324a;
+    --subtle-bg:#324760;
+  }
+}
+/* Allow JS toggle via .dark on html */
+.dark body{ background:var(--bg); color:var(--txt); }
+
+/* Base elements */
+body{ background:var(--bg); color:var(--txt); -webkit-font-smoothing:antialiased; -moz-osx-font-smoothing:grayscale; }
+header{ background:var(--card); border-bottom:1px solid var(--grid-border); }
+.nav a, nav a{ color:var(--txt); text-decoration:none; padding:6px 10px; border-radius:6px; }
+.nav a:hover, nav a:hover{ background:#f0f3f8; }
+.logo{ color:var(--brand); font-weight:700; }
+.card{ background:var(--card); border:1px solid var(--grid-border); border-radius:var(--radius); box-shadow:0 1px 2px rgba(16,24,40,.04), 0 1px 3px rgba(16,24,40,.08); }
+.btn{ background:var(--brand); color:#fff; border:none; border-radius:8px; padding:8px 10px; }
+.btn:hover{ background:var(--brand-2); }
+.btn.subtle{ background:var(--subtle-bg); color:#111827; }
+.btn.subtle:hover{ filter:brightness(0.95); }
+.btn, .btn.subtle{ min-height:40px; font-weight:600; letter-spacing:.2px; }
+.table{ width:100%; border-collapse:collapse; }
+.table th{ background:var(--th-bg); color:var(--txt); }
+.table th, .table td{ border-bottom:1px solid var(--grid-border); padding:10px; text-align:left; }
+.menu, .modal{ background:var(--card); color:var(--txt); border:1px solid var(--grid-border); }
+
+/* Headings */
+h1{ font-size:28px; font-weight:700; margin:16px 0; color:var(--txt); }
+h2{ font-size:20px; font-weight:700; margin:14px 0; color:var(--txt); }
+.muted{ color:var(--muted); }
+
+/* Form controls */
+input[type="text"], input[type="email"], input[type="password"], input[type="date"], select, textarea{
+  background:var(--field);
+  color:var(--txt);
+  border:1px solid var(--grid-border);
+  border-radius:8px;
+  padding:10px 12px;
+  outline:none;
+}
+input::placeholder, textarea::placeholder{ color:var(--muted); }
+input:focus, select:focus, textarea:focus{ box-shadow: var(--focus-ring); border-color: var(--brand); }

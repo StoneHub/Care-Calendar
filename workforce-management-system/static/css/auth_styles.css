@@ -1,24 +1,7 @@
 /* auth_styles.css */
-body {
-    margin: 0;
-    padding: 0;
-    height: 100vh;
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    background-color: #f0f2f5;
-    font-family: 'Kanit', sans-serif;
-}
+body { margin:0; padding:0; height:100vh; display:flex; justify-content:center; align-items:center; background-color: var(--bg-0); font-family:'Kanit', system-ui, sans-serif; color: var(--text-1); }
 
-.auth-container {
-    width: 400px;
-    padding: 30px;
-    background-color: #fff;
-    border-radius: 10px;
-    box-shadow: 0 10px 25px rgba(0,0,0,0.1);
-    position: relative;
-    overflow: hidden;
-}
+.auth-container { width:400px; padding:30px; background-color: var(--bg-2); border-radius: var(--radius); border:1px solid var(--border); box-shadow: var(--shadow-1); position:relative; overflow:hidden; }
 
 .auth-container::before,
 .auth-container::after {
@@ -40,39 +23,18 @@ body {
     right: -100px;
 }
 
-.title {
-    text-align: center;
-    color: #333;
-    margin-bottom: 20px;
-}
+.title { text-align:center; color: var(--text-1); margin-bottom:20px; }
 
 .auth-form {
     display: flex;
     flex-direction: column;
 }
 
-.auth-form input {
-    margin-bottom: 15px;
-    padding: 12px;
-    border: 1px solid #ddd;
-    border-radius: 4px;
-    font-size: 14px;
-}
+.auth-form input { margin-bottom:15px; padding:12px; border:1px solid var(--border); background: var(--bg-1); color: var(--text-1); border-radius: var(--radius); font-size:14px; }
+.auth-form input:focus { outline:2px solid var(--focus); border-color: var(--focus); }
 
-.auth-form button {
-    padding: 12px;
-    background-color: #4CAF50;
-    color: white;
-    border: none;
-    border-radius: 4px;
-    cursor: pointer;
-    font-size: 16px;
-    transition: background-color 0.3s ease;
-}
-
-.auth-form button:hover {
-    background-color: #45a049;
-}
+.auth-form button { padding:12px; border:none; border-radius: var(--radius); cursor:pointer; font-size:16px; transition: filter .2s ease; background: var(--primary); color:#fff; }
+.auth-form button:hover { filter: brightness(1.05); }
 
 .auth-links {
     margin-top: 20px;
@@ -80,16 +42,8 @@ body {
     font-size: 14px;
 }
 
-.auth-links a {
-    color: #2196F3;
-    text-decoration: none;
-    transition: color 0.3s ease;
-}
-
-.auth-links a:hover {
-    color: #0d47a1;
-    text-decoration: underline;
-}
+.auth-links a { color: var(--link); text-decoration:none; transition: color .2s ease; }
+.auth-links a:hover { text-decoration: underline; }
 
 /* Icon decorations */
 .auth-form input {

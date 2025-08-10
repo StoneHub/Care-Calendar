@@ -8,107 +8,19 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Kanit:ital,wght@0,100;0,200;0,300;0,400;0,500;0,600;0,700;0,800;0,900;1,100;1,200;1,300;1,400;1,500;1,600;1,700;1,800;1,900&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/theme-dark.css') }}">
     <style>
-        body {
-            font-family: Kanit, sans-serif;
-            line-height: 1.6;
-            margin: 0;
-            padding: 20px;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            background-color: #f4f4f4;
-        }
-        /* Header/nav */
-        header{ width:100%; background:#fff; border-bottom:1px solid #e5e7eb; margin:-20px -20px 20px -20px; }
+        body{ font-family: Kanit, system-ui, Segoe UI, Roboto, sans-serif; margin:0; background: var(--bg-0); color: var(--text-1); display:flex; flex-direction:column; align-items:center; padding:20px; }
+        header{ width:100%; margin:-20px -20px 20px -20px; }
         .nav{ max-width:1100px; margin:0 auto; display:flex; align-items:center; justify-content:space-between; padding:10px 16px; }
-        .nav a{ color:#222; text-decoration:none; padding:6px 10px; border-radius:6px; }
-        .nav a:hover{ background:#f0f3f8; }
         .nav .left{ display:flex; gap:12px; align-items:center; }
-        .logo{ font-weight:700; color:#1976d2; }
-
-        .container {
-            width: 100%;
-            max-width: 1000px;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-        }
-        h1, h2 {
-            color: #333;
-            text-align: center;
-            width: 100%;
-        }
-        form {
-            background-color: #fff;
-            padding: 20px;
-            border-radius: 5px;
-            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
-            margin-bottom: 20px;
-            width: 100%;
-            max-width: 500px;
-        }
-        input, select {
-            width: 100%;
-            padding: 8px;
-            margin-bottom: 10px;
-            border: 1px solid #ddd;
-            border-radius: 4px;
-        }
-        button {
-            background-color: #4CAF50;
-            color: white;
-            padding: 10px 15px;
-            border: none;
-            border-radius: 4px;
-            cursor: pointer;
-        }
-        button:hover {
-            background-color: #45a049;
-        }
-        .table-container {
-            width: 100%;
-            overflow-x: auto;
-            padding: 0 20px;
-            box-sizing: border-box;
-            border-radius: 20%;
-        }
-        table {
-            width: 60%;
-            border-collapse: collapse;
-            margin-bottom: 20px;
-            background-color: #fff;
-            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
-        }
-        th, td {
-            text-align: center;
-            padding: 12px;
-            border: 1px solid #000;
-        }
-        th {
-            background-color: #f2f2f2;
-            font-weight: bold;
-        }
-        a {
-            color: #333;
-            text-decoration: none;
-        }
-        .delete-icon {
-            color: #ff4444;
-            cursor: pointer;
-        }
-        .back-link {
-            display: inline-block;
-            margin-top: 20px;
-            padding: 10px 15px;
-            background-color: #333;
-            color: #fff;
-            border-radius: 4px;
-            text-decoration: none;
-        }
-        .back-link:hover {
-            background-color: #555;
-        }
+        .logo{ font-weight:700; color: var(--primary); }
+        h1, h2{ color: var(--text-1); text-align:center; width:100%; }
+        form.card{ width:100%; max-width:500px; margin-bottom:20px; }
+        .actions{ display:flex; gap:8px; }
+        .delete-icon{ color: var(--danger); cursor:pointer; }
+        .back-link{ margin-top:20px; }
+        .table-wrap{ width:100%; display:flex; justify-content:center; }
     </style>
 </head>
 <body>
@@ -131,24 +43,25 @@
     </header>
     <h1>Task Assignment</h1>
     
-    <form action="{{ url_for('tasks') }}" method="post">
+    <form action="{{ url_for('tasks') }}" method="post" class="card section">
         <h2>Add Task</h2>
-        <select name="employee_id" required title="Employee">
+        <select name="employee_id" required title="Employee" class="select">
             <option value="">Select Employee</option>
             {% for employee in employees %}
             <option value="{{ employee['id'] }}">{{ employee['name'] }}</option>
             {% endfor %}
         </select>
-        <input type="text" name="task" placeholder="Task description" required title="Task">
-        <select name="status" required title="Status">
+        <input class="input" type="text" name="task" placeholder="Task description" required title="Task">
+        <select name="status" required title="Status" class="select">
             <option value="Pending">Pending</option>
             <option value="Completed">Completed</option>
         </select>
-        <button type="submit">Add Task</button>
+        <button type="submit" class="btn btn-primary">Add Task</button>
     </form>
 
     <h2>Task List</h2>
-    <table>
+    <div class="table-wrap">
+    <table class="table w-60 center">
         <thead>
             <tr>
                 <th>ID</th>
@@ -174,7 +87,9 @@
             {% endfor %}
         </tbody>
     </table>
+    </div>
 
-    <a href="{{ url_for('index') }}" class="back-link">Back</a>
+    <a href="{{ url_for('index') }}" class="btn btn-secondary back-link">Back</a>
 </body>
+<script src="{{ url_for('static', filename='js/theme.js') }}"></script>
 </html>

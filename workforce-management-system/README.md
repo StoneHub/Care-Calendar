@@ -28,7 +28,7 @@
 
 ## Hours report
 
-- Go to /hours for the current week totals per employee. Use /hours.csv to download CSV. Optional query: ?start=YYYY-MM-DD.
+- Go to /hours for the current week totals per employee. Use /hours.csv to download CSV. Optional queries: ?start=YYYY-MM-DD and ?end=YYYY-MM-DD. If end is omitted, the range defaults to 7 days from start; if neither is provided, the current week (Mon–Sun) is used.
 
 ## Coverage window
 

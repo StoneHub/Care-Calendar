@@ -4,23 +4,18 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Weekly Hours</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/theme-dark.css') }}">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Kanit:wght@300;400;600&display=swap" rel="stylesheet">
   <style>
-    body{font-family:Kanit,system-ui,Segoe UI,Roboto,sans-serif;margin:0;background:#f6f7fb;color:#222}
-    header{background:#fff;border-bottom:1px solid #e5e7eb;position:sticky;top:0;z-index:10}
-    .nav{max-width:900px;margin:0 auto;display:flex;align-items:center;justify-content:space-between;padding:10px 16px}
-    .nav a{color:#222;text-decoration:none;padding:6px 10px;border-radius:6px}
-    .nav a:hover{background:#f0f3f8}
-    main{max-width:900px;margin:18px auto;padding:0 12px}
-    .card{background:#fff;border:1px solid #e5e7eb;border-radius:10px;box-shadow:0 1px 2px rgba(0,0,0,.03);padding:14px}
-    h1{font-size:22px;margin:0 0 10px}
-    table{width:100%;border-collapse:collapse}
-    th,td{border-bottom:1px solid #e5e7eb;padding:10px;text-align:left}
-    th{background:#f8fafc}
-    .muted{color:#6b7280;font-size:13px}
-    .btn{background:#1976d2;color:#fff;border:none;border-radius:6px;padding:8px 10px;text-decoration:none}
+  body{font-family:Kanit,system-ui,Segoe UI,Roboto,sans-serif;margin:0;background:var(--bg-0);color:var(--text-1)}
+  header{position:sticky;top:0;z-index:10}
+  .nav{max-width:900px;margin:0 auto;display:flex;align-items:center;justify-content:space-between;padding:10px 16px}
+  main{max-width:900px;margin:18px auto;padding:0 12px}
+  h1{font-size:22px;margin:0 0 10px}
+  table{width:100%;border-collapse:separate;border-spacing:0}
+  .range-form{display:flex;gap:8px;align-items:center;margin:8px 0 12px;flex-wrap:wrap}
   </style>
 </head>
 <body>
@@ -41,11 +36,16 @@
     </nav>
   </header>
   <main>
-    <div class="card">
-      <h1>Weekly Hours</h1>
-      <div class="muted">Week: {{ start }} – {{ end }}</div>
-      <p><a class="btn" href="{{ url_for('hours_csv', start=start) }}">Export CSV</a></p>
-      <table>
+    <div class="card section">
+      <h1>Hours Report</h1>
+  <form method="get" action="{{ url_for('hours_report') }}" class="range-form">
+        <label class="muted">Start <input class="input" type="date" name="start" value="{{ start }}"></label>
+        <label class="muted">End <input class="input" type="date" name="end" value="{{ end }}"></label>
+        <button class="btn btn-primary" type="submit">Apply</button>
+        <a class="btn btn-secondary" href="{{ url_for('hours_csv', start=start, end=end) }}">Export CSV</a>
+      </form>
+      <div class="muted">Range: {{ start }} – {{ end }}</div>
+      <table class="table">
         <thead><tr><th>Employee</th><th>Hours</th></tr></thead>
         <tbody>
           {% for row in report %}
@@ -56,4 +56,5 @@
     </div>
   </main>
 </body>
+<script src="{{ url_for('static', filename='js/theme.js') }}"></script>
 </html>

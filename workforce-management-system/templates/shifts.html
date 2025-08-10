@@ -8,96 +8,65 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Kanit:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/theme-dark.css') }}">
     <style>
-        :root{ --bg:#f6f7fb; --card:#ffffff; --txt:#222; --muted:#6b7280; --brand:#1976d2; --brand-2:#1565c0; --ok:#2e7d32; --warn:#e53935; --grid-border:#e5e7eb; --pill:#e0f2fe; }
-        *{ box-sizing: border-box; }
-        body{ font-family: Kanit, system-ui, -apple-system, Segoe UI, Roboto, sans-serif; margin:0; background:var(--bg); color:var(--txt); }
-        header{ background:var(--card); border-bottom:1px solid var(--grid-border); position:sticky; top:0; z-index:10; }
-        .nav{ max-width:1100px; margin:0 auto; display:flex; align-items:center; justify-content:space-between; padding:10px 16px; }
-        .nav .left{ display:flex; gap:12px; align-items:center; }
-        .logo{ font-weight:700; color:var(--brand); }
-        .nav a{ color:var(--txt); text-decoration:none; padding:6px 10px; border-radius:6px; }
-        .nav a:hover{ background:#f0f3f8; }
-        .hidden{ display:none; }
-        .fullw{ width:100%; }
+    *{ box-sizing: border-box; }
+    header{ position:sticky; top:0; z-index:10; }
+    .nav{ max-width:1100px; margin:0 auto; display:flex; align-items:center; justify-content:space-between; padding:10px 16px; }
+    .nav .left{ display:flex; gap:12px; align-items:center; }
+    .logo{ font-weight:700; color:var(--primary); }
+    .hidden{ display:none; }
+    .fullw{ width:100%; }
 
-        main{ max-width:1100px; margin:18px auto; padding:0 12px; }
+    main{ max-width:1100px; margin:18px auto; padding:0 12px; }
 
-        .card{ background:var(--card); border:1px solid var(--grid-border); border-radius:10px; box-shadow:0 1px 2px rgba(0,0,0,.03); }
-        .section{ padding:14px; }
-        h1{ font-size:22px; margin:0 0 10px; }
-        h2{ font-size:18px; margin:0 0 10px; }
+    .section{ padding:14px; }
+    h1{ font-size:22px; margin:0 0 10px; }
+    h2{ font-size:18px; margin:0 0 10px; }
 
-        .btn{ background:var(--brand); color:#fff; border:none; padding:10px 12px; border-radius:8px; cursor:pointer; font-weight:600; }
-        .btn:hover{ background:var(--brand-2); }
-        .btn.danger{ background:#d32f2f; }
-        .btn.danger:hover{ background:#b71c1c; }
+    /* Calendar */
+    .calendar{ margin-top:14px; }
+    .cal-head{ display:flex; justify-content:space-between; align-items:center; gap:10px; padding:10px 14px; border-bottom:1px solid var(--divider); }
+    .month-label{ font-weight:700; }
+    .legend{ display:flex; flex-wrap:wrap; gap:10px; padding:10px 14px; border-bottom:1px solid var(--divider); }
+    .legend-item{ display:flex; align-items:center; gap:6px; font-size:12px; }
+    .legend-swatch{ width:12px; height:12px; border-radius:3px; border:1px solid var(--border); display:inline-block; }
+    .legend-swatch.kellie{ background: var(--event-green); }
+    .legend-swatch.robin{ background: var(--event-blue); }
+    .legend-swatch.scarlett{ background: var(--event-orange); }
+    .legend-swatch.purple{ background: var(--event-purple); }
+    .legend-swatch.cyan{ background: var(--event-cyan); }
 
-        /* Calendar */
-        .calendar{ margin-top:14px; }
-        .cal-head{ display:flex; justify-content:space-between; align-items:center; gap:10px; padding:10px 14px; border-bottom:1px solid var(--grid-border); }
-        .nav-btn{ background:var(--brand); color:#fff; border:none; border-radius:6px; padding:7px 10px; cursor:pointer; }
-        .nav-btn:hover{ background:var(--brand-2); }
-        .month-label{ font-weight:700; }
-        .legend{ display:flex; flex-wrap:wrap; gap:10px; padding:10px 14px; border-bottom:1px solid var(--grid-border); }
-        .legend-item{ display:flex; align-items:center; gap:6px; font-size:12px; }
-        .legend-swatch{ width:12px; height:12px; border-radius:3px; border:1px solid rgba(0,0,0,.15); }
+    .grid{ display:grid; grid-template-columns: repeat(7, 1fr); border-top:1px solid var(--divider); }
+    .dow:last-child{ border-right:none; }
+    .cells{ display:grid; grid-template-columns: repeat(7, 1fr); }
+    .date-tag{ font-weight:700; font-size:13px; color:var(--text-1); display:flex; align-items:center; justify-content:space-between; letter-spacing:.2px; }
+    .today-dot{ width:7px; height:7px; background:var(--primary); border-radius:50%; display:inline-block; margin-left:6px; }
+    .pills{ margin-top:4px; display:flex; flex-direction:column; gap:4px; }
+    .current-week{ box-shadow: inset 0 0 0 2px var(--focus); }
 
-        .grid{ display:grid; grid-template-columns: repeat(7, 1fr); border-top:1px solid var(--grid-border); }
-        .dow{ background:#f8fafc; color:#111827; font-weight:600; padding:8px 6px; border-right:1px solid var(--grid-border); font-size:12px; }
-        .dow:last-child{ border-right:none; }
-        .cells{ display:grid; grid-template-columns: repeat(7, 1fr); }
-  .cell{ min-height:110px; padding:6px; border-right:1px solid var(--grid-border); border-bottom:1px solid var(--grid-border); position:relative; background:#fff; }
-        .cell.dim{ background:#fafafa; color:#9ca3af; }
-  .date-tag{ font-weight:600; font-size:12px; color:#111827; display:flex; align-items:center; justify-content:space-between; }
-  .today-dot{ width:7px; height:7px; background:#1976d2; border-radius:50%; display:inline-block; margin-left:6px; }
-        .pills{ margin-top:4px; display:flex; flex-direction:column; gap:4px; }
-        .pill{ padding:2px 4px; border-radius:6px; font-size:11px; color:#fff; display:flex; align-items:center; justify-content:space-between; gap:6px; cursor:pointer; }
-        .pill small{ opacity:.9; }
-        .pill.selected{ outline:2px solid #111827; box-shadow: inset 0 0 0 2px rgba(255,255,255,.6); }
-        .gap-badge{ position:absolute; top:6px; right:6px; font-size:10px; background:#fdecea; color:#b71c1c; padding:2px 6px; border-radius:10px; border:1px solid #f5c6cb; }
-  .current-week{ box-shadow: inset 0 0 0 2px #c7d2fe; }
-  .today-cell{ outline:2px solid #1976d2; outline-offset:-2px; }
-        .needs-attention{ background:#ffebee; }
+    /* Hover Add button */
+    .add-btn{ position:absolute; right:6px; top:6px; font-size:11px; opacity:0; transition:opacity .15s ease; }
+    .cell:hover .add-btn{ opacity:1; }
 
-  /* Hover Add button */
-  .add-btn{ position:absolute; right:6px; top:6px; background:#1976d2; color:#fff; border:none; border-radius:6px; padding:3px 6px; font-size:11px; opacity:0; transition:opacity .15s ease; cursor:pointer; }
-  .cell:hover .add-btn{ opacity:1; }
+    /* Dialogs */
+    .menu{ position:fixed; z-index:50; background:var(--bg-2); color:var(--text-1); border:1px solid var(--border); border-radius:8px; padding:10px; box-shadow:var(--shadow-2); width:260px; display:none; max-height:min(80vh, 420px); overflow:auto; }
+    .menu h4{ margin:0 0 6px; font-size:14px; }
+    .menu .row{ display:flex; align-items:center; justify-content:space-between; gap:8px; margin:6px 0; flex-wrap:wrap; }
+    .mini-label{ font-size:12px; color:var(--text-3); }
+    .mini-input{ width:100%; }
+    .seg{ display:flex; gap:6px; flex-wrap:wrap; }
 
-  /* Dark mode */
-  @media (prefers-color-scheme: dark){ :root{ --bg:#0b0f14; --card:#0f1720; --txt:#e5e7eb; --muted:#a1a1aa; --brand:#60a5fa; --brand-2:#3b82f6; --grid-border:#1f2937; --pill:#1e293b; } .dow{ background:#111827; color:#e5e7eb; } .cell{ background:#0f1720; } .cell.dim{ background:#0b0f14; color:#6b7280; } .gap-badge{ background:#7f1d1d; color:#fecaca; border-color:#991b1b; } }
-  .dark :root, .dark body{ --bg:#0b0f14; --card:#0f1720; --txt:#e5e7eb; --muted:#a1a1aa; --brand:#60a5fa; --brand-2:#3b82f6; --grid-border:#1f2937; --pill:#1e293b; }
-  .dark body{ background:#0b0f14; color:#e5e7eb; }
+    .rowx{ display:flex; flex-direction:column; gap:6px; }
+    .chip{ background: var(--bg-1); border:1px solid var(--border); padding:4px 8px; border-radius:16px; font-size:12px; cursor:pointer; color: var(--text-1); }
+    .chip input{ margin-right:6px; }
+    .muted{ color:var(--text-3); font-size:13px; }
 
-        /* Dialogs */
-        .menu{ position:fixed; z-index:50; background:#fff; border:1px solid var(--grid-border); border-radius:8px; padding:10px; box-shadow:0 6px 18px rgba(0,0,0,.12); width:260px; display:none; max-height:min(80vh, 420px); overflow:auto; }
-        .menu h4{ margin:0 0 6px; font-size:14px; }
-        .menu .row{ display:flex; align-items:center; justify-content:space-between; gap:8px; margin:6px 0; flex-wrap:wrap; }
-        .menu .danger{ background:#d32f2f; }
-        .menu .danger:hover{ background:#b71c1c; }
-        .menu .subtle{ background:#e5e7eb; color:#111827; }
-        .menu .subtle:hover{ background:#d1d5db; }
-        .mini-label{ font-size:12px; color:var(--muted); }
-        .mini-input{ width:100%; padding:6px 8px; border:1px solid var(--grid-border); border-radius:6px; }
-        .seg{ display:flex; gap:6px; flex-wrap:wrap; }
+    /* Add a little spacing for inline time selects */
+    .time-selects{ display:flex; gap:6px; align-items:center; }
 
-        /* Wizard modal */
-        .overlay{ position:fixed; inset:0; background:rgba(0,0,0,.35); display:none; align-items:center; justify-content:center; z-index:60; }
-        .modal{ background:#fff; border-radius:10px; width:min(560px, 92vw); border:1px solid var(--grid-border); box-shadow:0 12px 28px rgba(0,0,0,.2); }
-        .modal .hd{ padding:12px 16px; border-bottom:1px solid var(--grid-border); font-weight:700; }
-        .modal .bd{ padding:14px; display:flex; flex-direction:column; gap:10px; max-height:70vh; overflow:auto; }
-        .modal .ft{ padding:12px 16px; display:flex; gap:8px; justify-content:flex-end; border-top:1px solid var(--grid-border); }
-        .rowx{ display:flex; flex-direction:column; gap:6px; }
-        .chip{ background:#eef2f7; border:1px solid var(--grid-border); padding:4px 8px; border-radius:16px; font-size:12px; cursor:pointer; }
-        .chip input{ margin-right:6px; }
-        .muted{ color:var(--muted); font-size:13px; }
-
-        /* Add a little spacing for inline time selects */
-        .time-selects{ display:flex; gap:6px; align-items:center; }
-        .time-selects select{ padding:6px 8px; border:1px solid var(--grid-border); border-radius:6px; }
-
-        .is-hidden{ display:none !important; }
-        .emp-btn.active{ background: var(--brand); color:#fff; border-color: var(--brand); }
+    .is-hidden{ display:none !important; }
+    .emp-btn.active{ background: var(--primary); color:#fff; border-color: var(--primary); }
     </style>
 </head>
 <body>
@@ -123,9 +92,9 @@
         <h1>Shift Scheduling</h1>
         <div class="rowx">
             <div class="seg">
-              <button class="btn" id="btnNewShift">New Shift</button>
-              <button class="btn" id="btnSelectMode">Select shifts</button>
-              <button class="btn danger hidden" id="btnDeleteSelected">Delete selected (0)</button>
+              <button class="btn btn-primary" id="btnNewShift">New Shift</button>
+              <button class="btn btn-secondary" id="btnSelectMode">Select shifts</button>
+              <button class="btn btn-danger hidden" id="btnDeleteSelected">Delete selected (0)</button>
             </div>
             <form id="addShiftForm" action="{{ url_for('shifts') }}" method="post" onsubmit="return validateShiftForm()">
                 <input type="hidden" id="employee_id_select" name="employee_id" required>
@@ -133,7 +102,7 @@
                 <input type="hidden" id="end_time_input" name="end_time">
                 <input type="hidden" id="repeat_until_input" name="repeat_until">
                 <!-- selected_days and repeat_weekly will be injected dynamically -->
-                <button class="btn hidden" type="submit" id="addShiftBtn">Add Shift</button>
+                <button class="btn btn-primary hidden" type="submit" id="addShiftBtn">Add Shift</button>
             </form>
         </div>
     </section>
@@ -141,13 +110,13 @@
     <section class="card calendar">
         <div class="cal-head">
             <div class="btn-group">
-                <button class="nav-btn" id="prevPeriod" aria-label="Previous">« Prev</button>
-                <button class="nav-btn" id="todayBtn" aria-label="Current">Today</button>
-                <button class="nav-btn" id="nextPeriod" aria-label="Next">Next »</button>
+                <button class="btn btn-secondary" id="prevPeriod" aria-label="Previous">« Prev</button>
+                <button class="btn btn-secondary" id="todayBtn" aria-label="Current">Today</button>
+                <button class="btn btn-secondary" id="nextPeriod" aria-label="Next">Next »</button>
             </div>
             <div class="btn-group">
-                <button class="nav-btn" id="viewMonth">Month</button>
-                <button class="nav-btn" id="viewWeek">Week</button>
+                <button class="btn btn-secondary" id="viewMonth">Month</button>
+                <button class="btn btn-secondary" id="viewWeek">Week</button>
             </div>
             <div class="month-label" id="periodLabel"></div>
         </div>
@@ -158,18 +127,18 @@
         <div class="cells" id="grid"></div>
     </section>
 
-    <div class="menu" id="shiftMenu" role="dialog" aria-modal="true" aria-labelledby="menuTitle" tabindex="-1">
+  <div class="menu" id="shiftMenu" role="dialog" aria-modal="true" aria-labelledby="menuTitle" tabindex="-1">
         <h4 id="menuTitle">Shift</h4>
-        <div class="row"><button class="btn danger" id="btnDeleteShift">Delete shift</button><button class="btn subtle hidden" id="btnDeleteSeries">Delete series</button></div>
+    <div class="row"><button class="btn btn-danger" id="btnDeleteShift">Delete shift</button><button class="btn btn-secondary hidden" id="btnDeleteSeries">Delete series</button></div>
         <div class="row">
-            <select id="swapSelect"><option value="">Swap to…</option></select>
-            <button class="btn" id="btnSwap">Swap</button>
+      <select id="swapSelect" class="select"><option value="">Swap to…</option></select>
+      <button class="btn btn-primary" id="btnSwap">Swap</button>
         </div>
         <!-- Replace bulky inline update UI with a single button that opens a wizard -->
         <div class="row is-hidden" id="editSeriesRow">
             <div class="fullw">
                 <div class="mini-label">Series</div>
-                <button class="btn" id="btnOpenEditSeries">Edit series…</button>
+        <button class="btn btn-primary" id="btnOpenEditSeries">Edit series…</button>
             </div>
         </div>
         <div class="row">
@@ -178,29 +147,29 @@
                 <div class="seg">
                     <!-- Replaced native time inputs with 15-min selects -->
                     <div class="time-selects" aria-label="Coverage start">
-                      <select id="covStartHour" aria-label="Start hour">
+            <select id="covStartHour" aria-label="Start hour" class="select">
                         <option value="00">00</option><option value="01">01</option><option value="02">02</option><option value="03">03</option><option value="04">04</option><option value="05">05</option><option value="06">06</option><option value="07">07</option><option value="08">08</option><option value="09">09</option><option value="10">10</option><option value="11">11</option><option value="12">12</option><option value="13">13</option><option value="14">14</option><option value="15">15</option><option value="16">16</option><option value="17">17</option><option value="18">18</option><option value="19">19</option><option value="20">20</option><option value="21">21</option><option value="22">22</option><option value="23">23</option>
                       </select>
                       <span>:</span>
-                      <select id="covStartMin" aria-label="Start minutes">
+            <select id="covStartMin" aria-label="Start minutes" class="select">
                         <option value="00">00</option><option value="15">15</option><option value="30">30</option><option value="45">45</option>
                       </select>
                     </div>
                     <div class="time-selects" aria-label="Coverage end">
-                      <select id="covEndHour" aria-label="End hour">
+            <select id="covEndHour" aria-label="End hour" class="select">
                         <option value="00">00</option><option value="01">01</option><option value="02">02</option><option value="03">03</option><option value="04">04</option><option value="05">05</option><option value="06">06</option><option value="07">07</option><option value="08">08</option><option value="09">09</option><option value="10">10</option><option value="11">11</option><option value="12">12</option><option value="13">13</option><option value="14">14</option><option value="15">15</option><option value="16">16</option><option value="17">17</option><option value="18">18</option><option value="19">19</option><option value="20">20</option><option value="21">21</option><option value="22">22</option><option value="23">23</option>
                       </select>
                       <span>:</span>
-                      <select id="covEndMin" aria-label="End minutes">
+            <select id="covEndMin" aria-label="End minutes" class="select">
                         <option value="00">00</option><option value="15">15</option><option value="30">30</option><option value="45">45</option>
                       </select>
                     </div>
-                    <button class="btn subtle" id="btnSaveCoverage">Save</button>
+          <button class="btn btn-secondary" id="btnSaveCoverage">Save</button>
                 </div>
             </div>
         </div>
         <div class="footer-links">
-            <button class="btn subtle" id="btnCloseMenu">Close</button>
+      <button class="btn btn-secondary" id="btnCloseMenu">Close</button>
         </div>
     </div>
 
@@ -219,38 +188,38 @@
             <div class="rowx">
               <label for="wizStartDate">Start date & time</label>
               <div class="time-selects">
-                <input type="date" id="wizStartDate" class="mini-input">
-                <select id="wizStartHour12" aria-label="Start hour">
+                <input type="date" id="wizStartDate" class="input">
+                <select id="wizStartHour12" aria-label="Start hour" class="select">
                   <option value="">HH</option>
                   <option value="01">01</option><option value="02">02</option><option value="03">03</option><option value="04">04</option><option value="05">05</option><option value="06">06</option><option value="07">07</option><option value="08">08</option><option value="09" selected>09</option><option value="10">10</option><option value="11">11</option><option value="12">12</option>
                 </select>
                 <span>:</span>
-                <select id="wizStartMin" aria-label="Start minutes">
+                <select id="wizStartMin" aria-label="Start minutes" class="select">
                   <option value="">MM</option>
                   <option value="00" selected>00</option>
                   <option value="15">15</option>
                   <option value="30">30</option>
                   <option value="45">45</option>
                 </select>
-                <select id="wizStartAmPm" aria-label="Start AM/PM"><option value="AM" selected>AM</option><option value="PM">PM</option></select>
+                <select id="wizStartAmPm" aria-label="Start AM/PM" class="select"><option value="AM" selected>AM</option><option value="PM">PM</option></select>
               </div>
             </div>
             <div class="rowx">
               <label for="wizEndHour">End time (optional)</label>
               <div class="time-selects">
-                <select id="wizEndHour12" aria-label="End hour">
+                <select id="wizEndHour12" aria-label="End hour" class="select">
                   <option value="">HH</option>
                   <option value="01">01</option><option value="02">02</option><option value="03">03</option><option value="04">04</option><option value="05">05</option><option value="06">06</option><option value="07">07</option><option value="08">08</option><option value="09">09</option><option value="10">10</option><option value="11">11</option><option value="12">12</option>
                 </select>
                 <span>:</span>
-                <select id="wizEndMin" aria-label="End minutes">
+                <select id="wizEndMin" aria-label="End minutes" class="select">
                   <option value="">MM</option>
                   <option value="00">00</option>
                   <option value="15">15</option>
                   <option value="30">30</option>
                   <option value="45">45</option>
                 </select>
-                <select id="wizEndAmPm" aria-label="End AM/PM"><option value="AM">AM</option><option value="PM">PM</option></select>
+                <select id="wizEndAmPm" aria-label="End AM/PM" class="select"><option value="AM">AM</option><option value="PM">PM</option></select>
               </div>
             </div>
             <!-- Moved repeat controls into this step to keep all scheduling on one screen -->
@@ -263,7 +232,7 @@
             </div>
             <div class="rowx hidden" id="wizUntilCtn">
               <label>Repeat until (optional)</label>
-              <input type="date" id="wizUntil" class="mini-input">
+              <input type="date" id="wizUntil" class="input">
               <div class="muted">Defaults to end of year if empty.</div>
             </div>
           </div>
@@ -277,9 +246,9 @@
           <!-- step4 removed -->
         </div>
         <div class="ft">
-          <button class="btn subtle" id="wizCancel">Cancel</button>
-          <button class="btn hidden" id="wizBack">Back</button>
-          <button class="btn" id="wizNext">Next</button>
+          <button class="btn btn-secondary" id="wizCancel">Cancel</button>
+          <button class="btn btn-secondary hidden" id="wizBack">Back</button>
+          <button class="btn btn-primary" id="wizNext">Next</button>
         </div>
       </div>
     </div>
@@ -296,18 +265,18 @@
             </div>
             <div class="rowx">
               <label for="eEmployee">Reassign caregiver (optional)</label>
-              <select id="eEmployee"><option value="">Keep current</option></select>
+              <select id="eEmployee" class="select"><option value="">Keep current</option></select>
             </div>
           </div>
           <div class="step hidden" id="eStep2">
             <div class="rowx">
               <label>Start time</label>
               <div class="time-selects">
-                <select id="eStartHour" aria-label="Start hour">
+                <select id="eStartHour" aria-label="Start hour" class="select">
                   <option value="00">00</option><option value="01">01</option><option value="02">02</option><option value="03">03</option><option value="04">04</option><option value="05">05</option><option value="06">06</option><option value="07">07</option><option value="08">08</option><option value="09">09</option><option value="10">10</option><option value="11">11</option><option value="12">12</option><option value="13">13</option><option value="14">14</option><option value="15">15</option><option value="16">16</option><option value="17">17</option><option value="18">18</option><option value="19">19</option><option value="20">20</option><option value="21">21</option><option value="22">22</option><option value="23">23</option>
                 </select>
                 <span>:</span>
-                <select id="eStartMin" aria-label="Start minutes">
+                <select id="eStartMin" aria-label="Start minutes" class="select">
                   <option value="00">00</option><option value="15">15</option><option value="30">30</option><option value="45">45</option>
                 </select>
               </div>
@@ -315,12 +284,12 @@
             <div class="rowx">
               <label>End time (optional)</label>
               <div class="time-selects">
-                <select id="eEndHour" aria-label="End hour">
+                <select id="eEndHour" aria-label="End hour" class="select">
                   <option value="">HH</option>
                   <option value="00">00</option><option value="01">01</option><option value="02">02</option><option value="03">03</option><option value="04">04</option><option value="05">05</option><option value="06">06</option><option value="07">07</option><option value="08">08</option><option value="09">09</option><option value="10">10</option><option value="11">11</option><option value="12">12</option><option value="13">13</option><option value="14">14</option><option value="15">15</option><option value="16">16</option><option value="17">17</option><option value="18">18</option><option value="19">19</option><option value="20">20</option><option value="21">21</option><option value="22">22</option><option value="23">23</option>
                 </select>
                 <span>:</span>
-                <select id="eEndMin" aria-label="End minutes">
+                <select id="eEndMin" aria-label="End minutes" class="select">
                   <option value="">MM</option>
                   <option value="00">00</option><option value="15">15</option><option value="30">30</option><option value="45">45</option>
                 </select>
@@ -348,9 +317,9 @@
           </div>
         </div>
         <div class="ft">
-          <button class="btn subtle" id="eCancel">Cancel</button>
-          <button class="btn hidden" id="eBack">Back</button>
-          <button class="btn" id="eNext">Next</button>
+          <button class="btn btn-secondary" id="eCancel">Cancel</button>
+          <button class="btn btn-secondary hidden" id="eBack">Back</button>
+          <button class="btn btn-primary" id="eNext">Next</button>
         </div>
       </div>
     </div>
@@ -358,6 +327,7 @@
 
 <script id="shifts-data" type="application/json">{{ shifts | tojson }}</script>
 <script id="employees-data" type="application/json">{{ employees | tojson }}</script>
+<script src="{{ url_for('static', filename='js/theme.js') }}"></script>
 <script>
 // --- Utilities ---
 function pad2(n){ return String(n).padStart(2,'0'); }
@@ -366,9 +336,7 @@ function startOfWeek(d){ const x=new Date(d); const w=(x.getDay()+6)%7; x.setHou
 function startOfMonth(d){ const x=new Date(d.getFullYear(), d.getMonth(), 1); x.setHours(0,0,0,0); return x; }
 function addDays(d,n){ const x=new Date(d); x.setDate(x.getDate()+n); return x; }
 function hashString(str){ let h=0; for(let i=0;i<str.length;i++){ h=(h<<5)-h+str.charCodeAt(i); h|=0; } return Math.abs(h); }
-function hslToHex(h,s,l){ s/=100; l/=100; const k=n=>(n+h/30)%12; const a=s*Math.min(l,1-l); const f=n=> l - a*Math.max(-1,Math.min(k(n)-3,Math.min(9-k(n),1))); const toHex=x=> Math.round(x*255).toString(16).padStart(2,'0'); return `#${toHex(f(0))}${toHex(f(8))}${toHex(f(4))}`; }
-function colorForName(name){ const h=hashString(name)%360; return hslToHex(h,55,60); }
-function contrast(hex){ const r=parseInt(hex.slice(1,3),16), g=parseInt(hex.slice(3,5),16), b=parseInt(hex.slice(5,7),16); const yiq=(r*299+g*587+b*114)/1000; return yiq>=140?'#000':'#fff'; }
+function nameToEventClass(name){ const n=name.toLowerCase(); if(n.includes('kellie')) return 'kellie'; if(n.includes('robin')) return 'robin'; if(n.includes('scarlett')) return 'scarlett'; const pool=['purple','cyan']; return pool[hashString(name)%pool.length]; }
 // Ensure form validation handler exists (wizard handles validation already)
 function validateShiftForm(){ return true; }
 
@@ -402,7 +370,7 @@ function minsFromHHMM(t){ const [hh,mm]=t.split(':').map(x=>parseInt(x,10)||0); 
 function buildLegend(){
   const legend = document.getElementById('calendarLegend'); legend.innerHTML='';
   const names=[...new Set(shiftsData.map(s=>s.name))].sort((a,b)=>a.localeCompare(b));
-  names.forEach(n=>{ const color=colorForName(n); const item=document.createElement('div'); item.className='legend-item'; const sw=document.createElement('span'); sw.className='legend-swatch'; sw.style.background=color; const label=document.createElement('span'); label.textContent=n; item.append(sw,label); legend.appendChild(item); });
+  names.forEach(n=>{ const cls=nameToEventClass(n); const item=document.createElement('div'); item.className='legend-item'; const sw=document.createElement('span'); sw.className='legend-swatch '+cls; const label=document.createElement('span'); label.textContent=n; item.append(sw,label); legend.appendChild(item); });
 }
 
 // --- Views ---
@@ -450,7 +418,7 @@ function renderDayCell(day, shownMonth, currentWeekStart, grid){
   if(isToday) cell.classList.add('today-cell');
 
   const dateTag=document.createElement('div'); dateTag.className='date-tag';
-  const dateNum=document.createElement('span'); dateNum.textContent=day.getDate();
+  const dateNum=document.createElement('span'); dateNum.textContent=fmtDayLabel(day);
   const todayBadge=document.createElement('span'); if(isToday){ todayBadge.className='today-dot'; }
   dateTag.appendChild(dateNum); if(isToday) dateTag.appendChild(todayBadge); cell.appendChild(dateTag);
   // Add hover button to create shift
@@ -478,18 +446,18 @@ function renderDayCell(day, shownMonth, currentWeekStart, grid){
   let merged=[]; for(const iv of intervals){ if(!merged.length || iv[0]>merged[merged.length-1][1]) merged.push(iv); else merged[merged.length-1][1]=Math.max(merged[merged.length-1][1], iv[1]); }
   let covered=0; merged.forEach(([a,b])=> covered+= (b-a));
   if(covered < (ATT_END-ATT_START)){
-      const badge=document.createElement('span'); badge.className='gap-badge'; badge.textContent='Coverage gap'; cell.classList.add('needs-attention'); cell.appendChild(badge);
+  const badge=document.createElement('span'); badge.className='gap-badge'; badge.textContent='Coverage gap'; cell.classList.add('needs-attention'); cell.appendChild(badge);
   }
 
   dayShifts.forEach(sh=>{
-      const color=colorForName(sh.name); const text=contrast(color);
-      const pill=document.createElement('div'); pill.className='pill'; pill.style.background=color; pill.style.color=text;
+      const cls=nameToEventClass(sh.name);
+      const ev=document.createElement('div'); ev.className='event '+cls;
       const timelabel = `${to12h(sh.start)}${sh.end? '–'+to12h(sh.end): ''}`;
-      pill.innerHTML = `<span>${timelabel} ${sh.name}</span>`;
-      pill.dataset.shiftId=sh.id; pill.dataset.seriesId=sh.series_id||''; pill.dataset.employeeId=sh.employee_id;
-      pill.addEventListener('click', (e)=>{ e.stopPropagation(); if(selectionMode){ toggleSelect(pill, sh.id, sh.series_id); } else { openMenu(e, sh); } });
-      pill.addEventListener('contextmenu', (e)=>{ e.preventDefault(); e.stopPropagation(); if(selectionMode){ toggleSelect(pill, sh.id, sh.series_id); } else { openMenu(e, sh); } });
-      pills.appendChild(pill);
+      ev.innerHTML = `<span>${timelabel} ${sh.name}</span>`;
+      ev.dataset.shiftId=sh.id; ev.dataset.seriesId=sh.series_id||''; ev.dataset.employeeId=sh.employee_id;
+      ev.addEventListener('click', (e)=>{ e.stopPropagation(); if(selectionMode){ toggleSelect(ev, sh.id, sh.series_id); } else { openMenu(e, sh); } });
+      ev.addEventListener('contextmenu', (e)=>{ e.preventDefault(); e.stopPropagation(); if(selectionMode){ toggleSelect(ev, sh.id, sh.series_id); } else { openMenu(e, sh); } });
+      pills.appendChild(ev);
   });
 
   grid.appendChild(cell);
@@ -728,6 +696,11 @@ function to12h(dateObj){
   return `${h}:${m} ${am?'AM':'PM'}`;
 }
 
+function fmtDayLabel(d){
+  const w = ['Mon','Tue','Wed','Thu','Fri','Sat','Sun'][(d.getDay()+6)%7];
+  return `${w} ${pad2(d.getMonth()+1)}/${pad2(d.getDate())}`;
+}
+
 // Buttons
  document.getElementById('btnNewShift').addEventListener('click', openWizard);
  document.getElementById('wizCancel').addEventListener('click', closeWizard);
@@ -792,7 +765,7 @@ const _openWizard = openWizard; openWizard = function(){ _openWizard(); prefillW
       const now=new Date(); const mm=now.getMonth()+1; const s=sunsetByMonth[mm]||'19:00';
       const [sh,sm]=s.split(':').map(x=>parseInt(x,10));
       const sunset=new Date(now); sunset.setHours(sh,sm,0,0);
-      const sunrise=new Date(now); sunrise.setHours(6,30,0,0);
+  const sunrise=new Date(now); sunrise.setHours(6,45,0,0);
       return (now>=sunset || now<sunrise);
     }catch{ return window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches; }
   }

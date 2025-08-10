@@ -7,91 +7,20 @@
 	<link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Kanit:ital,wght@0,100;0,200;0,300;0,400;0,500;0,600;0,700;0,800;0,900;1,100;1,200;1,300;1,400;1,500;1,600;1,700;1,800;1,900&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/theme-dark.css') }}">
     <title>Performance Metrics Dashboard</title>
     <style>
-        body {
-            font-family: Kanit, sans-serif;
-            background-color: #f4f4f4;
-            margin: 0;
-            padding: 0;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            min-height: 100vh;
-        }
-        header{ width:100%; background:#fff; border-bottom:1px solid #e5e7eb; margin-bottom: 20px; }
+        body{ font-family: Kanit, system-ui, Segoe UI, Roboto, sans-serif; margin:0; background: var(--bg-0); color: var(--text-1); display:flex; flex-direction:column; align-items:center; min-height:100vh; }
+        header{ width:100%; margin-bottom:20px; }
         .nav{ max-width:1100px; margin:0 auto; display:flex; align-items:center; justify-content:space-between; padding:10px 16px; }
-        .nav a{ color:#222; text-decoration:none; padding:6px 10px; border-radius:6px; }
-        .nav a:hover{ background:#f0f3f8; }
         .nav .left{ display:flex; gap:12px; align-items:center; }
-        .logo{ font-weight:700; color:#1976d2; }
-
-        .container {
-            background-color: white;
-            padding: 30px;
-            box-shadow: 0 0 15px rgba(0, 0, 0, 0.15);
-            border-radius: 12px;
-            text-align: center;
-            max-width: 700px;
-            width: 90%;
-        }
-
-        h1 {
-            margin-bottom: 20px;
-            font-size: 26px;
-            color: #333;
-        }
-
-        .stat-box {
-            display: flex;
-            justify-content: space-around;
-            flex-wrap: wrap;
-            margin-bottom: 25px;
-        }
-
-        .stat-box div {
-            background-color: #e7f3ff;
-            padding: 25px;
-            width: 140px; /* Adjusted width for 5 boxes */
-            border-radius: 12px;
-            text-align: center;
-            font-size: 18px;
-            box-shadow: 0 8px 20px rgba(0, 0, 0, 0.1);
-            margin: 10px; /* Margin for spacing */
-        }
-
-        .stat-box div span {
-            font-size: 20px;
-            display: block;
-            margin-bottom: 10px;
-        }
-
-        .stat-box div i {
-            font-size: 40px;
-            color: #007bff;
-            margin-bottom: 10px;
-        }
-
-        .footer {
-            margin-top: 20px;
-            font-size: 14px;
-            color: #777;
-        }
-
-        .back-button {
-            margin-top: 30px;
-            display: inline-block;
-            padding: 10px 20px;
-            background-color: #007bff;
-            color: white;
-            border-radius: 5px;
-            text-decoration: none;
-            font-size: 16px;
-        }
-
-        .back-button:hover {
-            background-color: #0056b3;
-        }
+        .logo{ font-weight:700; color: var(--primary); }
+        .container{ width:90%; max-width:700px; }
+        h1{ margin-bottom:20px; font-size:26px; color: var(--text-1); text-align:center; }
+        .stat-box{ display:flex; justify-content:space-around; flex-wrap:wrap; margin-bottom:25px; }
+        .stat-box .stat-card{ width:140px; }
+        .footer{ margin-top:20px; font-size:14px; color: var(--text-3); text-align:center; }
+        .back-button{ margin-top:30px; }
     </style>
 </head>
 <body>
@@ -116,39 +45,36 @@
         <h1>Performance Metrics Dashboard</h1>
 
         <div class="stat-box">
-            <div>
-                <i class="fas fa-users"></i>
-                <span>{{ no_of_employees }}</span>
-                Employees
+            <div class="stat-card card">
+                <i class="fas fa-users icon"></i>
+                <span class="value">{{ no_of_employees }}</span>
+                <div class="label">Employees</div>
             </div>
-            <div>
-                <i class="fas fa-tasks"></i>
-                <span>{{ no_of_tasks }}</span>
-                Tasks
+            <div class="stat-card card">
+                <i class="fas fa-tasks icon"></i>
+                <span class="value">{{ no_of_tasks }}</span>
+                <div class="label">Tasks</div>
             </div>
-            <div>
-                <i class="fas fa-calendar-alt"></i>
-                <span>{{ no_of_shifts }}</span>
-                Shifts
+            <div class="stat-card card">
+                <i class="fas fa-calendar-alt icon"></i>
+                <span class="value">{{ no_of_shifts }}</span>
+                <div class="label">Shifts</div>
             </div>
-            <div>
-                <i class="fas fa-check-circle"></i>
-                <span>{{ no_of_present }}</span>
-                Attendance Present
+            <div class="stat-card card">
+                <i class="fas fa-check-circle icon"></i>
+                <span class="value">{{ no_of_present }}</span>
+                <div class="label">Attendance Present</div>
             </div>
-            <div>
-                <i class="fas fa-times-circle"></i>
-                <span>{{ no_of_absent }}</span>
-                Attendance Absent
+            <div class="stat-card card">
+                <i class="fas fa-times-circle icon"></i>
+                <span class="value">{{ no_of_absent }}</span>
+                <div class="label">Attendance Absent</div>
             </div>
         </div>
 
-        <div class="footer">
-            Updated as of today
-        </div>
-
-        <!-- Back Button -->
-        <a href="/" class="back-button">Back</a>
+        <div class="footer">Updated as of today</div>
+        <a href="/" class="btn btn-secondary back-button">Back</a>
     </div>
 </body>
+<script src="{{ url_for('static', filename='js/theme.js') }}"></script>
 </html>

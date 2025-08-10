@@ -443,14 +443,27 @@ def api_update_series():
 @app.route('/hours')
 @login_required
 def hours_report():
-    # Optional query param ?start=YYYY-MM-DD; defaults to today, aligned to Monday
+    # Optional query params: ?start=YYYY-MM-DD&end=YYYY-MM-DD
+    # If end missing, default to start + 6 days. If neither provided, default to current week (Mon..Sun).
     start_raw = request.args.get('start')
-    try:
-        start_date = datetime.strptime(start_raw, '%Y-%m-%d').date() if start_raw else date.today()
-    except ValueError:
-        start_date = date.today()
-    start_monday = start_date - timedelta(days=start_date.weekday())
-    end_sunday = start_monday + timedelta(days=6)
+    end_raw = request.args.get('end')
+    today_d = date.today()
+    if start_raw:
+        try:
+            start_date = datetime.strptime(start_raw, '%Y-%m-%d').date()
+        except ValueError:
+            start_date = today_d - timedelta(days=today_d.weekday())
+    else:
+        start_date = today_d - timedelta(days=today_d.weekday())
+    if end_raw:
+        try:
+            end_date = datetime.strptime(end_raw, '%Y-%m-%d').date()
+        except ValueError:
+            end_date = start_date + timedelta(days=6)
+    else:
+        end_date = start_date + timedelta(days=6)
+    if end_date < start_date:
+        start_date, end_date = end_date, start_date
 
     db_path = os.path.join(os.path.dirname(__file__), 'database.db')
     conn = sqlite3.connect(db_path)
@@ -463,7 +476,7 @@ def hours_report():
         JOIN employees ON shifts.employee_id = employees.id
         WHERE date(shifts.shift_time) BETWEEN date(?) AND date(?)
         """,
-        (start_monday.isoformat(), end_sunday.isoformat())
+        (start_date.isoformat(), end_date.isoformat())
     )
     rows = cur.fetchall()
     conn.close()
@@ -490,20 +503,32 @@ def hours_report():
         for n, m in sorted(totals_min.items(), key=lambda x: x[0].lower())
     ]
 
-    return render_template('hours.html', report=report, start=start_monday.isoformat(), end=end_sunday.isoformat())
+    return render_template('hours.html', report=report, start=start_date.isoformat(), end=end_date.isoformat())
 
 # --- Weekly hours CSV export ---
 @app.route('/hours.csv')
 @login_required
 def hours_csv():
-    # reuse logic from hours_report
+    # Reuse logic from hours_report with optional end date support
     start_raw = request.args.get('start')
-    try:
-        start_date = datetime.strptime(start_raw, '%Y-%m-%d').date() if start_raw else date.today()
-    except ValueError:
-        start_date = date.today()
-    start_monday = start_date - timedelta(days=start_date.weekday())
-    end_sunday = start_monday + timedelta(days=6)
+    end_raw = request.args.get('end')
+    today_d = date.today()
+    if start_raw:
+        try:
+            start_date = datetime.strptime(start_raw, '%Y-%m-%d').date()
+        except ValueError:
+            start_date = today_d - timedelta(days=today_d.weekday())
+    else:
+        start_date = today_d - timedelta(days=today_d.weekday())
+    if end_raw:
+        try:
+            end_date = datetime.strptime(end_raw, '%Y-%m-%d').date()
+        except ValueError:
+            end_date = start_date + timedelta(days=6)
+    else:
+        end_date = start_date + timedelta(days=6)
+    if end_date < start_date:
+        start_date, end_date = end_date, start_date
 
     db_path = os.path.join(os.path.dirname(__file__), 'database.db')
     conn = sqlite3.connect(db_path)
@@ -516,7 +541,7 @@ def hours_csv():
         JOIN employees ON shifts.employee_id = employees.id
         WHERE date(shifts.shift_time) BETWEEN date(?) AND date(?)
         """,
-        (start_monday.isoformat(), end_sunday.isoformat())
+        (start_date.isoformat(), end_date.isoformat())
     )
     rows = cur.fetchall()
     conn.close()
@@ -542,7 +567,7 @@ def hours_csv():
     for name, mins in sorted(totals_min.items(), key=lambda x: x[0].lower()):
         lines.append(f"{name},{round(mins/60.0, 2)}")
     csv_data = "\n".join(lines)
-    return Response(csv_data, mimetype='text/csv', headers={'Content-Disposition': f'attachment; filename="hours_{start_monday.isoformat()}_{end_sunday.isoformat()}.csv"'})
+    return Response(csv_data, mimetype='text/csv', headers={'Content-Disposition': f'attachment; filename="hours_{start_date.isoformat()}_{end_date.isoformat()}.csv"'})
 
 if __name__ == '__main__':
     init_db()
