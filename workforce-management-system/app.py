@@ -452,7 +452,8 @@ def hours_report():
     start_monday = start_date - timedelta(days=start_date.weekday())
     end_sunday = start_monday + timedelta(days=6)
 
-    conn = sqlite3.connect('database.db')
+    db_path = os.path.join(os.path.dirname(__file__), 'database.db')
+    conn = sqlite3.connect(db_path)
     conn.row_factory = sqlite3.Row
     cur = conn.cursor()
     cur.execute(
@@ -504,7 +505,8 @@ def hours_csv():
     start_monday = start_date - timedelta(days=start_date.weekday())
     end_sunday = start_monday + timedelta(days=6)
 
-    conn = sqlite3.connect('database.db')
+    db_path = os.path.join(os.path.dirname(__file__), 'database.db')
+    conn = sqlite3.connect(db_path)
     conn.row_factory = sqlite3.Row
     cur = conn.cursor()
     cur.execute(
