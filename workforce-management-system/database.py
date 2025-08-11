@@ -250,6 +250,27 @@ def get_shifts_with_names():
     conn.close()
     return shifts
 
+def get_shifts_with_names_between(start_iso_date: str, end_iso_date: str):
+        """Get shifts with employee names where date(shift_time) is between start and end (inclusive).
+        Dates must be 'YYYY-MM-DD'. Returns rows with columns:
+            id, name, employee_id, shift_time, end_time, series_id
+        """
+        conn = connect_db()
+        cursor = conn.cursor()
+        cursor.execute(
+                """
+                SELECT shifts.id, employees.name, employees.id as employee_id, shifts.shift_time, shifts.end_time, shifts.series_id
+                FROM shifts
+                JOIN employees ON shifts.employee_id = employees.id
+                WHERE date(shifts.shift_time) BETWEEN date(?) AND date(?)
+                ORDER BY shifts.shift_time
+                """,
+                (start_iso_date, end_iso_date)
+        )
+        rows = cursor.fetchall()
+        conn.close()
+        return rows
+
 def get_attendance_with_names():
     """Get all attendance records from the database with employee names."""
     conn = connect_db()

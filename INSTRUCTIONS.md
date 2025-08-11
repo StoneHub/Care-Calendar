@@ -93,3 +93,74 @@ bash scripts/backup_db.sh
 - If you prefer the old style, you can still run from the subfolder:
   - `cd workforce-management-system && python app.py`
 - The roadmap for features and status is in `workforce-management-system/ROADMAP.md`.
+
+## Shared Google Calendar (auto-sync from the Pi)
+
+Goal: Keep your site local on the Raspberry Pi while automatically pushing shifts to a shared Google Calendar. Caregivers only need to subscribe once; you edit shifts here and updates flow out.
+
+What you'll do once:
+
+- Enable Google Calendar API and download an OAuth client JSON.
+- Generate a token on your Windows PC (easier), which will be copied to the Pi.
+- Run a deploy script that installs deps on the Pi and sets up a systemd timer.
+
+Prereqs
+
+- You can SSH into the Pi from Windows PowerShell. Example: `ssh pi@192.168.x.x`
+- Your repo has a Python venv: `.venv` at root.
+
+Step 1 — Enable API and place client secret
+
+1) In Google Cloud Console, create or open a project.
+2) Enable “Google Calendar API”.
+3) Create OAuth client credentials of type “Desktop app”. Download the JSON.
+4) Save it to: `workforce-management-system/.secrets/client_secret.json` (create the `.secrets` folder).
+
+Step 2 — Generate token on Windows
+
+```powershell
+# From repo root in PowerShell with venv active
+python scripts/google_oauth_setup.py
+```
+Follow the printed URL, sign in, allow access, paste the code. This writes:
+`workforce-management-system/.secrets/token.json`.
+
+Step 3 — Choose calendar
+
+- Default is your account’s primary calendar.
+- Optional: use a specific shared calendar ID (Google Calendar > Settings > [Calendar] > Integrate Calendar > Calendar ID).
+
+Step 4 — Deploy sync to Raspberry Pi
+
+```powershell
+# From repo root (PowerShell)
+# Example: Pi at 192.168.50.170, user pi, custom calendar id
+./scripts/deploy_pi_sync.ps1 -HostName 192.168.50.170 -User pi -CalendarId "your_shared_calendar_id@group.calendar.google.com"
+```
+
+What it does:
+
+- Copies client_secret.json + token.json to the Pi.
+- Ensures a venv and installs requirements on the Pi.
+- Copies the sync script and sets up a systemd service + timer to run every 5 minutes.
+
+Step 5 — Verify on the Pi
+
+```powershell
+ssh pi@192.168.50.170 "systemctl status care-calendar-sync.service; journalctl -u care-calendar-sync -n 50 --no-pager"
+```
+
+Manual run (optional)
+
+```powershell
+ssh pi@192.168.50.170 "cd ~/Care-Calendar; source .venv/bin/activate; GOOGLE_CALENDAR_ID='your_id' CARE_TZ='America/New_York' python scripts/google_calendar_sync.py"
+
+```
+
+Share the calendar with caregivers in Google Calendar (read-only). They don’t need to touch the Pi.
+
+Notes
+
+- Secrets are git-ignored under `workforce-management-system/.secrets/`.
+- If you change the Google account or calendar, re-run the deploy with a new token.
+- The sync script upserts events by stable id `shift-<id>` and prunes events that no longer exist in the DB within a 6‑month window.

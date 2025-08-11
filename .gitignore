@@ -45,3 +45,6 @@ workforce-management-system/*.db
 .venv/
 *.sqlite3
 database.db
+ 
+# Secrets for Google Calendar integration
+workforce-management-system/.secrets/
