@@ -164,3 +164,21 @@ Notes
 - Secrets are git-ignored under `workforce-management-system/.secrets/`.
 - If you change the Google account or calendar, re-run the deploy with a new token.
 - The sync script upserts events by stable id `shift-<id>` and prunes events that no longer exist in the DB within a 6‑month window.
+
+### Alternative: Do everything on the Pi (SSH‑only)
+
+If you prefer to set up OAuth and the timer entirely on the Pi:
+
+```powershell
+# From Windows
+ssh pi@192.168.50.170 "git clone <your-repo-url> Care-Calendar || true && chmod +x Care-Calendar/scripts/pi_bootstrap.sh && bash Care-Calendar/scripts/pi_bootstrap.sh"
+```
+
+The bootstrap script will:
+
+- Install Python venv/pip
+- Install requirements
+- Prompt to paste client_secret.json (or scp beforehand)
+- Run console OAuth to create token.json
+- Ask for the calendar ID (or use primary)
+- Install and start the systemd timer
