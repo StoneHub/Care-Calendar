@@ -6,6 +6,7 @@ from database import insert_attendance, get_attendance_with_names, insert_task, 
 from database import delete_employee, delete_shift, delete_attendance, delete_task
 from database import insert_user, get_user_by_email
 from database import delete_shifts_by_series, update_shift_employee
+from database import connect_db
 import sqlite3
 from datetime import datetime, timedelta, date, time as dtime
 import os
@@ -384,7 +385,8 @@ def api_update_series():
             except Exception:
                 return jsonify({ 'ok': False, 'error': 'employee_id must be integer' }), 400
         else:
-            conn0 = sqlite3.connect('database.db')
+            # Use same DB path/connection helper as rest of app to avoid CWD issues
+            conn0 = connect_db()
             cur0 = conn0.cursor()
             # Prefer any occurrence on/after start_date (about to be replaced)
             cur0.execute(
@@ -414,9 +416,13 @@ def api_update_series():
                 return jsonify({ 'ok': False, 'error': 'Could not infer employee for this series. Please choose a caregiver.' }), 400
 
         # delete occurrences on/after start_date in this series
-        conn = sqlite3.connect('database.db')
+        # Delete using the canonical DB connection
+        conn = connect_db()
         cur = conn.cursor()
-        cur.execute("DELETE FROM shifts WHERE series_id = ? AND date(shift_time) >= date(?)", (series_id, start_date.isoformat()))
+        cur.execute(
+            "DELETE FROM shifts WHERE series_id = ? AND date(shift_time) >= date(?)",
+            (series_id, start_date.isoformat()),
+        )
         conn.commit()
         conn.close()
 
