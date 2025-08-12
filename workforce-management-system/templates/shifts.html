@@ -134,14 +134,18 @@
       <select id="swapSelect" class="select"><option value="">Swap to…</option></select>
       <button class="btn btn-primary" id="btnSwap">Swap</button>
         </div>
-        <!-- Replace bulky inline update UI with a single button that opens a wizard -->
+        <!-- Edit buttons for series and single day -->
         <div class="row is-hidden" id="editSeriesRow">
             <div class="fullw">
-                <div class="mini-label">Series</div>
-        <button class="btn btn-primary" id="btnOpenEditSeries">Edit series…</button>
+                <div class="mini-label">Edit Options</div>
+                <div class="seg">
+                    <button class="btn btn-primary" id="btnOpenEditSeries">Edit Series</button>
+                    <button class="btn btn-secondary" id="btnOpenEditDay">Edit Day</button>
+                </div>
             </div>
         </div>
-        <div class="row">
+        <!-- Coverage window hidden as per requirements -->
+        <div class="row is-hidden" id="coverageWindowRow">
             <div class="fullw">
                 <div class="mini-label">Coverage window</div>
                 <div class="seg">
@@ -320,6 +324,64 @@
           <button class="btn btn-secondary" id="eCancel">Cancel</button>
           <button class="btn btn-secondary hidden" id="eBack">Back</button>
           <button class="btn btn-primary" id="eNext">Next</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Edit Day Wizard Modal -->
+    <div class="overlay is-hidden" id="editDayOverlay" role="dialog" aria-modal="true" aria-labelledby="editDayTitle">
+      <div class="modal" id="editDayModal">
+        <div class="hd" id="editDayTitle">Edit Day</div>
+        <div class="bd">
+          <div class="step" id="dStep1">
+            <div class="rowx">
+              <label>Scope</label>
+              <div class="muted">Changes apply only to this specific day's shift. The rest of the series remains unchanged.</div>
+            </div>
+            <div class="rowx">
+              <label for="dEmployee">Reassign caregiver (optional)</label>
+              <select id="dEmployee" class="select"><option value="">Keep current</option></select>
+            </div>
+          </div>
+          <div class="step hidden" id="dStep2">
+            <div class="rowx">
+              <label>Start time</label>
+              <div class="time-selects">
+                <select id="dStartHour" aria-label="Start hour" class="select">
+                  <option value="00">00</option><option value="01">01</option><option value="02">02</option><option value="03">03</option><option value="04">04</option><option value="05">05</option><option value="06">06</option><option value="07">07</option><option value="08">08</option><option value="09">09</option><option value="10">10</option><option value="11">11</option><option value="12">12</option><option value="13">13</option><option value="14">14</option><option value="15">15</option><option value="16">16</option><option value="17">17</option><option value="18">18</option><option value="19">19</option><option value="20">20</option><option value="21">21</option><option value="22">22</option><option value="23">23</option>
+                </select>
+                <span>:</span>
+                <select id="dStartMin" aria-label="Start minutes" class="select">
+                  <option value="00">00</option><option value="15">15</option><option value="30">30</option><option value="45">45</option>
+                </select>
+              </div>
+            </div>
+            <div class="rowx">
+              <label>End time (optional)</label>
+              <div class="time-selects">
+                <select id="dEndHour" aria-label="End hour" class="select">
+                  <option value="">HH</option>
+                  <option value="00">00</option><option value="01">01</option><option value="02">02</option><option value="03">03</option><option value="04">04</option><option value="05">05</option><option value="06">06</option><option value="07">07</option><option value="08">08</option><option value="09">09</option><option value="10">10</option><option value="11">11</option><option value="12">12</option><option value="13">13</option><option value="14">14</option><option value="15">15</option><option value="16">16</option><option value="17">17</option><option value="18">18</option><option value="19">19</option><option value="20">20</option><option value="21">21</option><option value="22">22</option><option value="23">23</option>
+                </select>
+                <span>:</span>
+                <select id="dEndMin" aria-label="End minutes" class="select">
+                  <option value="">MM</option>
+                  <option value="00">00</option><option value="15">15</option><option value="30">30</option><option value="45">45</option>
+                </select>
+              </div>
+            </div>
+          </div>
+          <div class="step hidden" id="dStep3">
+            <div class="rowx">
+              <strong>Review</strong>
+              <div id="dReview" class="muted"></div>
+            </div>
+          </div>
+        </div>
+        <div class="ft">
+          <button class="btn btn-secondary" id="dCancel">Cancel</button>
+          <button class="btn btn-secondary hidden" id="dBack">Back</button>
+          <button class="btn btn-primary" id="dNext">Next</button>
         </div>
       </div>
     </div>
@@ -891,6 +953,112 @@ if(eNextBtn){ eNextBtn.addEventListener('click', async (ev)=>{
     }catch(err){ console.error('[EditSeries] failed', err); alert('Failed to update series: '+(err && err.message ? err.message : err)); }
   }
 }); }
+
+// --- Edit Day Wizard logic ---
+const btnOpenEditDay = document.getElementById('btnOpenEditDay');
+const dSelect = document.getElementById('dEmployee');
+const dOverlay = document.getElementById('editDayOverlay');
+const dBackBtn = document.getElementById('dBack');
+const dNextBtn = document.getElementById('dNext');
+const dCancelBtn = document.getElementById('dCancel');
+const dStartHour = document.getElementById('dStartHour');
+const dStartMin = document.getElementById('dStartMin');
+const dEndHour = document.getElementById('dEndHour');
+const dEndMin = document.getElementById('dEndMin');
+const dReview = document.getElementById('dReview');
+
+const dWiz = { step:1, employeeId:null, time:null, end:null };
+
+function dShowStep(n){
+  dWiz.step=n;
+  for(let i=1;i<=3;i++){
+    const stepEl = document.getElementById('dStep'+i);
+    if(stepEl) stepEl.classList.toggle('hidden', i!==n);
+  }
+  dBackBtn.classList.toggle('hidden', n===1);
+  dNextBtn.textContent = (n===3? 'Update day' : 'Next');
+  if(n===3) dBuildReview();
+}
+
+function openEditDayWizard(){
+  if(!currentShift) return;
+  // Hide the context menu but preserve the selected shift for the wizard flow
+  if(menu && menu.style.display==='block') closeMenu(true);
+  // populate employees select
+  if(dSelect){
+    dSelect.innerHTML = '<option value="">Keep current</option>' + employeesData.map(e=>`<option value="${e.id}">${e.name}</option>`).join('');
+  }
+  // reset selections
+  dWiz.step=1; dWiz.employeeId=null; dWiz.time=null; dWiz.end=null;
+  if(dSelect) dSelect.value='';
+  if(dStartHour) dStartHour.value = pad2(currentShift.start.getHours());
+  if(dStartMin) dStartMin.value = pad2(currentShift.start.getMinutes());
+  if(dEndHour) dEndHour.value = currentShift.end ? pad2(currentShift.end.getHours()) : '';
+  if(dEndMin) dEndMin.value = currentShift.end ? pad2(currentShift.end.getMinutes()) : '';
+
+  // Explicitly show overlay
+  dOverlay.classList.remove('is-hidden');
+  dOverlay.style.display='flex';
+  dShowStep(1);
+}
+
+function dClose(){ dOverlay.classList.add('is-hidden'); dOverlay.style.display='none'; }
+
+function dBuildReview(){
+  const empId = dSelect && dSelect.value ? parseInt(dSelect.value,10) : null;
+  const empName = empId ? (employeesData.find(e=>e.id===empId)||{}).name : 'Keep current';
+  const timeStr = `${dStartHour.value}:${dStartMin.value}`;
+  const endStr = (dEndHour.value && dEndMin.value) ? `${dEndHour.value}:${dEndMin.value}` : 'None';
+  const dateStr = currentShift.start.toLocaleDateString();
+  dReview.textContent = `${empName} • ${dateStr} • ${timeStr} – ${endStr} • Single day only`;
+}
+
+if(btnOpenEditDay){ btnOpenEditDay.addEventListener('click', (ev)=>{ ev.stopPropagation(); openEditDayWizard(); }); }
+if(dCancelBtn){ dCancelBtn.addEventListener('click', (ev)=>{ ev.stopPropagation(); dClose(); }); }
+if(dBackBtn){ dBackBtn.addEventListener('click', (ev)=>{ ev.stopPropagation(); dShowStep(Math.max(1, dWiz.step-1)); }); }
+if(dNextBtn){ dNextBtn.addEventListener('click', async (ev)=>{
+  ev.stopPropagation();
+  if(dWiz.step===1){
+    dWiz.employeeId = dSelect && dSelect.value ? parseInt(dSelect.value,10) : null; dShowStep(2); return;
+  }
+  if(dWiz.step===2){
+    const sh = dStartHour ? dStartHour.value : pad2(currentShift.start.getHours());
+    const sm = dStartMin ? dStartMin.value : pad2(currentShift.start.getMinutes());
+    if(!sh || !sm) return alert('Pick a start time');
+    if(dEndHour && dEndMin && dEndHour.value && dEndMin.value){
+      const st = parseInt(sh,10)*60 + parseInt(sm,10);
+      const et = parseInt(dEndHour.value,10)*60 + parseInt(dEndMin.value,10);
+      if(et<=st) return alert('End must be after start');
+    }
+    dShowStep(3); return;
+  }
+  if(dWiz.step===3){
+    try{
+      const sh = dStartHour ? dStartHour.value : pad2(currentShift.start.getHours());
+      const sm = dStartMin ? dStartMin.value : pad2(currentShift.start.getMinutes());
+      const time = `${sh}:${sm}`;
+      const end_time = (dEndHour && dEndMin && dEndHour.value && dEndMin.value) ? `${dEndHour.value}:${dEndMin.value}` : null;
+      
+      // Create the payload for single day edit
+      const shiftDate = currentShift.start.toISOString().split('T')[0]; // YYYY-MM-DD format
+      const payload = {
+        shift_id: currentShift.id,
+        shift_date: shiftDate,
+        time,
+        end_time,
+      };
+      if(dWiz.employeeId) payload.employee_id = dWiz.employeeId;
+      
+      console.log('[EditDay] POST', '/api/edit_day', payload);
+      const resp = await postJSON('/api/edit_day', payload);
+      console.log('[EditDay] response', resp);
+      location.reload();
+    }catch(err){ console.error('[EditDay] failed', err); alert('Failed to update day: '+(err && err.message ? err.message : err)); }
+  }
+}); }
+
+// Close edit day wizard when clicking outside modal
+if(dOverlay){ dOverlay.addEventListener('click', (e)=>{ if(e.target===dOverlay) dClose(); }); }
 
 // Close edit wizard when clicking outside modal
 if(eOverlay){ eOverlay.addEventListener('click', (e)=>{ if(e.target===eOverlay) eClose(); }); }

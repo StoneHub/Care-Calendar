@@ -445,6 +445,111 @@ def api_update_series():
         return jsonify({ 'ok': False, 'error': str(e) }), 500
 
 
+@app.route('/api/edit_day', methods=['POST'])
+@login_required
+def api_edit_day():
+    """
+    Edit a single day occurrence of a shift, creating an override/exception for that date.
+    This allows editing just one occurrence of a recurring shift without affecting the series.
+    
+    Payload JSON fields:
+      - shift_id (int) REQUIRED - ID of the shift occurrence to edit
+      - shift_date (YYYY-MM-DD) REQUIRED - Date of the specific occurrence
+      - time (HH:MM) REQUIRED - New start time for this occurrence
+      - end_time (HH:MM) optional - New end time for this occurrence
+      - employee_id (int) optional - If provided, reassign this occurrence to this employee
+    
+    Behavior: Creates or updates a single-day shift record for the specified date.
+    If the original shift was part of a series, this creates an exception/override.
+    """
+    data = request.get_json(silent=True) or {}
+    shift_id = data.get('shift_id')
+    shift_date = data.get('shift_date')
+    time_raw = data.get('time')
+    
+    if not shift_id or not shift_date or not time_raw:
+        return jsonify({ 'ok': False, 'error': 'shift_id, shift_date, and time are required' }), 400
+    
+    try:
+        shift_id = int(shift_id)
+        shift_datetime = datetime.strptime(shift_date, '%Y-%m-%d').date()
+        shift_time_obj = datetime.strptime(time_raw, '%H:%M').time()
+    except (ValueError, TypeError):
+        return jsonify({ 'ok': False, 'error': 'Invalid shift_id, shift_date format (YYYY-MM-DD), or time format (HH:MM)' }), 400
+    
+    end_time_raw = data.get('end_time')
+    end_time_obj = None
+    if end_time_raw:
+        try:
+            end_time_obj = datetime.strptime(end_time_raw, '%H:%M').time()
+        except ValueError:
+            return jsonify({ 'ok': False, 'error': 'Invalid end_time format (HH:MM)' }), 400
+    
+    employee_id = data.get('employee_id')
+    if employee_id is not None:
+        try:
+            employee_id = int(employee_id)
+        except (ValueError, TypeError):
+            return jsonify({ 'ok': False, 'error': 'employee_id must be integer' }), 400
+    
+    try:
+        conn = connect_db()
+        cursor = conn.cursor()
+        
+        # Get the original shift to determine employee_id and series_id if not provided
+        cursor.execute("SELECT employee_id, series_id FROM shifts WHERE id = ?", (shift_id,))
+        original_shift = cursor.fetchone()
+        if not original_shift:
+            conn.close()
+            return jsonify({ 'ok': False, 'error': 'Original shift not found' }), 404
+        
+        # Use original employee if not reassigning
+        if employee_id is None:
+            employee_id = original_shift[0]
+        
+        original_series_id = original_shift[1]
+        
+        # Create the new shift datetime
+        new_shift_datetime = datetime.combine(shift_datetime, shift_time_obj)
+        new_end_datetime = None
+        if end_time_obj:
+            new_end_datetime = datetime.combine(shift_datetime, end_time_obj)
+        
+        # Check if there's already an existing shift for this date
+        cursor.execute(
+            "SELECT id FROM shifts WHERE date(shift_time) = date(?) AND employee_id = ?",
+            (shift_datetime.isoformat(), employee_id)
+        )
+        existing_shift = cursor.fetchone()
+        
+        if existing_shift:
+            # Update the existing shift
+            cursor.execute(
+                "UPDATE shifts SET shift_time = ?, end_time = ?, employee_id = ? WHERE id = ?",
+                (new_shift_datetime.isoformat(), 
+                 new_end_datetime.isoformat() if new_end_datetime else None,
+                 employee_id,
+                 existing_shift[0])
+            )
+        else:
+            # Create a new single-day shift (this creates an override for that date)
+            # Set series_id to None to indicate this is a single-day override
+            cursor.execute(
+                "INSERT INTO shifts (employee_id, shift_time, end_time, series_id) VALUES (?, ?, ?, ?)",
+                (employee_id, 
+                 new_shift_datetime.isoformat(), 
+                 new_end_datetime.isoformat() if new_end_datetime else None,
+                 None)  # No series_id for single-day overrides
+            )
+        
+        conn.commit()
+        conn.close()
+        
+        return jsonify({ 'ok': True, 'message': 'Day updated successfully' })
+    except Exception as e:
+        return jsonify({ 'ok': False, 'error': str(e) }), 500
+
+
 # --- Weekly hours report ---
 @app.route('/hours')
 @login_required
