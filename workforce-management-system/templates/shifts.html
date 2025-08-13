@@ -67,6 +67,45 @@
 
     .is-hidden{ display:none !important; }
     .emp-btn.active{ background: var(--primary); color:#fff; border-color: var(--primary); }
+
+    /* AM/PM Segmented Controls */
+    .ampm-seg{ display:flex; gap:2px; border-radius:16px; background:var(--bg-1); border:1px solid var(--border); padding:2px; }
+    .ampm-btn{ border:none; border-radius:14px; padding:4px 12px; font-size:12px; font-weight:600; cursor:pointer; background:transparent; color:var(--text-2); transition:all .15s ease; }
+    .ampm-btn:hover{ background:var(--bg-2); color:var(--text-1); }
+    .ampm-btn.active{ background:var(--primary); color:#fff; }
+    .ampm-btn:focus-visible{ outline:2px solid var(--focus); outline-offset:2px; }
+
+    /* Toggle chip for repeat */
+    .toggle-chip{ background:var(--bg-1); border:1px solid var(--border); border-radius:16px; padding:6px 12px; font-size:12px; cursor:pointer; color:var(--text-2); transition:all .15s ease; }
+    .toggle-chip:hover{ background:var(--bg-2); color:var(--text-1); }
+    .toggle-chip[aria-pressed="true"]{ background:var(--primary); color:#fff; border-color:var(--primary); }
+    .toggle-chip:focus-visible{ outline:2px solid var(--focus); outline-offset:2px; }
+
+    /* Improved chip contrast */
+    .chip{ background:var(--bg-1); border:1px solid var(--border); padding:4px 8px; border-radius:16px; font-size:12px; cursor:pointer; color:var(--text-1); transition:all .15s ease; }
+    .chip:hover{ background:var(--bg-2); border-color:var(--primary); }
+    .chip.active{ background:var(--primary); color:#fff; border-color:var(--primary); }
+    .chip:focus-visible{ outline:2px solid var(--focus); outline-offset:2px; }
+    .chip input{ margin-right:6px; }
+
+    /* Inline Calendar Widget */
+    .inline-calendar{ margin-top:10px; border:1px solid var(--border); border-radius:8px; background:var(--bg-1); padding:8px; max-width:280px; }
+    .cal-header{ display:flex; align-items:center; justify-content:space-between; margin-bottom:8px; }
+    .cal-nav{ background:none; border:none; color:var(--text-1); cursor:pointer; padding:4px 8px; border-radius:4px; font-size:14px; }
+    .cal-nav:hover{ background:var(--bg-2); }
+    .cal-nav:focus-visible{ outline:2px solid var(--focus); outline-offset:2px; }
+    .cal-month{ font-weight:600; color:var(--text-1); font-size:14px; }
+    .cal-weekdays{ display:grid; grid-template-columns:repeat(7,1fr); gap:1px; margin-bottom:4px; }
+    .cal-weekday{ text-align:center; padding:4px; font-size:11px; font-weight:600; color:var(--text-3); }
+    .cal-days{ display:grid; grid-template-columns:repeat(7,1fr); gap:1px; }
+    .cal-day{ text-align:center; padding:6px 4px; font-size:12px; cursor:pointer; border-radius:4px; color:var(--text-1); transition:all .15s ease; }
+    .cal-day:hover{ background:var(--bg-2); }
+    .cal-day.other-month{ color:var(--text-3); }
+    .cal-day.selected{ background:var(--primary); color:#fff; }
+    .cal-day.today{ font-weight:700; border:1px solid var(--primary); }
+    .cal-day:focus-visible{ outline:2px solid var(--focus); outline-offset:2px; }
+    .cal-day[aria-disabled="true"]{ color:var(--text-3); cursor:not-allowed; opacity:0.5; }
+    .cal-day[aria-disabled="true"]:hover{ background:transparent; }
     </style>
 </head>
 <body>
@@ -205,7 +244,22 @@
                   <option value="30">30</option>
                   <option value="45">45</option>
                 </select>
-                <select id="wizStartAmPm" aria-label="Start AM/PM" class="select"><option value="AM" selected>AM</option><option value="PM">PM</option></select>
+                <div class="seg ampm-seg" role="radiogroup" aria-label="Start AM/PM">
+                  <button type="button" class="chip ampm-btn active" id="wizStartAM" aria-pressed="true" data-value="AM">AM</button>
+                  <button type="button" class="chip ampm-btn" id="wizStartPM" aria-pressed="false" data-value="PM">PM</button>
+                </div>
+              </div>
+              <!-- Inline Calendar Widget -->
+              <div class="inline-calendar" id="wizCalendar" role="grid" aria-label="Date picker calendar">
+                <div class="cal-header">
+                  <button type="button" class="cal-nav" id="wizCalPrev" aria-label="Previous month">&lt;</button>
+                  <div class="cal-month" id="wizCalMonth" aria-live="polite"></div>
+                  <button type="button" class="cal-nav" id="wizCalNext" aria-label="Next month">&gt;</button>
+                </div>
+                <div class="cal-weekdays">
+                  <div class="cal-weekday">S</div><div class="cal-weekday">M</div><div class="cal-weekday">T</div><div class="cal-weekday">W</div><div class="cal-weekday">T</div><div class="cal-weekday">F</div><div class="cal-weekday">S</div>
+                </div>
+                <div class="cal-days" id="wizCalDays"></div>
               </div>
             </div>
             <div class="rowx">
@@ -223,16 +277,20 @@
                   <option value="30">30</option>
                   <option value="45">45</option>
                 </select>
-                <select id="wizEndAmPm" aria-label="End AM/PM" class="select"><option value="AM">AM</option><option value="PM">PM</option></select>
+                <div class="seg ampm-seg" role="radiogroup" aria-label="End AM/PM">
+                  <button type="button" class="chip ampm-btn active" id="wizEndAM" aria-pressed="true" data-value="AM">AM</button>
+                  <button type="button" class="chip ampm-btn" id="wizEndPM" aria-pressed="false" data-value="PM">PM</button>
+                </div>
               </div>
             </div>
             <!-- Moved repeat controls into this step to keep all scheduling on one screen -->
             <div class="rowx">
-              <label><input type="checkbox" id="wizRepeat"> Repeat weekly</label>
+              <label>Repeat</label>
+              <button type="button" class="toggle-chip" id="wizRepeatToggle" aria-pressed="false">Repeat weekly</button>
             </div>
             <div class="rowx hidden" id="wizDaysCtn">
               <label>Weekdays</label>
-              <div class="seg" id="wizDays"></div>
+              <div class="seg" id="wizDays" role="group" aria-label="Select weekdays"></div>
             </div>
             <div class="rowx hidden" id="wizUntilCtn">
               <label>Repeat until (optional)</label>
@@ -276,27 +334,36 @@
             <div class="rowx">
               <label>Start time</label>
               <div class="time-selects">
-                <select id="eStartHour" aria-label="Start hour" class="select">
-                  <option value="00">00</option><option value="01">01</option><option value="02">02</option><option value="03">03</option><option value="04">04</option><option value="05">05</option><option value="06">06</option><option value="07">07</option><option value="08">08</option><option value="09">09</option><option value="10">10</option><option value="11">11</option><option value="12">12</option><option value="13">13</option><option value="14">14</option><option value="15">15</option><option value="16">16</option><option value="17">17</option><option value="18">18</option><option value="19">19</option><option value="20">20</option><option value="21">21</option><option value="22">22</option><option value="23">23</option>
+                <select id="eStartHour12" aria-label="Start hour" class="select">
+                  <option value="">HH</option>
+                  <option value="01">01</option><option value="02">02</option><option value="03">03</option><option value="04">04</option><option value="05">05</option><option value="06">06</option><option value="07">07</option><option value="08">08</option><option value="09">09</option><option value="10">10</option><option value="11">11</option><option value="12">12</option>
                 </select>
                 <span>:</span>
                 <select id="eStartMin" aria-label="Start minutes" class="select">
                   <option value="00">00</option><option value="15">15</option><option value="30">30</option><option value="45">45</option>
                 </select>
+                <div class="seg ampm-seg" role="radiogroup" aria-label="Start AM/PM">
+                  <button type="button" class="chip ampm-btn active" id="eStartAM" aria-pressed="true" data-value="AM">AM</button>
+                  <button type="button" class="chip ampm-btn" id="eStartPM" aria-pressed="false" data-value="PM">PM</button>
+                </div>
               </div>
             </div>
             <div class="rowx">
               <label>End time (optional)</label>
               <div class="time-selects">
-                <select id="eEndHour" aria-label="End hour" class="select">
+                <select id="eEndHour12" aria-label="End hour" class="select">
                   <option value="">HH</option>
-                  <option value="00">00</option><option value="01">01</option><option value="02">02</option><option value="03">03</option><option value="04">04</option><option value="05">05</option><option value="06">06</option><option value="07">07</option><option value="08">08</option><option value="09">09</option><option value="10">10</option><option value="11">11</option><option value="12">12</option><option value="13">13</option><option value="14">14</option><option value="15">15</option><option value="16">16</option><option value="17">17</option><option value="18">18</option><option value="19">19</option><option value="20">20</option><option value="21">21</option><option value="22">22</option><option value="23">23</option>
+                  <option value="01">01</option><option value="02">02</option><option value="03">03</option><option value="04">04</option><option value="05">05</option><option value="06">06</option><option value="07">07</option><option value="08">08</option><option value="09">09</option><option value="10">10</option><option value="11">11</option><option value="12">12</option>
                 </select>
                 <span>:</span>
                 <select id="eEndMin" aria-label="End minutes" class="select">
                   <option value="">MM</option>
                   <option value="00">00</option><option value="15">15</option><option value="30">30</option><option value="45">45</option>
                 </select>
+                <div class="seg ampm-seg" role="radiogroup" aria-label="End AM/PM">
+                  <button type="button" class="chip ampm-btn active" id="eEndAM" aria-pressed="true" data-value="AM">AM</button>
+                  <button type="button" class="chip ampm-btn" id="eEndPM" aria-pressed="false" data-value="PM">PM</button>
+                </div>
               </div>
             </div>
           </div>
@@ -347,27 +414,36 @@
             <div class="rowx">
               <label>Start time</label>
               <div class="time-selects">
-                <select id="dStartHour" aria-label="Start hour" class="select">
-                  <option value="00">00</option><option value="01">01</option><option value="02">02</option><option value="03">03</option><option value="04">04</option><option value="05">05</option><option value="06">06</option><option value="07">07</option><option value="08">08</option><option value="09">09</option><option value="10">10</option><option value="11">11</option><option value="12">12</option><option value="13">13</option><option value="14">14</option><option value="15">15</option><option value="16">16</option><option value="17">17</option><option value="18">18</option><option value="19">19</option><option value="20">20</option><option value="21">21</option><option value="22">22</option><option value="23">23</option>
+                <select id="dStartHour12" aria-label="Start hour" class="select">
+                  <option value="">HH</option>
+                  <option value="01">01</option><option value="02">02</option><option value="03">03</option><option value="04">04</option><option value="05">05</option><option value="06">06</option><option value="07">07</option><option value="08">08</option><option value="09">09</option><option value="10">10</option><option value="11">11</option><option value="12">12</option>
                 </select>
                 <span>:</span>
                 <select id="dStartMin" aria-label="Start minutes" class="select">
                   <option value="00">00</option><option value="15">15</option><option value="30">30</option><option value="45">45</option>
                 </select>
+                <div class="seg ampm-seg" role="radiogroup" aria-label="Start AM/PM">
+                  <button type="button" class="chip ampm-btn active" id="dStartAM" aria-pressed="true" data-value="AM">AM</button>
+                  <button type="button" class="chip ampm-btn" id="dStartPM" aria-pressed="false" data-value="PM">PM</button>
+                </div>
               </div>
             </div>
             <div class="rowx">
               <label>End time (optional)</label>
               <div class="time-selects">
-                <select id="dEndHour" aria-label="End hour" class="select">
+                <select id="dEndHour12" aria-label="End hour" class="select">
                   <option value="">HH</option>
-                  <option value="00">00</option><option value="01">01</option><option value="02">02</option><option value="03">03</option><option value="04">04</option><option value="05">05</option><option value="06">06</option><option value="07">07</option><option value="08">08</option><option value="09">09</option><option value="10">10</option><option value="11">11</option><option value="12">12</option><option value="13">13</option><option value="14">14</option><option value="15">15</option><option value="16">16</option><option value="17">17</option><option value="18">18</option><option value="19">19</option><option value="20">20</option><option value="21">21</option><option value="22">22</option><option value="23">23</option>
+                  <option value="01">01</option><option value="02">02</option><option value="03">03</option><option value="04">04</option><option value="05">05</option><option value="06">06</option><option value="07">07</option><option value="08">08</option><option value="09">09</option><option value="10">10</option><option value="11">11</option><option value="12">12</option>
                 </select>
                 <span>:</span>
                 <select id="dEndMin" aria-label="End minutes" class="select">
                   <option value="">MM</option>
                   <option value="00">00</option><option value="15">15</option><option value="30">30</option><option value="45">45</option>
                 </select>
+                <div class="seg ampm-seg" role="radiogroup" aria-label="End AM/PM">
+                  <button type="button" class="chip ampm-btn active" id="dEndAM" aria-pressed="true" data-value="AM">AM</button>
+                  <button type="button" class="chip ampm-btn" id="dEndPM" aria-pressed="false" data-value="PM">PM</button>
+                </div>
               </div>
             </div>
           </div>
@@ -687,6 +763,182 @@ document.addEventListener('keydown', (e)=>{
   }
 });
 
+// --- Inline Calendar Widget ---
+const calState = { currentMonth: new Date(), selectedDate: null };
+
+function renderInlineCalendar() {
+  const monthEl = document.getElementById('wizCalMonth');
+  const daysEl = document.getElementById('wizCalDays');
+  if (!monthEl || !daysEl) return;
+
+  const now = new Date();
+  const month = calState.currentMonth.getMonth();
+  const year = calState.currentMonth.getFullYear();
+  
+  // Update month header
+  monthEl.textContent = new Date(year, month).toLocaleDateString(undefined, { month: 'long', year: 'numeric' });
+  
+  // Clear days
+  daysEl.innerHTML = '';
+  
+  // Get first day of month and last day of month
+  const firstDay = new Date(year, month, 1);
+  const lastDay = new Date(year, month + 1, 0);
+  const startDate = new Date(firstDay);
+  startDate.setDate(startDate.getDate() - firstDay.getDay()); // Start from Sunday
+  
+  // Generate 42 days (6 weeks)
+  for (let i = 0; i < 42; i++) {
+    const date = new Date(startDate);
+    date.setDate(startDate.getDate() + i);
+    
+    const dayEl = document.createElement('button');
+    dayEl.type = 'button';
+    dayEl.className = 'cal-day';
+    dayEl.textContent = date.getDate();
+    dayEl.setAttribute('tabindex', '-1');
+    
+    const isCurrentMonth = date.getMonth() === month;
+    const isToday = date.toDateString() === now.toDateString();
+    const isSelected = calState.selectedDate && date.toDateString() === calState.selectedDate.toDateString();
+    
+    if (!isCurrentMonth) dayEl.classList.add('other-month');
+    if (isToday) dayEl.classList.add('today');
+    if (isSelected) dayEl.classList.add('selected');
+    
+    dayEl.setAttribute('aria-label', date.toLocaleDateString());
+    dayEl.addEventListener('click', () => selectCalendarDate(date));
+    
+    daysEl.appendChild(dayEl);
+  }
+}
+
+function selectCalendarDate(date) {
+  calState.selectedDate = new Date(date);
+  
+  // Update date input
+  const dateInput = document.getElementById('wizStartDate');
+  if (dateInput) {
+    dateInput.value = `${date.getFullYear()}-${pad2(date.getMonth() + 1)}-${pad2(date.getDate())}`;
+  }
+  
+  // Re-render to show selection
+  renderInlineCalendar();
+  
+  // Update wiz state
+  if (typeof updateStartFromControls === 'function') {
+    updateStartFromControls();
+  }
+}
+
+function initInlineCalendar() {
+  const prevBtn = document.getElementById('wizCalPrev');
+  const nextBtn = document.getElementById('wizCalNext');
+  const dateInput = document.getElementById('wizStartDate');
+  
+  if (prevBtn) {
+    prevBtn.addEventListener('click', () => {
+      calState.currentMonth.setMonth(calState.currentMonth.getMonth() - 1);
+      renderInlineCalendar();
+    });
+  }
+  
+  if (nextBtn) {
+    nextBtn.addEventListener('click', () => {
+      calState.currentMonth.setMonth(calState.currentMonth.getMonth() + 1);
+      renderInlineCalendar();
+    });
+  }
+  
+  // Sync calendar with date input
+  if (dateInput) {
+    dateInput.addEventListener('change', (e) => {
+      if (e.target.value) {
+        const date = new Date(e.target.value + 'T00:00:00');
+        calState.selectedDate = date;
+        calState.currentMonth = new Date(date.getFullYear(), date.getMonth(), 1);
+        renderInlineCalendar();
+      }
+    });
+  }
+  
+  // Keyboard navigation for calendar
+  const daysContainer = document.getElementById('wizCalDays');
+  if (daysContainer) {
+    daysContainer.addEventListener('keydown', (e) => {
+      const currentFocus = document.activeElement;
+      if (!currentFocus.classList.contains('cal-day')) return;
+      
+      const days = Array.from(daysContainer.querySelectorAll('.cal-day'));
+      const currentIndex = days.indexOf(currentFocus);
+      let nextIndex = currentIndex;
+      
+      switch (e.key) {
+        case 'ArrowLeft':
+          e.preventDefault();
+          nextIndex = Math.max(0, currentIndex - 1);
+          break;
+        case 'ArrowRight':
+          e.preventDefault();
+          nextIndex = Math.min(days.length - 1, currentIndex + 1);
+          break;
+        case 'ArrowUp':
+          e.preventDefault();
+          nextIndex = Math.max(0, currentIndex - 7);
+          break;
+        case 'ArrowDown':
+          e.preventDefault();
+          nextIndex = Math.min(days.length - 1, currentIndex + 7);
+          break;
+        case 'Enter':
+        case ' ':
+          e.preventDefault();
+          currentFocus.click();
+          return;
+        case 'PageUp':
+          e.preventDefault();
+          calState.currentMonth.setMonth(calState.currentMonth.getMonth() - 1);
+          renderInlineCalendar();
+          return;
+        case 'PageDown':
+          e.preventDefault();
+          calState.currentMonth.setMonth(calState.currentMonth.getMonth() + 1);
+          renderInlineCalendar();
+          return;
+      }
+      
+      if (nextIndex !== currentIndex) {
+        days[nextIndex].focus();
+        days[nextIndex].setAttribute('tabindex', '0');
+        currentFocus.setAttribute('tabindex', '-1');
+      }
+    });
+    
+    // Set initial focus on first day when calendar is focused
+    daysContainer.addEventListener('focus', (e) => {
+      if (e.target === daysContainer) {
+        const firstDay = daysContainer.querySelector('.cal-day');
+        if (firstDay) {
+          firstDay.focus();
+          firstDay.setAttribute('tabindex', '0');
+        }
+      }
+    });
+  }
+  
+  // Set default to today
+  const today = new Date();
+  calState.selectedDate = today;
+  calState.currentMonth = new Date(today.getFullYear(), today.getMonth(), 1);
+  
+  // Set date input to today
+  if (dateInput) {
+    dateInput.value = `${today.getFullYear()}-${pad2(today.getMonth() + 1)}-${pad2(today.getDate())}`;
+  }
+  
+  renderInlineCalendar();
+}
+
 // --- Wizard ---
 const overlay = document.getElementById('wizardOverlay');
 const wiz = { step:1, employeeId:null, start:null, end:null, repeat:false, days:new Set(), until:null };
@@ -715,15 +967,30 @@ function openWizard(){
       list.appendChild(b);
     });
   }
-  // Build weekdays once
+  // Build weekdays chips
   const daysCtn=document.getElementById('wizDays');
   if(daysCtn && !daysCtn.dataset.built){
     const labels=['Mon','Tue','Wed','Thu','Fri','Sat','Sun'];
-    labels.forEach((lb,idx)=>{ const lab=document.createElement('label'); lab.className='chip'; lab.innerHTML=`<input type="checkbox" value="${idx}"> ${lb}`; daysCtn.appendChild(lab); });
+    labels.forEach((lb,idx)=>{ 
+      const btn=document.createElement('button'); 
+      btn.type='button'; 
+      btn.className='chip day-chip'; 
+      btn.textContent=lb; 
+      btn.dataset.value=idx;
+      btn.setAttribute('aria-pressed','false');
+      btn.addEventListener('click', ()=>{ 
+        const isPressed = btn.getAttribute('aria-pressed') === 'true';
+        btn.setAttribute('aria-pressed', !isPressed ? 'true' : 'false');
+        btn.classList.toggle('active', !isPressed);
+        if(!isPressed) wiz.days.add(idx); else wiz.days.delete(idx); 
+      });
+      daysCtn.appendChild(btn); 
+    });
     daysCtn.dataset.built='1';
   }
   overlay.style.display='flex';
   setTimeout(()=>{ try{ const firstBtn=list && list.querySelector('.emp-btn'); if(firstBtn) firstBtn.focus(); }catch{} }, 0);
+  initInlineCalendar(); // Initialize calendar widget
   showStep(1);
 }
 function closeWizard(){ overlay.style.display='none'; }
@@ -747,8 +1014,9 @@ function buildReview(){
 
 // Compute start/end from selects (15-minute increments enforced); convert 12h to 24h internally
 function to24h(h12, ampm){ let h=parseInt(h12||'0',10); if(isNaN(h)) return ''; if(ampm==='AM'){ if(h===12) h=0; } else { if(h!==12) h+=12; } return pad2(h); }
-function updateStartFromControls(){ const d=document.getElementById('wizStartDate').value; const hh12=document.getElementById('wizStartHour12').value; const mm=document.getElementById('wizStartMin').value; const ap=document.getElementById('wizStartAmPm').value; const hh=to24h(hh12, ap); wiz.start = (d && hh && mm) ? `${d}T${hh}:${mm}` : null; }
-function updateEndFromControls(){ const hh12=document.getElementById('wizEndHour12').value; const mm=document.getElementById('wizEndMin').value; const ap=document.getElementById('wizEndAmPm').value; const hh=to24h(hh12, ap); wiz.end = (hh && mm) ? `${hh}:${mm}` : null; }
+function getSelectedAmPm(prefix){ const amBtn=document.getElementById(prefix+'AM'); const pmBtn=document.getElementById(prefix+'PM'); return amBtn && amBtn.classList.contains('active') ? 'AM' : 'PM'; }
+function updateStartFromControls(){ const d=document.getElementById('wizStartDate').value; const hh12=document.getElementById('wizStartHour12').value; const mm=document.getElementById('wizStartMin').value; const ap=getSelectedAmPm('wizStart'); const hh=to24h(hh12, ap); wiz.start = (d && hh && mm) ? `${d}T${hh}:${mm}` : null; }
+function updateEndFromControls(){ const hh12=document.getElementById('wizEndHour12').value; const mm=document.getElementById('wizEndMin').value; const ap=getSelectedAmPm('wizEnd'); const hh=to24h(hh12, ap); wiz.end = (hh && mm) ? `${hh}:${mm}` : null; }
 
 function to12h(dateObj){
   let h = dateObj.getHours();
@@ -788,13 +1056,59 @@ function fmtDayLabel(d){
     }
   });
 
-// New event wiring for selects
-['wizStartDate','wizStartHour12','wizStartMin','wizStartAmPm'].forEach(id=>{ const el=document.getElementById(id); if(el) el.addEventListener('change', updateStartFromControls); });
-['wizEndHour12','wizEndMin','wizEndAmPm'].forEach(id=>{ const el=document.getElementById(id); if(el) el.addEventListener('change', updateEndFromControls); });
+// New event wiring for selects and AM/PM buttons
+['wizStartDate','wizStartHour12','wizStartMin'].forEach(id=>{ const el=document.getElementById(id); if(el) el.addEventListener('change', updateStartFromControls); });
+['wizEndHour12','wizEndMin'].forEach(id=>{ const el=document.getElementById(id); if(el) el.addEventListener('change', updateEndFromControls); });
 
-// Repeat controls (now on step2)
-document.getElementById('wizRepeat').addEventListener('change', (e)=>{ wiz.repeat = e.target.checked; document.getElementById('wizDaysCtn').classList.toggle('hidden', !wiz.repeat); document.getElementById('wizUntilCtn').classList.toggle('hidden', !wiz.repeat); });
-document.getElementById('wizDays').addEventListener('change', (e)=>{ if(e.target && e.target.type==='checkbox'){ const v=parseInt(e.target.value,10); if(e.target.checked) wiz.days.add(v); else wiz.days.delete(v); } });
+// AM/PM button handlers
+function setupAmPmButtons(prefix, updateFn) {
+  const amBtn = document.getElementById(prefix + 'AM');
+  const pmBtn = document.getElementById(prefix + 'PM');
+  if (amBtn && pmBtn) {
+    [amBtn, pmBtn].forEach(btn => {
+      btn.addEventListener('click', () => {
+        // Toggle active state
+        amBtn.classList.toggle('active', btn === amBtn);
+        pmBtn.classList.toggle('active', btn === pmBtn);
+        amBtn.setAttribute('aria-pressed', btn === amBtn ? 'true' : 'false');
+        pmBtn.setAttribute('aria-pressed', btn === pmBtn ? 'true' : 'false');
+        updateFn();
+      });
+      
+      // Keyboard support
+      btn.addEventListener('keydown', (e) => {
+        if (e.key === 'ArrowLeft' || e.key === 'ArrowRight') {
+          e.preventDefault();
+          const other = btn === amBtn ? pmBtn : amBtn;
+          other.click();
+          other.focus();
+        } else if (e.key === ' ' || e.key === 'Enter') {
+          e.preventDefault();
+          btn.click();
+        }
+      });
+    });
+  }
+}
+
+setupAmPmButtons('wizStart', updateStartFromControls);
+setupAmPmButtons('wizEnd', updateEndFromControls);
+
+// Set up AM/PM buttons for edit wizards
+setupAmPmButtons('eStart', () => {});
+setupAmPmButtons('eEnd', () => {});
+setupAmPmButtons('dStart', () => {});
+setupAmPmButtons('dEnd', () => {});
+
+// Repeat controls (now on step2) - using toggle chip
+document.getElementById('wizRepeatToggle').addEventListener('click', (e)=>{ 
+  const isPressed = e.target.getAttribute('aria-pressed') === 'true';
+  const newPressed = !isPressed;
+  e.target.setAttribute('aria-pressed', newPressed ? 'true' : 'false');
+  wiz.repeat = newPressed; 
+  document.getElementById('wizDaysCtn').classList.toggle('hidden', !newPressed); 
+  document.getElementById('wizUntilCtn').classList.toggle('hidden', !newPressed); 
+});
 document.getElementById('wizUntil').addEventListener('change', (e)=>{ wiz.until = e.target.value || null; });
 
 // After DOM defined: prefill wiz.start from defaults on open
@@ -844,9 +1158,9 @@ const eOverlay = document.getElementById('editSeriesOverlay');
 const eBackBtn = document.getElementById('eBack');
 const eNextBtn = document.getElementById('eNext');
 const eCancelBtn = document.getElementById('eCancel');
-const eStartHour = document.getElementById('eStartHour');
+const eStartHour12 = document.getElementById('eStartHour12');
 const eStartMin = document.getElementById('eStartMin');
-const eEndHour = document.getElementById('eEndHour');
+const eEndHour12 = document.getElementById('eEndHour12');
 const eEndMin = document.getElementById('eEndMin');
 const eUntil = document.getElementById('eUntil');
 const eReview = document.getElementById('eReview');
@@ -862,6 +1176,33 @@ function eShowStep(n){
   eBackBtn.classList.toggle('hidden', n===1);
   eNextBtn.textContent = (n===5? 'Update series' : 'Next');
   if(n===5) eBuildReview();
+}
+
+// Convert 24h time to 12h + AM/PM for edit wizards
+function to12hFormat(hour24) {
+  const h = parseInt(hour24, 10);
+  const hour12 = h === 0 ? 12 : h > 12 ? h - 12 : h;
+  const ampm = h < 12 ? 'AM' : 'PM';
+  return { hour12: pad2(hour12), ampm };
+}
+
+// Set AM/PM buttons for edit wizards
+function setAmPmButtons(prefix, ampm) {
+  const amBtn = document.getElementById(prefix + 'AM');
+  const pmBtn = document.getElementById(prefix + 'PM');
+  if (amBtn && pmBtn) {
+    amBtn.classList.toggle('active', ampm === 'AM');
+    pmBtn.classList.toggle('active', ampm === 'PM');
+    amBtn.setAttribute('aria-pressed', ampm === 'AM' ? 'true' : 'false');
+    pmBtn.setAttribute('aria-pressed', ampm === 'PM' ? 'true' : 'false');
+  }
+}
+
+// Get selected AM/PM value for edit wizards
+function getEditAmPm(prefix) {
+  const amBtn = document.getElementById(prefix + 'AM');
+  const pmBtn = document.getElementById(prefix + 'PM');
+  return amBtn && amBtn.classList.contains('active') ? 'AM' : 'PM';
 }
 
 function openEditWizard(){
@@ -882,10 +1223,28 @@ function openEditWizard(){
   // reset selections
   eWiz.step=1; eWiz.employeeId=null; eWiz.time=null; eWiz.end=null; eWiz.days.clear(); eWiz.until=null;
   if(eSelect) eSelect.value='';
-  if(eStartHour) eStartHour.value = pad2(currentShift.start.getHours());
-  if(eStartMin) eStartMin.value = pad2(currentShift.start.getMinutes());
-  if(eEndHour) eEndHour.value = currentShift.end ? pad2(currentShift.end.getHours()) : '';
-  if(eEndMin) eEndMin.value = currentShift.end ? pad2(currentShift.end.getMinutes()) : '';
+  
+  // Convert current shift times to 12-hour format
+  if(eStartHour12 && eStartMin) {
+    const startTime = to12hFormat(currentShift.start.getHours());
+    eStartHour12.value = startTime.hour12;
+    eStartMin.value = pad2(currentShift.start.getMinutes());
+    setAmPmButtons('eStart', startTime.ampm);
+  }
+  
+  if(eEndHour12 && eEndMin) {
+    if(currentShift.end) {
+      const endTime = to12hFormat(currentShift.end.getHours());
+      eEndHour12.value = endTime.hour12;
+      eEndMin.value = pad2(currentShift.end.getMinutes());
+      setAmPmButtons('eEnd', endTime.ampm);
+    } else {
+      eEndHour12.value = '';
+      eEndMin.value = '';
+      setAmPmButtons('eEnd', 'AM');
+    }
+  }
+  
   if(eUntil) eUntil.value = '';
   // preselect weekday of current shift
   const curWd = (currentShift.start.getDay()+6)%7; // 0=Mon
@@ -902,8 +1261,13 @@ function eClose(){ eOverlay.classList.add('is-hidden'); eOverlay.style.display='
 function eBuildReview(){
   const empId = eSelect && eSelect.value ? parseInt(eSelect.value,10) : null;
   const empName = empId ? (employeesData.find(e=>e.id===empId)||{}).name : 'Keep current';
-  const timeStr = `${eStartHour.value}:${eStartMin.value}`;
-  const endStr = (eEndHour.value && eEndMin.value) ? `${eEndHour.value}:${eEndMin.value}` : 'None';
+  const startAmpm = getEditAmPm('eStart');
+  const timeStr = `${eStartHour12.value}:${eStartMin.value} ${startAmpm}`;
+  let endStr = 'None';
+  if(eEndHour12.value && eEndMin.value) {
+    const endAmpm = getEditAmPm('eEnd');
+    endStr = `${eEndHour12.value}:${eEndMin.value} ${endAmpm}`;
+  }
   const days=[...eWiz.days].sort().map(d=>['Mon','Tue','Wed','Thu','Fri','Sat','Sun'][d]).join(', ');
   const untilStr = eUntil.value || 'End of year';
   eReview.textContent = `${empName} • ${timeStr} – ${endStr} • ${days||'none'} • until ${untilStr}`;
@@ -918,12 +1282,22 @@ if(eNextBtn){ eNextBtn.addEventListener('click', async (ev)=>{
     eWiz.employeeId = eSelect && eSelect.value ? parseInt(eSelect.value,10) : null; eShowStep(2); return;
   }
   if(eWiz.step===2){
-    const sh = eStartHour ? eStartHour.value : pad2(currentShift.start.getHours());
-    const sm = eStartMin ? eStartMin.value : pad2(currentShift.start.getMinutes());
-    if(!sh || !sm) return alert('Pick a start time');
-    if(eEndHour && eEndMin && eEndHour.value && eEndMin.value){
-      const st = parseInt(sh,10)*60 + parseInt(sm,10);
-      const et = parseInt(eEndHour.value,10)*60 + parseInt(eEndMin.value,10);
+    const sh12 = eStartHour12 ? eStartHour12.value : '';
+    const sm = eStartMin ? eStartMin.value : '';
+    const sAmpm = getEditAmPm('eStart');
+    if(!sh12 || !sm) return alert('Pick a start time');
+    
+    // Validate end time if provided
+    if(eEndHour12 && eEndMin && eEndHour12.value && eEndMin.value){
+      const eh12 = eEndHour12.value;
+      const em = eEndMin.value;
+      const eAmpm = getEditAmPm('eEnd');
+      
+      // Convert to 24h for comparison
+      const startHour24 = to24h(sh12, sAmpm);
+      const endHour24 = to24h(eh12, eAmpm);
+      const st = parseInt(startHour24,10)*60 + parseInt(sm,10);
+      const et = parseInt(endHour24,10)*60 + parseInt(em,10);
       if(et<=st) return alert('End must be after start');
     }
     eShowStep(3); return;
@@ -933,10 +1307,23 @@ if(eNextBtn){ eNextBtn.addEventListener('click', async (ev)=>{
   if(eWiz.step===5){
     try{
       const startDate = (function(){ const d=new Date(currentShift.start); const w=(d.getDay()+6)%7; d.setHours(0,0,0,0); d.setDate(d.getDate()-w); return `${d.getFullYear()}-${pad2(d.getMonth()+1)}-${pad2(d.getDate())}`; })();
-      const sh = eStartHour ? eStartHour.value : pad2(currentShift.start.getHours());
-      const sm = eStartMin ? eStartMin.value : pad2(currentShift.start.getMinutes());
-      const time = `${sh}:${sm}`;
-      const end_time = (eEndHour && eEndMin && eEndHour.value && eEndMin.value) ? `${eEndHour.value}:${eEndMin.value}` : null;
+      
+      // Convert 12-hour format to 24-hour for backend
+      const sh12 = eStartHour12 ? eStartHour12.value : '';
+      const sm = eStartMin ? eStartMin.value : '';
+      const sAmpm = getEditAmPm('eStart');
+      const sh24 = to24h(sh12, sAmpm);
+      const time = `${sh24}:${sm}`;
+      
+      let end_time = null;
+      if(eEndHour12 && eEndMin && eEndHour12.value && eEndMin.value) {
+        const eh12 = eEndHour12.value;
+        const em = eEndMin.value;
+        const eAmpm = getEditAmPm('eEnd');
+        const eh24 = to24h(eh12, eAmpm);
+        end_time = `${eh24}:${em}`;
+      }
+      
       const payload = {
         series_id: currentShift.series_id,
         start_date: startDate,
@@ -961,9 +1348,9 @@ const dOverlay = document.getElementById('editDayOverlay');
 const dBackBtn = document.getElementById('dBack');
 const dNextBtn = document.getElementById('dNext');
 const dCancelBtn = document.getElementById('dCancel');
-const dStartHour = document.getElementById('dStartHour');
+const dStartHour12 = document.getElementById('dStartHour12');
 const dStartMin = document.getElementById('dStartMin');
-const dEndHour = document.getElementById('dEndHour');
+const dEndHour12 = document.getElementById('dEndHour12');
 const dEndMin = document.getElementById('dEndMin');
 const dReview = document.getElementById('dReview');
 
@@ -991,10 +1378,27 @@ function openEditDayWizard(){
   // reset selections
   dWiz.step=1; dWiz.employeeId=null; dWiz.time=null; dWiz.end=null;
   if(dSelect) dSelect.value='';
-  if(dStartHour) dStartHour.value = pad2(currentShift.start.getHours());
-  if(dStartMin) dStartMin.value = pad2(currentShift.start.getMinutes());
-  if(dEndHour) dEndHour.value = currentShift.end ? pad2(currentShift.end.getHours()) : '';
-  if(dEndMin) dEndMin.value = currentShift.end ? pad2(currentShift.end.getMinutes()) : '';
+  
+  // Convert current shift times to 12-hour format
+  if(dStartHour12 && dStartMin) {
+    const startTime = to12hFormat(currentShift.start.getHours());
+    dStartHour12.value = startTime.hour12;
+    dStartMin.value = pad2(currentShift.start.getMinutes());
+    setAmPmButtons('dStart', startTime.ampm);
+  }
+  
+  if(dEndHour12 && dEndMin) {
+    if(currentShift.end) {
+      const endTime = to12hFormat(currentShift.end.getHours());
+      dEndHour12.value = endTime.hour12;
+      dEndMin.value = pad2(currentShift.end.getMinutes());
+      setAmPmButtons('dEnd', endTime.ampm);
+    } else {
+      dEndHour12.value = '';
+      dEndMin.value = '';
+      setAmPmButtons('dEnd', 'AM');
+    }
+  }
 
   // Explicitly show overlay
   dOverlay.classList.remove('is-hidden');
@@ -1007,8 +1411,13 @@ function dClose(){ dOverlay.classList.add('is-hidden'); dOverlay.style.display='
 function dBuildReview(){
   const empId = dSelect && dSelect.value ? parseInt(dSelect.value,10) : null;
   const empName = empId ? (employeesData.find(e=>e.id===empId)||{}).name : 'Keep current';
-  const timeStr = `${dStartHour.value}:${dStartMin.value}`;
-  const endStr = (dEndHour.value && dEndMin.value) ? `${dEndHour.value}:${dEndMin.value}` : 'None';
+  const startAmpm = getEditAmPm('dStart');
+  const timeStr = `${dStartHour12.value}:${dStartMin.value} ${startAmpm}`;
+  let endStr = 'None';
+  if(dEndHour12.value && dEndMin.value) {
+    const endAmpm = getEditAmPm('dEnd');
+    endStr = `${dEndHour12.value}:${dEndMin.value} ${endAmpm}`;
+  }
   const dateStr = currentShift.start.toLocaleDateString();
   dReview.textContent = `${empName} • ${dateStr} • ${timeStr} – ${endStr} • Single day only`;
 }
@@ -1022,22 +1431,43 @@ if(dNextBtn){ dNextBtn.addEventListener('click', async (ev)=>{
     dWiz.employeeId = dSelect && dSelect.value ? parseInt(dSelect.value,10) : null; dShowStep(2); return;
   }
   if(dWiz.step===2){
-    const sh = dStartHour ? dStartHour.value : pad2(currentShift.start.getHours());
-    const sm = dStartMin ? dStartMin.value : pad2(currentShift.start.getMinutes());
-    if(!sh || !sm) return alert('Pick a start time');
-    if(dEndHour && dEndMin && dEndHour.value && dEndMin.value){
-      const st = parseInt(sh,10)*60 + parseInt(sm,10);
-      const et = parseInt(dEndHour.value,10)*60 + parseInt(dEndMin.value,10);
+    const sh12 = dStartHour12 ? dStartHour12.value : '';
+    const sm = dStartMin ? dStartMin.value : '';
+    const sAmpm = getEditAmPm('dStart');
+    if(!sh12 || !sm) return alert('Pick a start time');
+    
+    // Validate end time if provided
+    if(dEndHour12 && dEndMin && dEndHour12.value && dEndMin.value){
+      const eh12 = dEndHour12.value;
+      const em = dEndMin.value;
+      const eAmpm = getEditAmPm('dEnd');
+      
+      // Convert to 24h for comparison
+      const startHour24 = to24h(sh12, sAmpm);
+      const endHour24 = to24h(eh12, eAmpm);
+      const st = parseInt(startHour24,10)*60 + parseInt(sm,10);
+      const et = parseInt(endHour24,10)*60 + parseInt(em,10);
       if(et<=st) return alert('End must be after start');
     }
     dShowStep(3); return;
   }
   if(dWiz.step===3){
     try{
-      const sh = dStartHour ? dStartHour.value : pad2(currentShift.start.getHours());
-      const sm = dStartMin ? dStartMin.value : pad2(currentShift.start.getMinutes());
-      const time = `${sh}:${sm}`;
-      const end_time = (dEndHour && dEndMin && dEndHour.value && dEndMin.value) ? `${dEndHour.value}:${dEndMin.value}` : null;
+      // Convert 12-hour format to 24-hour for backend
+      const sh12 = dStartHour12 ? dStartHour12.value : '';
+      const sm = dStartMin ? dStartMin.value : '';
+      const sAmpm = getEditAmPm('dStart');
+      const sh24 = to24h(sh12, sAmpm);
+      const time = `${sh24}:${sm}`;
+      
+      let end_time = null;
+      if(dEndHour12 && dEndMin && dEndHour12.value && dEndMin.value) {
+        const eh12 = dEndHour12.value;
+        const em = dEndMin.value;
+        const eAmpm = getEditAmPm('dEnd');
+        const eh24 = to24h(eh12, eAmpm);
+        end_time = `${eh24}:${em}`;
+      }
       
       // Create the payload for single day edit
       const shiftDate = currentShift.start.toISOString().split('T')[0]; // YYYY-MM-DD format
