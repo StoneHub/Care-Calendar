@@ -1,0 +1,45 @@
+// Care-Calendar VS Code Workspace
+// This workspace file lives inside the subfolder `workforce-management-system` but
+// we point the workspace root to the parent repo directory so tools (Copilot, MCP,
+// linters, relative imports) see the whole project. JSONC allows comments.
+{
+	"folders": [
+		{
+			// Parent directory = actual project root
+			"path": ".."
+		}
+		// If you ever want the subfolder itself as a second root, you can add:
+		// , { "path": "." }
+	],
+	"settings": {
+		// Use the project root virtual environment Python (create it first: python -m venv .venv)
+		"python.defaultInterpreterPath": "${workspaceFolder}\\.venv\\Scripts\\python.exe",
+		// Open new integrated terminals at the project root
+		"terminal.integrated.cwd": "${workspaceFolder}",
+
+		// Ensure Copilot Chat indexes only this workspace (explicit)
+		"github.copilot.chat.codebase": "workspace",
+
+		// OPTIONAL: Register an MCP server (uncomment & adjust if/when you add one)
+		// "github.copilot.mcpServers": {
+		//   "careCalendar": {
+		//     "command": "${workspaceFolder}\\.venv\\Scripts\\python.exe",
+		//     "args": ["-m", "your_mcp_server_module"],
+		//     "env": {
+		//       // Make sure Python can resolve project packages
+		//       "PYTHONPATH": "${workspaceFolder}"
+		//     },
+		//     "enable": true
+		//   }
+		// },
+
+		// Reduce noise: exclude Python cache & DB copies from search / file watchers if desired
+		"files.watcherExclude": {
+			"**/__pycache__": true
+		},
+		"search.exclude": {
+			"**/__pycache__": true,
+			"**/*.db": false
+		}
+	}
+}
