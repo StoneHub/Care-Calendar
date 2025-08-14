@@ -33,18 +33,21 @@ logs
 *.sw?
 
 # Python / Flask app ignores
-workforce-management-system/.venv/
-workforce-management-system/__pycache__/
-workforce-management-system/**/*.pyc
-workforce-management-system/.pytest_cache/
-workforce-management-system/instance/
-workforce-management-system/*.sqlite3
-workforce-management-system/*.db
+backend/.venv/
+backend/__pycache__/
+backend/**/*.pyc
+backend/.pytest_cache/
+backend/instance/
+backend/*.sqlite3
+backend/*.db
 
 # Root-level virtual env and DB (when running from repo root)
 .venv/
 *.sqlite3
 database.db
+data/*.db
+data/backups/
+data/*.sqlite3
  
 # Secrets for Google Calendar integration
 workforce-management-system/.secrets/

@@ -2,7 +2,7 @@
 Root entry point for the Care Calendar Flask app.
 
 This bootstraps the existing application located under
-'workforce-management-system' so you can run it from
+'backend' so you can run it from
 the project root without moving files.
 """
 from __future__ import annotations
@@ -13,7 +13,7 @@ import sys
 
 def _ensure_legacy_on_path() -> None:
     root = os.path.dirname(os.path.abspath(__file__))
-    legacy_dir = os.path.join(root, "workforce-management-system")
+    legacy_dir = os.path.join(root, "backend")
     if legacy_dir not in sys.path:
         sys.path.insert(0, legacy_dir)
 

@@ -1,0 +1,20 @@
+[Unit]
+Description=Care Calendar Flask App
+After=network.target
+
+[Service]
+User=pi
+WorkingDirectory=/home/pi/Care-Calendar
+Environment=HOST=0.0.0.0
+Environment=PORT=8080
+Environment=FLASK_DEBUG=0
+# Set a strong secret in production
+Environment=FLASK_SECRET_KEY=change-me-to-a-long-random-string
+# Relocated DB path (Phase B). Ensure file exists at this path before restarting.
+Environment=CARE_DB_PATH=/home/pi/Care-Calendar/data/database.db
+ExecStart=/home/pi/Care-Calendar/.venv/bin/python /home/pi/Care-Calendar/main.py
+Restart=on-failure
+RestartSec=5
+
+[Install]
+WantedBy=multi-user.target
