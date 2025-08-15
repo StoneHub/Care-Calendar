@@ -248,4 +248,27 @@ If returning later:
 
 Status: Phase 1 NOT YET RUN (script added – ready). Proceed when convenient.
 
+### Phase 2 (JS Modularization) – Completed (Aug 2025)
+
+Split monolithic `static/js/shifts.js` into ordered modules:
+
+- `shifts.utils.js` (globals, data bootstrap, helpers, dark mode, fetch wrapper)
+- `shifts.calendar.js` (month/week rendering, legend, navigation state)
+- `shifts.wizard.js` (Create Shift wizard + inline date picker, repeat controls)
+- `shifts.menu.js` (selection mode, context menu, coverage settings, swap/delete)
+- `shifts.edit.js` (Edit Series / Edit Day wizard scaffolding)
+
+Template `shifts.html` updated to inject inline API endpoint map (`window.CARE_API`) before module script tags (cache-bust `?v=2`). Removed legacy `shifts.js`.
+
+Post‑split validation checklist:
+
+1. Hard refresh browser (bypass cache) – confirm no 404s for new module files.
+2. Open calendar: ensure month/week toggle still works; legend populated.
+3. Create Shift wizard opens & hides repeat weekday chips until toggled.
+4. Context menu delete/swap still functional; selection mode multi-delete works.
+5. Edit Series wizard still launches from context menu (series shift) without losing currentShift state.
+6. Coverage gap badge logic unchanged.
+
+Next (optional Phase 3): Extract HTML partials (`_wizard_create.html`, `_wizard_edit_series.html`, `_wizard_edit_day.html`, `_shift_menu.html`, `_nav.html`) to reduce `shifts.html` further.
+
 ---

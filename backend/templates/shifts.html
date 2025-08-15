@@ -371,7 +371,19 @@
 <script id="shifts-data" type="application/json">{{ shifts | tojson }}</script>
 <script id="employees-data" type="application/json">{{ employees | tojson }}</script>
 <script src="{{ url_for('static', filename='js/theme.js') }}"></script>
-<!-- shifts-split-js -->
-<script src="{{ url_for('static', filename='js/shifts.js') }}?v=1"></script>
+<!-- shifts-split-js (Phase 2 multi-module) -->
+<script>
+window.CARE_API = {
+  deleteShift: "{{ url_for('api_delete_shift') }}",
+  deleteSeries: "{{ url_for('api_delete_series') }}",
+  swapShift: "{{ url_for('api_swap_shift') }}",
+  updateSeries: "{{ url_for('api_update_series') }}"
+};
+</script>
+<script src="{{ url_for('static', filename='js/shifts.utils.js') }}?v=2"></script>
+<script src="{{ url_for('static', filename='js/shifts.calendar.js') }}?v=2"></script>
+<script src="{{ url_for('static', filename='js/shifts.wizard.js') }}?v=2"></script>
+<script src="{{ url_for('static', filename='js/shifts.menu.js') }}?v=2"></script>
+<script src="{{ url_for('static', filename='js/shifts.edit.js') }}?v=2"></script>
 </body>
 </html>
