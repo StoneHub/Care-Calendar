@@ -96,3 +96,25 @@
   .cal-day:focus-visible{ outline:2px solid var(--focus); outline-offset:2px; }
   .cal-day[aria-disabled="true"]{ color:var(--text-3); cursor:not-allowed; opacity:0.4; }
   .cal-day[aria-disabled="true"]:hover{ background:var(--bg-1); border-color:var(--border); }
+
+  /* Time Off (calendar) */
+  .timeoff-ctn { margin-top:4px; display:flex; flex-direction:column; gap:2px; }
+  .timeoff-pill { font-size:11px; background:repeating-linear-gradient(45deg,#999 0 6px,#bbb 6px 12px); color:#222; padding:2px 4px; border-radius:4px; line-height:1.2; font-weight:500; opacity:0.9; }
+  html.dark .timeoff-pill { background:repeating-linear-gradient(45deg,#666 0 6px,#555 6px 12px); color:#eee; }
+  .legend-swatch.timeoff-swatch { background:repeating-linear-gradient(45deg,#777 0 6px,#aaa 6px 12px); }
+  html.dark .legend-swatch.timeoff-swatch { background:repeating-linear-gradient(45deg,#444 0 6px,#666 6px 12px); }
+
+  /* Time Off spanning bar */
+  .timeoff-span { margin-top:2px; height:6px; background:linear-gradient(90deg, rgba(153,153,153,.9), rgba(187,187,187,.7)); border-radius:3px; position:relative; }
+  html.dark .timeoff-span { background:linear-gradient(90deg, #555, #666); }
+
+  /* Conflict highlighting */
+  .event.conflict { outline:2px solid #e67e22; position:relative; }
+  .event.conflict:after { content:""; position:absolute; inset:0; background:repeating-linear-gradient(135deg, rgba(230,126,34,.15) 0 6px, transparent 6px 12px); border-radius:4px; pointer-events:none; }
+
+  /* Utility spacing */
+  .gap-md > * + * { margin-top:12px; }
+
+  /* Hide overlays with hidden attribute */
+  .overlay[hidden] { display:none !important; }
+  .to-popover { width:260px; }

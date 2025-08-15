@@ -23,6 +23,7 @@
         <div class="rowx">
             <div class="seg">
               <button class="btn btn-primary" id="btnNewShift">New Shift</button>
+              <button class="btn btn-secondary" id="btnNewTimeOff">Add Time Off</button>
               <button class="btn btn-secondary" id="btnSelectMode">Select shifts</button>
               <button class="btn btn-danger hidden" id="btnDeleteSelected">Delete selected (0)</button>
             </div>
@@ -64,6 +65,27 @@
   {% include 'partials/_wizard_edit_series.html' %}
 
   {% include 'partials/_wizard_edit_day.html' %}
+
+  {% include 'partials/_wizard_time_off.html' %}
+
+  <div id="timeOffPopover" class="menu to-popover" role="dialog" aria-modal="false" aria-labelledby="toPopTitle">
+    <h4 id="toPopTitle">Time Off</h4>
+    <div class="rowx" id="toPopDetails"></div>
+    <div class="rowx">
+      <label>Start</label>
+  <input type="date" id="toEditStart" class="input" aria-label="Edit start date">
+      <label>End</label>
+  <input type="date" id="toEditEnd" class="input" aria-label="Edit end date">
+      <label>Reason</label>
+  <input type="text" id="toEditReason" class="input" maxlength="120" aria-label="Edit reason" placeholder="Reason (optional)">
+    </div>
+    <div class="rowx">
+      <button class="btn btn-primary" id="toSaveEdit">Save</button>
+      <button class="btn btn-danger" id="toDelete">Delete</button>
+      <button class="btn btn-secondary" id="toClosePop">Close</button>
+    </div>
+    <div class="muted" id="toEditMsg"></div>
+  </div>
 </main>
 
 <script id="shifts-data" type="application/json">{{ shifts | tojson }}</script>

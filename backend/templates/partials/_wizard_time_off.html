@@ -1,0 +1,33 @@
+<!-- Time Off Creation Modal -->
+<div class="overlay" id="timeOffOverlay" role="dialog" aria-modal="true" aria-labelledby="timeOffTitle" hidden>
+  <div class="modal" id="timeOffModal">
+    <div class="hd" id="timeOffTitle">Add Time Off</div>
+    <div class="bd">
+  <form id="timeOffForm" onsubmit="return false" class="rowx gap-md">
+        <div class="rowx">
+          <label for="toEmployee">Employee</label>
+          <select id="toEmployee" class="input" required></select>
+        </div>
+        <div class="rowx">
+          <label for="toStart">Start date</label>
+          <input type="date" id="toStart" class="input" required>
+        </div>
+        <div class="rowx">
+          <label for="toEnd">End date</label>
+          <input type="date" id="toEnd" class="input" required>
+          <div class="muted" id="toSpanHint">Up to 30 days.</div>
+        </div>
+        <div class="rowx">
+          <label for="toReason">Reason (optional)</label>
+          <input type="text" id="toReason" class="input" maxlength="120" placeholder="Vacation / Sick / Personal" aria-describedby="toReasonCount">
+          <div class="muted" id="toReasonCount">0 / 120</div>
+        </div>
+        <div class="alert error hidden" id="toError" role="alert"></div>
+      </form>
+    </div>
+    <div class="ft">
+      <button class="btn btn-secondary" id="toCancel">Cancel</button>
+      <button class="btn btn-primary" id="toSubmit">Create</button>
+    </div>
+  </div>
+</div>

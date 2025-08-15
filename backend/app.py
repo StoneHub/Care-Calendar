@@ -1,12 +1,14 @@
 from flask import Flask, render_template, request, redirect, url_for, flash, session, jsonify, Response
 from werkzeug.security import generate_password_hash, check_password_hash
 from functools import wraps
-from database import init_db, insert_employee, get_employees, insert_shift, get_shifts_with_names
-from database import insert_attendance, get_attendance_with_names, insert_task, get_tasks_with_names
-from database import delete_employee, delete_shift, delete_attendance, delete_task
-from database import insert_user, get_user_by_email
-from database import delete_shifts_by_series, update_shift_employee
-from database import connect_db
+from database import (
+    init_db, insert_employee, get_employees, insert_shift, get_shifts_with_names,
+    insert_attendance, get_attendance_with_names, insert_task, get_tasks_with_names,
+    delete_employee, delete_shift, delete_attendance, delete_task,
+    insert_user, get_user_by_email, delete_shifts_by_series, update_shift_employee,
+    connect_db, insert_time_off, get_time_off_overlapping, delete_time_off,
+    employee_exists, get_time_off_by_id, update_time_off
+)
 import sqlite3
 from datetime import datetime, timedelta, date, time as dtime
 import os
@@ -441,6 +443,181 @@ def api_update_series():
                 occ += 1
             week_start += timedelta(days=7)
         return jsonify({ 'ok': True, 'updated': occ })
+    except Exception as e:
+        return jsonify({ 'ok': False, 'error': str(e) }), 500
+
+
+# --- Time Off (Caregiver Unavailability) Endpoints ---
+
+MAX_TIME_OFF_SPAN_DAYS = int(os.environ.get('CARE_TIME_OFF_MAX_DAYS', '30'))
+
+def _parse_iso_date(val, field):
+    try:
+        return datetime.strptime(val, '%Y-%m-%d').date()
+    except Exception:
+        raise ValueError(f"{field} must be YYYY-MM-DD")
+
+@app.route('/api/time_off', methods=['GET'])
+@login_required
+def api_time_off_list():
+    """Return time off records overlapping the provided window (?start=YYYY-MM-DD&end=YYYY-MM-DD).
+    If omitted, defaults to current month window (month start .. month end)."""
+    start_raw = request.args.get('start')
+    end_raw = request.args.get('end')
+    today = date.today()
+    if start_raw:
+        try:
+            start_d = _parse_iso_date(start_raw, 'start')
+        except ValueError as ve:
+            return jsonify({ 'ok': False, 'error': str(ve) }), 400
+    else:
+        start_d = date(today.year, today.month, 1)
+    if end_raw:
+        try:
+            end_d = _parse_iso_date(end_raw, 'end')
+        except ValueError as ve:
+            return jsonify({ 'ok': False, 'error': str(ve) }), 400
+    else:
+        # End of month
+        next_month = date(start_d.year + (1 if start_d.month == 12 else 0), 1 if start_d.month == 12 else start_d.month + 1, 1)
+        end_d = next_month - timedelta(days=1)
+    if end_d < start_d:
+        start_d, end_d = end_d, start_d
+    rows = get_time_off_overlapping(start_d.isoformat(), end_d.isoformat())
+    data = [
+        {
+            'id': r['id'],
+            'employee_id': r['employee_id'],
+            'start_date': r['start_date'],
+            'end_date': r['end_date'],
+            'reason': r['reason']
+        } for r in rows
+    ]
+    return jsonify({ 'ok': True, 'items': data })
+
+@app.route('/api/time_off', methods=['POST'])
+@login_required
+def api_time_off_create():
+    data = request.get_json(silent=True) or {}
+    emp_id = data.get('employee_id')
+    start_raw = data.get('start_date')
+    end_raw = data.get('end_date')
+    reason = data.get('reason')
+    if emp_id is None or start_raw is None or end_raw is None:
+        return jsonify({ 'ok': False, 'error': 'employee_id, start_date, end_date required' }), 400
+    try:
+        emp_id = int(emp_id)
+    except Exception:
+        return jsonify({ 'ok': False, 'error': 'employee_id must be integer' }), 400
+    try:
+        start_d = _parse_iso_date(start_raw, 'start_date')
+        end_d = _parse_iso_date(end_raw, 'end_date')
+    except ValueError as ve:
+        return jsonify({ 'ok': False, 'error': str(ve) }), 400
+    if end_d < start_d:
+        return jsonify({ 'ok': False, 'error': 'end_date must be >= start_date' }), 400
+    span_days = (end_d - start_d).days + 1
+    if span_days > MAX_TIME_OFF_SPAN_DAYS:
+        return jsonify({ 'ok': False, 'error': f'span exceeds {MAX_TIME_OFF_SPAN_DAYS} day limit' }), 400
+    if reason and len(reason) > 120:
+        return jsonify({ 'ok': False, 'error': 'reason too long (max 120 chars)' }), 400
+    # Employee existence
+    if not employee_exists(emp_id):
+        return jsonify({ 'ok': False, 'error': 'employee not found' }), 404
+    # Overlap check
+    conn = connect_db()
+    cur = conn.cursor()
+    cur.execute(
+        """
+        SELECT 1 FROM time_off
+        WHERE employee_id = ? AND NOT(end_date < ? OR start_date > ?)
+        LIMIT 1
+        """,
+        (emp_id, start_d.isoformat(), end_d.isoformat())
+    )
+    overlap = cur.fetchone() is not None
+    conn.close()
+    if overlap:
+        return jsonify({ 'ok': False, 'error': 'overlapping time off exists' }), 409
+    try:
+        new_id = insert_time_off(emp_id, start_d.isoformat(), end_d.isoformat(), reason)
+        return jsonify({ 'ok': True, 'item': {
+            'id': new_id,
+            'employee_id': emp_id,
+            'start_date': start_d.isoformat(),
+            'end_date': end_d.isoformat(),
+            'reason': reason
+        } }), 201
+    except Exception as e:
+        return jsonify({ 'ok': False, 'error': str(e) }), 500
+
+@app.route('/api/time_off/<int:time_off_id>', methods=['DELETE'])
+@login_required
+def api_time_off_delete(time_off_id):
+    try:
+        deleted = delete_time_off(time_off_id)
+        if not deleted:
+            return jsonify({ 'ok': False, 'error': 'not found' }), 404
+        return ('', 204)
+    except Exception as e:
+        return jsonify({ 'ok': False, 'error': str(e) }), 500
+
+@app.route('/api/time_off/<int:time_off_id>', methods=['PATCH'])
+@login_required
+def api_time_off_patch(time_off_id):
+    data = request.get_json(silent=True) or {}
+    # Allow partial updates but we validate final set
+    existing = get_time_off_by_id(time_off_id)
+    if not existing:
+        return jsonify({ 'ok': False, 'error': 'not found' }), 404
+    emp_id = data.get('employee_id', existing['employee_id'])
+    start_raw = data.get('start_date', existing['start_date'])
+    end_raw = data.get('end_date', existing['end_date'])
+    reason = data.get('reason', existing['reason'])
+    try:
+        emp_id = int(emp_id)
+    except Exception:
+        return jsonify({ 'ok': False, 'error': 'employee_id must be integer' }), 400
+    try:
+        start_d = _parse_iso_date(start_raw, 'start_date')
+        end_d = _parse_iso_date(end_raw, 'end_date')
+    except ValueError as ve:
+        return jsonify({ 'ok': False, 'error': str(ve) }), 400
+    if end_d < start_d:
+        return jsonify({ 'ok': False, 'error': 'end_date must be >= start_date' }), 400
+    span_days = (end_d - start_d).days + 2  # allow same span limit as create (inclusive)
+    if span_days > MAX_TIME_OFF_SPAN_DAYS + 1:
+        return jsonify({ 'ok': False, 'error': f'span exceeds {MAX_TIME_OFF_SPAN_DAYS} day limit' }), 400
+    if reason and len(reason) > 120:
+        return jsonify({ 'ok': False, 'error': 'reason too long (max 120 chars)' }), 400
+    if not employee_exists(emp_id):
+        return jsonify({ 'ok': False, 'error': 'employee not found' }), 404
+    # Overlap (exclude self)
+    conn = connect_db()
+    cur = conn.cursor()
+    cur.execute(
+        """
+        SELECT 1 FROM time_off
+        WHERE employee_id = ? AND id != ? AND NOT(end_date < ? OR start_date > ?)
+        LIMIT 1
+        """,
+        (emp_id, time_off_id, start_d.isoformat(), end_d.isoformat())
+    )
+    overlap = cur.fetchone() is not None
+    conn.close()
+    if overlap:
+        return jsonify({ 'ok': False, 'error': 'overlapping time off exists' }), 409
+    try:
+        updated = update_time_off(time_off_id, emp_id, start_d.isoformat(), end_d.isoformat(), reason)
+        if not updated:
+            return jsonify({ 'ok': False, 'error': 'not found (race)' }), 404
+        return jsonify({ 'ok': True, 'item': {
+            'id': time_off_id,
+            'employee_id': emp_id,
+            'start_date': start_d.isoformat(),
+            'end_date': end_d.isoformat(),
+            'reason': reason
+        } })
     except Exception as e:
         return jsonify({ 'ok': False, 'error': str(e) }), 500
 

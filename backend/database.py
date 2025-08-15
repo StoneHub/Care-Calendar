@@ -82,6 +82,21 @@ def init_db():
         conn.execute('ALTER TABLE shifts ADD COLUMN end_time TEXT')
     if not _column_exists(conn, 'shifts', 'series_id'):
         conn.execute('ALTER TABLE shifts ADD COLUMN series_id TEXT')
+
+    # --- Time Off (Caregiver unavailability) table (idempotent) ---
+    cursor.execute('''
+        CREATE TABLE IF NOT EXISTS time_off (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            employee_id INTEGER NOT NULL,
+            start_date TEXT NOT NULL, -- YYYY-MM-DD inclusive
+            end_date TEXT NOT NULL,   -- YYYY-MM-DD inclusive
+            reason TEXT,              -- optional short note (<=120 chars enforced in app layer)
+            created_at TEXT DEFAULT CURRENT_TIMESTAMP,
+            FOREIGN KEY (employee_id) REFERENCES employees (id) ON DELETE CASCADE
+        )
+    ''')
+    # Helpful covering index for overlap / range queries
+    cursor.execute('CREATE INDEX IF NOT EXISTS idx_time_off_employee_start ON time_off (employee_id, start_date)')
     
     conn.commit()
     conn.close()
@@ -322,3 +337,73 @@ def get_series_start_date(series_id: str):
     if not row or row[0] is None:
         return None
     return row[0]
+
+# ---------------- Time Off helpers ---------------- #
+
+def insert_time_off(employee_id: int, start_date: str, end_date: str, reason: str|None):
+    """Insert a time off record (assumes validation already performed). Returns new row id."""
+    conn = connect_db()
+    cur = conn.cursor()
+    cur.execute(
+        "INSERT INTO time_off (employee_id, start_date, end_date, reason) VALUES (?, ?, ?, ?)",
+        (employee_id, start_date, end_date, reason)
+    )
+    new_id = cur.lastrowid
+    conn.commit()
+    conn.close()
+    return new_id
+
+def get_time_off_overlapping(start_date: str, end_date: str):
+    """Return list of time off rows that overlap the [start_date, end_date] window (inclusive)."""
+    conn = connect_db()
+    cur = conn.cursor()
+    cur.execute(
+        """
+        SELECT id, employee_id, start_date, end_date, reason
+        FROM time_off
+        WHERE NOT(end_date < ? OR start_date > ?)
+        ORDER BY start_date, employee_id
+        """,
+        (start_date, end_date)
+    )
+    rows = cur.fetchall()
+    conn.close()
+    return rows
+
+def delete_time_off(time_off_id: int) -> bool:
+    """Delete a time off row. Returns True if a row was deleted, else False."""
+    conn = connect_db()
+    cur = conn.cursor()
+    cur.execute("DELETE FROM time_off WHERE id = ?", (time_off_id,))
+    deleted = cur.rowcount > 0
+    conn.commit()
+    conn.close()
+    return deleted
+
+def employee_exists(employee_id: int) -> bool:
+    conn = connect_db()
+    cur = conn.cursor()
+    cur.execute("SELECT 1 FROM employees WHERE id = ? LIMIT 1", (employee_id,))
+    found = cur.fetchone() is not None
+    conn.close()
+    return found
+
+def get_time_off_by_id(time_off_id: int):
+    conn = connect_db()
+    cur = conn.cursor()
+    cur.execute("SELECT id, employee_id, start_date, end_date, reason FROM time_off WHERE id = ?", (time_off_id,))
+    row = cur.fetchone()
+    conn.close()
+    return row
+
+def update_time_off(time_off_id: int, employee_id: int, start_date: str, end_date: str, reason: str|None) -> bool:
+    conn = connect_db()
+    cur = conn.cursor()
+    cur.execute(
+        "UPDATE time_off SET employee_id=?, start_date=?, end_date=?, reason=? WHERE id=?",
+        (employee_id, start_date, end_date, reason, time_off_id)
+    )
+    changed = cur.rowcount > 0
+    conn.commit()
+    conn.close()
+    return changed
