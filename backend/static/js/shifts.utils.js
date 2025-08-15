@@ -88,9 +88,13 @@ document.addEventListener('DOMContentLoaded', ()=>{
     startInput.value = iso; endInput.value = iso; reasonInput.value=''; reasonCount.textContent='0 / 120';
     errBox.classList.add('hidden'); errBox.textContent='';
     overlay.removeAttribute('hidden');
+    overlay.style.display = 'flex'; // Fix: ensure modal is visible by overriding CSS display: none
     selEmp.focus();
   }
-  function closeTO(){ overlay.setAttribute('hidden',''); }
+  function closeTO(){ 
+    overlay.setAttribute('hidden',''); 
+    overlay.style.display = 'none'; // Fix: ensure modal is properly hidden
+  }
   btn.addEventListener('click', openTO);
   btnCancel.addEventListener('click', closeTO);
   overlay.addEventListener('click', (e)=>{ if(e.target===overlay) closeTO(); });
@@ -114,7 +118,7 @@ document.addEventListener('DOMContentLoaded', ()=>{
       (timeOffCache[key] ||= []).push(js.item);
       rebuildTimeOffIndex();
       closeTO();
-      render && render();
+      render && await render();
     } catch(err){ showErr(err.message.replace(/<[^>]+>/g,'').slice(0,200)); }
     finally { btnSubmit.disabled=false; btnSubmit.textContent='Create'; }
   }
@@ -163,7 +167,7 @@ function openTimeOffPopover(anchorEl, row){
     try { const res=await fetch(`/api/time_off/${row.id}`, { method:'DELETE' }); if(!res.ok && res.status!==204) throw new Error(await res.text());
       // Remove from cache
       Object.keys(timeOffCache).forEach(k=>{ timeOffCache[k]=timeOffCache[k].filter(r=>r.id!==row.id); });
-      rebuildTimeOffIndex(); render && render(); close();
+      rebuildTimeOffIndex(); render && await render(); close();
     }catch(err){ msg.textContent='Delete failed: '+err.message; }
   };
   saveBtn.onclick=async ()=>{
@@ -174,7 +178,7 @@ function openTimeOffPopover(anchorEl, row){
     try { const res=await fetch(`/api/time_off/${row.id}`, { method:'PATCH', headers:{'Content-Type':'application/json'}, body:JSON.stringify(payload)}); const js=await res.json(); if(!res.ok || !js.ok) throw new Error(js.error||'Failed');
       // Update in cache
       Object.keys(timeOffCache).forEach(k=>{ timeOffCache[k]=timeOffCache[k].map(r=> r.id===row.id? js.item: r); });
-      rebuildTimeOffIndex(); render && render(); close();
+      rebuildTimeOffIndex(); render && await render(); close();
     }catch(err){ msg.textContent='Save failed: '+err.message; }
   };
 }
