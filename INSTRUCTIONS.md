@@ -15,8 +15,14 @@ Commands:
 # From the repo root
 python -m venv .venv; .\.venv\Scripts\Activate.ps1
 pip install -r requirements.txt
+
+# Seed database with test data (optional but recommended for development)
+python scripts/seed_database.py
+
 python main.py
 ```
+
+**Seeded login:** `admin@example.com` / `password`
 
 Then open <http://127.0.0.1:5000>
 
@@ -26,8 +32,14 @@ Then open <http://127.0.0.1:5000>
 # From the repo root in WSL
 python3 -m venv .venv && source .venv/bin/activate
 pip install -r requirements.txt
+
+# Seed database with test data (optional but recommended for development)  
+python scripts/seed_database.py
+
 python main.py
 ```
+
+**Seeded login:** `admin@example.com` / `password`
 
 ## Raspberry Pi (host on your LAN)
 
@@ -80,11 +92,23 @@ bash scripts/backup_db.sh
 
 ## Common tasks
 
-- Reset database:
+- **Seed database with test data:**
+  ```bash
+  python scripts/seed_database.py
+  ```
+- **Reset database:**
+  ```bash
+  python scripts/seed_database.py --reset --yes
+  ```
+- **Preview seeding changes:**
+  ```bash
+  python scripts/seed_database.py --dry-run --verbose
+  ```
+- **Manual database reset:**
   - Stop the server
-  - Delete `workforce-management-system/database.db`
-  - Run `python main.py`
-- Update packages:
+  - Delete `backend/database.db` (or location specified by CARE_DB_PATH)
+  - Run `python main.py` (will recreate empty DB)
+- **Update packages:**
   - Edit `requirements.txt` at the repo root
   - Run `pip install -r requirements.txt`
 

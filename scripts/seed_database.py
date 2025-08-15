@@ -317,6 +317,8 @@ def seed_database(reset=False, verbose=False, dry_run=False, yes=False):
                 )
                 stats['shifts']['created'] += created
                 stats['shifts']['skipped'] += skipped
+            elif verbose:
+                print("[SKIP]   Alice Day shifts (employee not found)")
             
             # Bob Evening: Mon-Fri 13:00-21:00  
             if "Bob Evening" in employee_ids:
@@ -327,6 +329,8 @@ def seed_database(reset=False, verbose=False, dry_run=False, yes=False):
                 )
                 stats['shifts']['created'] += created
                 stats['shifts']['skipped'] += skipped
+            elif verbose:
+                print("[SKIP]   Bob Evening shifts (employee not found)")
             
             # Carol Float: Single Saturday shift 09:00-15:00
             if "Carol Float" in employee_ids:
@@ -337,6 +341,8 @@ def seed_database(reset=False, verbose=False, dry_run=False, yes=False):
                 )
                 stats['shifts']['created'] += created
                 stats['shifts']['skipped'] += skipped
+            elif verbose:
+                print("[SKIP]   Carol Float shifts (employee not found)")
             
             # 4. Create time off entries
             # Alice Day: Next week Wed-Fri (3 days)
@@ -349,6 +355,8 @@ def seed_database(reset=False, verbose=False, dry_run=False, yes=False):
                 )
                 stats['time_off']['created'] += created
                 stats['time_off']['skipped'] += skipped
+            elif verbose:
+                print("[SKIP]   Alice Day time off (employee not found)")
             
             # Dave Nights: Upcoming Monday (single day)
             if "Dave Nights" in employee_ids:
@@ -359,6 +367,8 @@ def seed_database(reset=False, verbose=False, dry_run=False, yes=False):
                 )
                 stats['time_off']['created'] += created
                 stats['time_off']['skipped'] += skipped
+            elif verbose:
+                print("[SKIP]   Dave Nights time off (employee not found)")
         
         if not dry_run:
             # Commit transaction
@@ -366,10 +376,10 @@ def seed_database(reset=False, verbose=False, dry_run=False, yes=False):
             print("\nTransaction committed successfully.")
         
         # Print summary
-        print(f"\nSummary: users={stats['users']['created']} created={stats['users']['created']} skipped={stats['users']['skipped']} " +
-              f"employees={stats['employees']['created']} created={stats['employees']['created']} skipped={stats['employees']['skipped']} " +
-              f"shifts={stats['shifts']['created']} created={stats['shifts']['created']} skipped={stats['shifts']['skipped']} " +
-              f"time_off={stats['time_off']['created']} created={stats['time_off']['created']} skipped={stats['time_off']['skipped']}")
+        print(f"\nSummary: users=created={stats['users']['created']} skipped={stats['users']['skipped']} " +
+              f"employees=created={stats['employees']['created']} skipped={stats['employees']['skipped']} " +
+              f"shifts=created={stats['shifts']['created']} skipped={stats['shifts']['skipped']} " +
+              f"time_off=created={stats['time_off']['created']} skipped={stats['time_off']['skipped']}")
         
         # Post-run verification hints
         if not dry_run and (stats['users']['created'] > 0 or stats['employees']['created'] > 0):
