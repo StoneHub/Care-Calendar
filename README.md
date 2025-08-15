@@ -26,6 +26,27 @@ sudo systemctl restart care-calendar.service
 sudo systemctl status care-calendar.service --no-pager
 ```
 
+## Database Seeding
+
+For fresh development or container environments, use the deterministic seeding script:
+
+```powershell
+# Seed with test data (admin user, caregivers, shifts, time off)
+python scripts/seed_database.py
+
+# Reset database and re-seed
+python scripts/seed_database.py --reset --yes
+
+# Preview what would be created without making changes
+python scripts/seed_database.py --dry-run --verbose
+```
+
+**Default seeded data:**
+- Admin login: `admin@example.com` / `password`
+- Employees: Alice Day, Bob Evening, Carol Float, Dave Nights, Eve Relief
+- Shifts: Two recurring weekly series (current week + next week)
+- Time off: Sample entries with date conflicts to demonstrate functionality
+
 ## Environment Variables
 
 - CARE_DB_PATH (optional): Absolute or relative path to SQLite DB. Defaults to legacy `backend/database.db` if unset.
