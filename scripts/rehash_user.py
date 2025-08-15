@@ -19,7 +19,7 @@ Notes:
 - Prints local verify timing for quick performance checks.
 """
 from __future__ import annotations
-import argparse, os, time, sys
+import argparse, os, time, sys, sqlite3
 from typing import Optional
 
 # Ensure backend on import path if run from project root
@@ -27,8 +27,61 @@ PROJECT_ROOT = os.path.abspath(os.path.dirname(os.path.dirname(__file__)))
 if PROJECT_ROOT not in sys.path:
     sys.path.insert(0, PROJECT_ROOT)
 
-from backend.database import get_user_by_email, update_user_password, insert_user  # type: ignore
-from werkzeug.security import generate_password_hash, check_password_hash  # type: ignore
+
+def _auto_select_db(explicit: Optional[str]) -> None:
+    """Decide which DB to use before importing backend.database.
+    Priority:
+      1. --db argument if provided
+      2. Existing CARE_DB_PATH env var
+      3. If backend/database.db is empty/absent but data/database.db exists & non-empty, use data/database.db
+      4. Fallback to backend/database.db (handled by backend.database)
+    Sets CARE_DB_PATH env var when we override.
+    """
+    if explicit:
+        os.environ['CARE_DB_PATH'] = explicit
+        return
+    if os.environ.get('CARE_DB_PATH'):
+        return
+    backend_db = os.path.join(PROJECT_ROOT, 'backend', 'database.db')
+    data_db = os.path.join(PROJECT_ROOT, 'data', 'database.db')
+    backend_size = os.path.getsize(backend_db) if os.path.exists(backend_db) else -1
+    data_size = os.path.getsize(data_db) if os.path.exists(data_db) else -1
+    # Heuristic: choose data DB if backend is zero/absent and data is non-empty
+    if (backend_size <= 0) and (data_size > 0):
+        os.environ['CARE_DB_PATH'] = data_db
+        print(f"[INFO] Auto-selected populated DB: {data_db}")
+
+
+def _ensure_users_table(db_path: str):
+    """If users table missing, run init_db() to create schema."""
+    try:
+        conn = sqlite3.connect(db_path)
+        cur = conn.cursor()
+        cur.execute("SELECT name FROM sqlite_master WHERE type='table' AND name='users'")
+        exists = cur.fetchone() is not None
+        conn.close()
+    except Exception as e:
+        print(f"[WARN] Failed to inspect DB for users table: {e}")
+        return
+    if not exists:
+        try:
+            from backend.database import init_db  # local import after env set
+            init_db()
+            print("[INFO] Initialized DB schema (users table created).")
+        except Exception as e:
+            print(f"[ERROR] Could not initialize DB schema: {e}")
+
+
+def _build_arg_parser():
+    p = argparse.ArgumentParser(description="Re-hash (and optionally create) a single user.")
+    p.add_argument('--email', required=True, help='User email')
+    p.add_argument('--password', required=True, help='Plaintext password to hash')
+    p.add_argument('--name', help='Name (if creating)')
+    p.add_argument('--create', action='store_true', help='Create user if missing')
+    p.add_argument('--pbkdf2-iter', type=int, help='Override to use pbkdf2:sha256:<iter>')
+    p.add_argument('--show-hash', action='store_true', help='Print resulting hash (debug)')
+    p.add_argument('--db', help='Explicit database path (overrides auto-detect)')
+    return p
 
 
 def choose_method(pbkdf2_iter: Optional[int]) -> str:
@@ -42,19 +95,28 @@ def choose_method(pbkdf2_iter: Optional[int]) -> str:
 
 
 def main():
-    p = argparse.ArgumentParser(description="Re-hash (and optionally create) a single user.")
-    p.add_argument('--email', required=True, help='User email')
-    p.add_argument('--password', required=True, help='Plaintext password to hash')
-    p.add_argument('--name', help='Name (if creating)')
-    p.add_argument('--create', action='store_true', help='Create user if missing')
-    p.add_argument('--pbkdf2-iter', type=int, help='Override to use pbkdf2:sha256:<iter>')
-    p.add_argument('--show-hash', action='store_true', help='Print resulting hash (debug)')
+    p = _build_arg_parser()
     args = p.parse_args()
+
+    # Decide DB before importing backend.database
+    _auto_select_db(args.db)
+
+    # Now safe to import DB helpers with correct env
+    from backend import database  # type: ignore
+    from backend.database import get_user_by_email, update_user_password, insert_user  # type: ignore
+    from werkzeug.security import generate_password_hash, check_password_hash  # type: ignore
+
+    db_path = getattr(database, 'DATABASE', os.environ.get('CARE_DB_PATH', 'backend/database.db'))
+    _ensure_users_table(db_path)
 
     email = args.email
     method = choose_method(args.pbkdf2_iter)
 
-    user = get_user_by_email(email)
+    try:
+        user = get_user_by_email(email)
+    except Exception as e:
+        print(f"[ERROR] Failed retrieving user (possible schema issue): {e}")
+        return 6
     if not user:
         if not args.create:
             print(f"[ERROR] User '{email}' not found. Use --create with --name to create.")
@@ -90,13 +152,7 @@ def main():
     t0 = time.perf_counter(); check_password_hash(new_hash, args.password); dt_ms = (time.perf_counter()-t0)*1000
 
     changed = (old_hash != new_hash)
-    summary = {
-        'email': email,
-        'method': method,
-        'changed': changed,
-        'verify_ms': round(dt_ms, 2),
-        'iterations': method.split(':')[-1] if method.startswith('pbkdf2') and method.count(':')==2 else None,
-    }
+    # (summary reserved for future JSON output option)
     print(f"[OK] Re-hashed user email={email} method={method} verify={dt_ms:.1f}ms changed={changed}")
     if args.show_hash:
         print(new_hash)
