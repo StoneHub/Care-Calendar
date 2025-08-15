@@ -700,23 +700,24 @@ async function postJSON(url, payload){
     oldBtn.parentNode.replaceChild(newBtn, oldBtn);
     newBtn.addEventListener('click', async ()=>{
       if(!currentShift) return;
-      try{
+      try {
         if(currentShift.series_id){
-          const all = confirm('This shift is part of a series. Press OK to delete the entire series, or Cancel to delete only this occurrence.');
-          if(all){ await postJSON(API.deleteSeries, { series_id: currentShift.series_id }); }
-          else { await postJSON(API.deleteShift, { shift_id: currentShift.id }); }
+          if(!confirm('Delete this shift occurrence?')) return;
+          await postJSON(API.deleteShift, { shift_id: currentShift.id });
         } else {
+          if(!confirm('Delete this shift?')) return;
           await postJSON(API.deleteShift, { shift_id: currentShift.id });
         }
         location.reload();
-      }catch(e){ alert('Failed to delete: '+e.message); }
+      } catch(e){ alert('Failed to delete: '+e.message); }
     });
   }
 })();
 
 document.getElementById('btnDeleteSeries').addEventListener('click', async ()=>{
-  if(!currentShift || !currentShift.series_id) return; if(!confirm('Delete the entire series?')) return;
-  try{ await postJSON(API.deleteSeries, { series_id: currentShift.series_id }); location.reload(); }catch(e){ alert('Failed to delete series: '+e.message); }
+  if(!currentShift || !currentShift.series_id) return;
+  if(!confirm('Delete ALL occurrences in this series? This cannot be undone.')) return;
+  try { await postJSON(API.deleteSeries, { series_id: currentShift.series_id }); location.reload(); } catch(e){ alert('Failed to delete series: '+e.message); }
 });
 
 document.getElementById('btnSwap').addEventListener('click', async ()=>{
