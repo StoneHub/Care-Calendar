@@ -659,7 +659,13 @@ function prefillWizardDefaults(){
   if(daysCtn) daysCtn.classList.add('hidden');
   if(untilCtn) untilCtn.classList.add('hidden');
 }
-const _openWizard = openWizard; openWizard = function(){ _openWizard(); prefillWizardDefaults(); if(typeof updateStartFromControls==='function') updateStartFromControls(); };
+const _openWizard = openWizard; openWizard = function(){ _openWizard(); prefillWizardDefaults(); if(typeof updateStartFromControls==='function') updateStartFromControls();
+  // Safety: enforce hidden state for repeat containers if not repeating
+  const daysCtn=document.getElementById('wizDaysCtn');
+  const untilCtn=document.getElementById('wizUntilCtn');
+  if(daysCtn && wiz.repeat===false && !daysCtn.classList.contains('hidden')) daysCtn.classList.add('hidden');
+  if(untilCtn && wiz.repeat===false && !untilCtn.classList.contains('hidden')) untilCtn.classList.add('hidden');
+};
 
 // --- Init calendar controls and first render ---
 (function initCalendar(){

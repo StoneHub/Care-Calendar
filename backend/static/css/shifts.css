@@ -46,6 +46,7 @@
     .seg{ display:flex; gap:6px; flex-wrap:wrap; }
 
     .rowx{ display:flex; flex-direction:column; gap:6px; }
+    .rowx.hidden{ display:none !important; } /* ensure hidden wins over rowx flex layout */
     .chip{ background: var(--bg-1); border:1px solid var(--border); padding:4px 8px; border-radius:16px; font-size:12px; cursor:pointer; color: var(--text-1); }
     .chip input{ margin-right:6px; }
     .muted{ color:var(--text-3); font-size:13px; }
