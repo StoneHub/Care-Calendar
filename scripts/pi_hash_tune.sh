@@ -28,7 +28,8 @@ USE_ARGON2=0
 RUNS=2
 SERVICE_NAME="care-calendar.service"
 SYSTEMD_PATH="/etc/systemd/system/${SERVICE_NAME}"
-REPO_ROOT="${HOME}/Care-Calendar"
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+REPO_ROOT="$(cd "${SCRIPT_DIR}/.." && pwd)"
 VENV_PY="${REPO_ROOT}/.venv/bin/python"
 METHOD_SELECTED=""
 
@@ -45,9 +46,11 @@ while [[ $# -gt 0 ]]; do
 done
 
 if [[ ! -x "$VENV_PY" ]]; then
-  echo "[WARN] Python venv not found at $VENV_PY. Falling back to system python." >&2
+  echo "[WARN] Python venv not found at $VENV_PY. Falling back to system python (PATH)." >&2
   VENV_PY="python3"
 fi
+echo "[INFO] Using Python: $VENV_PY"
+echo "[INFO] Repo root   : $REPO_ROOT"
 
 # Python snippet to benchmark PBKDF2 iteration counts
 read -r -d '' PY_CODE <<'PY'
@@ -141,14 +144,7 @@ if [[ $APPLY -eq 1 ]]; then
   if grep -q 'CARE_PWHASH_METHOD=' "$SYSTEMD_PATH"; then
     sed -i "s#Environment=CARE_PWHASH_METHOD=.*#Environment=CARE_PWHASH_METHOD=${METHOD_SELECTED}#" "$SYSTEMD_PATH"
   else
-    # Insert after last existing Environment= line inside [Service]
-    awk -v method="$METHOD_SELECTED" '
-      BEGIN{added=0}
-      /^
-\[Service\]/ {print; next}
-      {print}
-    ' "$SYSTEMD_PATH" >/dev/null # placeholder (robust insertion below)
-    # Simpler: append near end of Service block
+    # Insert before ExecStart inside [Service]
     sed -i "/^ExecStart=/i Environment=CARE_PWHASH_METHOD=${METHOD_SELECTED}" "$SYSTEMD_PATH"
   fi
   echo "[INFO] Updated service file with CARE_PWHASH_METHOD=${METHOD_SELECTED}"
