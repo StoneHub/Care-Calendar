@@ -73,18 +73,22 @@ def _ensure_users_table(db_path: str):
 
 
 def _build_arg_parser():
-    p = argparse.ArgumentParser(description="Re-hash (and optionally create) a single user.")
-    p.add_argument('--email', required=True, help='User email')
-    p.add_argument('--password', required=True, help='Plaintext password to hash')
+    p = argparse.ArgumentParser(description="Re-hash (and optionally create) a single user, or benchmark iteration counts.")
+    p.add_argument('--email', help='User email (omit when only benchmarking)')
+    p.add_argument('--password', help='Plaintext password to hash (omit when only benchmarking)')
     p.add_argument('--name', help='Name (if creating)')
     p.add_argument('--create', action='store_true', help='Create user if missing')
     p.add_argument('--pbkdf2-iter', type=int, help='Override to use pbkdf2:sha256:<iter>')
     p.add_argument('--show-hash', action='store_true', help='Print resulting hash (debug)')
     p.add_argument('--db', help='Explicit database path (overrides auto-detect)')
+    p.add_argument('--benchmark', help='Comma-separated iteration counts to benchmark (no DB writes)')
+    p.add_argument('--method', help='Explicit method override (e.g. argon2)')
     return p
 
 
-def choose_method(pbkdf2_iter: Optional[int]) -> str:
+def choose_method(pbkdf2_iter: Optional[int], explicit: Optional[str]) -> str:
+    if explicit:
+        return explicit
     if pbkdf2_iter:
         return f"pbkdf2:sha256:{pbkdf2_iter}"
     env = os.environ.get('CARE_PWHASH_METHOD')
@@ -109,8 +113,44 @@ def main():
     db_path = getattr(database, 'DATABASE', os.environ.get('CARE_DB_PATH', 'backend/database.db'))
     _ensure_users_table(db_path)
 
+    # Benchmark-only path
+    if args.benchmark:
+        from werkzeug.security import generate_password_hash, check_password_hash  # type: ignore
+        pw = args.password or 'benchpw'
+        counts = []
+        for part in args.benchmark.split(','):
+            part = part.strip()
+            if not part:
+                continue
+            try:
+                counts.append(int(part))
+            except ValueError:
+                print(f"[WARN] Skipping non-integer iteration spec: {part}")
+        if not counts:
+            print('[ERROR] No valid iteration counts provided.')
+            return 7
+        print(f"[INFO] Benchmarking pbkdf2 verify over {len(counts)} iteration counts (pw length={len(pw)})")
+        results = []
+        for it in counts:
+            m = f'pbkdf2:sha256:{it}'
+            h = generate_password_hash(pw, method=m)
+            t0 = time.perf_counter(); check_password_hash(h, pw); ms = (time.perf_counter()-t0)*1000
+            results.append((it, ms))
+            print(f"  {it:>7} -> {ms:.1f}ms")
+        under = [ (it, ms) for it, ms in results if ms < 1000 ]
+        if under:
+            best = max(under, key=lambda x: x[0])[0]
+            print(f"[RECOMMEND] Highest iteration under 1000ms: {best}")
+        else:
+            print('[RECOMMEND] None under 1000ms; consider Argon2 or lower iterations.')
+        return 0
+
+    if not args.email or not args.password:
+        print('[ERROR] --email and --password required unless using --benchmark')
+        return 8
+
     email = args.email
-    method = choose_method(args.pbkdf2_iter)
+    method = choose_method(args.pbkdf2_iter, args.method)
 
     try:
         user = get_user_by_email(email)

@@ -107,6 +107,18 @@ python scripts/rehash_user.py --create --name "Admin" --email admin@example.com 
 
 The script prints local verification timing so you can quickly iterate on a suitable `pbkdf2` cost. After settling, update the systemd unit's `CARE_PWHASH_METHOD` and restart the service.
 
+### Password Hash Performance (Summary)
+
+Raspberry Pi 2 hardware was too slow for Werkzeug's default PBKDF2 cost (>20s logins). We operationalized tuning:
+
+- Configurable method via `CARE_PWHASH_METHOD` (e.g. `pbkdf2:sha256:50000` or `argon2`).
+- `scripts/rehash_user.py` for safe single-user re-hash, auto DB detection, and benchmarking (`--benchmark 120000,80000,60000,50000,40000,30000`).
+- Target: <1000ms verify time (ideally ~600–800ms) on the weakest Pi; choose highest iteration below that threshold.
+- Current observed example: 80k iterations ≈3s (too slow) – prefer 50k or 40k on Pi 2.
+- Optionally migrate to Argon2 (`pip install argon2-cffi` then set `CARE_PWHASH_METHOD=argon2`).
+
+Procedure (condensed): benchmark → pick iteration → set systemd env → restart → re-hash admin user → login once → confirm `LOGIN` log hash timing. Repeat lowering cost if still >1s.
+
 ## Roadmap & Refactor Plan
 
 Detailed in `backend/ROADMAP.md`.

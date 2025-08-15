@@ -22,6 +22,7 @@ This plan tracks upgrades to recurring weekly shifts, interactive calendar UI, c
 - End time support with validation (end > start) and serialization.
 - Weekly hours report per employee (/hours) with nav links.
 - Consistent header/navigation links on index and shifts pages.
+- Password hash performance tuning (Aug 2025): introduced `CARE_PWHASH_METHOD` operational guidance, created `scripts/rehash_user.py` for safe user re-hash & benchmarking (auto DB detection, schema init), documented iteration selection process for Raspberry Pi hardware.
 
 ### In Progress
 
@@ -52,6 +53,10 @@ This plan tracks upgrades to recurring weekly shifts, interactive calendar UI, c
 - Roles & audit.
   - Basic RBAC for scheduling actions; audit log of changes (who/when/what).
 - DevEx & repo hygiene.
+  - Evaluate Argon2 adoption (install `argon2-cffi`, compare verify latency vs PBKDF2 at chosen cost).
+  - Add periodic (cron) lightweight benchmark logging to detect performance regressions (planned script extension to output JSON summary).
+  - Batch re-hash utility to upgrade all users silently when method changes.
+  - Optional health/metrics endpoint exposing current hash method + rolling average verify time.
   - .gitattributes for line endings; Prettier/ESLint for web assets; Black/ruff for Python.
 
 ## Phase 2 Plan (Q3 2025)
