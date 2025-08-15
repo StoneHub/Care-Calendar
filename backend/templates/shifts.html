@@ -1113,7 +1113,21 @@ document.getElementById('wizRepeatToggle').addEventListener('click', (e)=>{
 document.getElementById('wizUntil').addEventListener('change', (e)=>{ wiz.until = e.target.value || null; });
 
 // After DOM defined: prefill wiz.start from defaults on open
-function prefillWizardDefaults(){ const hSel=document.getElementById('wizStartHour'); const mSel=document.getElementById('wizStartMin'); if(hSel && !hSel.value) hSel.value='09'; if(mSel && !mSel.value) mSel.value='00'; }
+function prefillWizardDefaults(){
+  const hSel=document.getElementById('wizStartHour');
+  const mSel=document.getElementById('wizStartMin');
+  if(hSel && !hSel.value) hSel.value='09';
+  if(mSel && !mSel.value) mSel.value='00';
+  // Reset repeat UI each time wizard opens
+  wiz.repeat = false;
+  wiz.days.clear();
+  const toggle = document.getElementById('wizRepeatToggle');
+  if(toggle) toggle.setAttribute('aria-pressed','false');
+  const daysCtn = document.getElementById('wizDaysCtn');
+  const untilCtn = document.getElementById('wizUntilCtn');
+  if(daysCtn) daysCtn.classList.add('hidden');
+  if(untilCtn) untilCtn.classList.add('hidden');
+}
 const _openWizard = openWizard; openWizard = function(){ _openWizard(); prefillWizardDefaults(); if(typeof updateStartFromControls==='function') updateStartFromControls(); };
 
 // --- Init calendar controls and first render ---
