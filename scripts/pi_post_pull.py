@@ -107,9 +107,14 @@ def main() -> None:
 
     # Copy / overwrite logic
     if NEW_DB.exists():
+        target_tables = list_tables(NEW_DB)
+        legacy_tables = list_tables(preferred_legacy) if preferred_legacy else []
         if args.force_overwrite and preferred_legacy and preferred_legacy.exists():
             shutil.copy2(preferred_legacy, NEW_DB)
-            print(f'Overwrote target DB with legacy {preferred_legacy.name}')
+            print(f'Overwrote target DB with legacy {preferred_legacy.name} (force).')
+        elif not target_tables and legacy_tables and preferred_legacy and preferred_legacy.exists():
+            shutil.copy2(preferred_legacy, NEW_DB)
+            print(f'Auto-replaced empty target DB with legacy {preferred_legacy.name} (had tables).')
         else:
             print('Target DB already exists; leaving as-is (use --force-overwrite to replace).')
     elif preferred_legacy and preferred_legacy.exists():
