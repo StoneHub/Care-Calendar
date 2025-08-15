@@ -28,9 +28,29 @@ USE_ARGON2=0
 RUNS=2
 SERVICE_NAME="care-calendar.service"
 SYSTEMD_PATH="/etc/systemd/system/${SERVICE_NAME}"
-SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+SCRIPT_PATH="$(readlink -f "${BASH_SOURCE[0]}")" 2>/dev/null || SCRIPT_PATH="${BASH_SOURCE[0]}"
+SCRIPT_DIR="$(cd "$(dirname "${SCRIPT_PATH}")" && pwd)"
 REPO_ROOT="$(cd "${SCRIPT_DIR}/.." && pwd)"
-VENV_PY="${REPO_ROOT}/.venv/bin/python"
+# Candidate virtualenv pythons (normal user + sudo scenario)
+VENV_CANDIDATES=(
+  "${REPO_ROOT}/.venv/bin/python"
+)
+if [[ -n "${SUDO_USER:-}" ]]; then
+  ORIG_HOME=$(eval echo "~${SUDO_USER}") || true
+  if [[ -n "$ORIG_HOME" ]]; then
+    VENV_CANDIDATES+=("${ORIG_HOME}/Care-Calendar/.venv/bin/python")
+  fi
+fi
+VENV_PY=""
+for cand in "${VENV_CANDIDATES[@]}"; do
+  if [[ -x "$cand" ]]; then
+    VENV_PY="$cand"; break
+  fi
+done
+if [[ -z "$VENV_PY" ]]; then
+  VENV_PY="python3"  # fallback
+  echo "[WARN] No venv python found in candidates, falling back to system python." >&2
+fi
 METHOD_SELECTED=""
 
 while [[ $# -gt 0 ]]; do
@@ -45,12 +65,10 @@ while [[ $# -gt 0 ]]; do
   esac
 done
 
-if [[ ! -x "$VENV_PY" ]]; then
-  echo "[WARN] Python venv not found at $VENV_PY. Falling back to system python (PATH)." >&2
-  VENV_PY="python3"
-fi
 echo "[INFO] Using Python: $VENV_PY"
 echo "[INFO] Repo root   : $REPO_ROOT"
+echo "[INFO] Script dir  : $SCRIPT_DIR"
+if [[ -n "${SUDO_USER:-}" ]]; then echo "[INFO] SUDO_USER    : $SUDO_USER"; fi
 
 # Python snippet to benchmark PBKDF2 iteration counts
 read -r -d '' PY_CODE <<'PY'
