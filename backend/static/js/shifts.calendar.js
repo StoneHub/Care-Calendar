@@ -6,7 +6,7 @@ function calculateSpanDays(startISO, endISO){
   try { const s=new Date(startISO+'T00:00:00'); const e=new Date(endISO+'T00:00:00'); if(e<s) return 1; return Math.min( ( (e - s)/86400000 ) + 1, 31); }catch{ return 1; }
 }
 
-function render(){ if(view==='month') buildMonth(); else buildWeek(); }
+async function render(){ if(view==='month') await buildMonth(); else await buildWeek(); }
 
 async function buildMonth(){
   const grid=document.getElementById('grid'); if(!grid) return; grid.innerHTML='';
@@ -85,6 +85,36 @@ function buildLegend(){ const legend=document.getElementById('calendarLegend'); 
 }
 
 // Init calendar & navigation
-(function initCalendar(){ try{ buildLegend(); }catch(e){ console.error('Legend build failed', e); } try{ render(); }catch(e){ console.error('Render failed', e); } const prev=document.getElementById('prevPeriod'); const next=document.getElementById('nextPeriod'); const today=document.getElementById('todayBtn'); const mbtn=document.getElementById('viewMonth'); const wbtn=document.getElementById('viewWeek'); if(prev) prev.addEventListener('click',()=>{ anchor=(view==='month')? new Date(anchor.getFullYear(), anchor.getMonth()-1,1): addDays(anchor,-7); render(); }); if(next) next.addEventListener('click',()=>{ anchor=(view==='month')? new Date(anchor.getFullYear(), anchor.getMonth()+1,1): addDays(anchor,7); render(); }); if(today) today.addEventListener('click',()=>{ anchor=new Date(); render(); }); if(mbtn) mbtn.addEventListener('click',()=>{ view='month'; localStorage.setItem('view','month'); render(); }); if(wbtn) wbtn.addEventListener('click',()=>{ view='week'; localStorage.setItem('view','week'); render(); }); })();
+(async function initCalendar(){ 
+  try{ buildLegend(); }catch(e){ console.error('Legend build failed', e); } 
+  try{ await render(); }catch(e){ console.error('Render failed', e); } 
+  const prev=document.getElementById('prevPeriod'); 
+  const next=document.getElementById('nextPeriod'); 
+  const today=document.getElementById('todayBtn'); 
+  const mbtn=document.getElementById('viewMonth'); 
+  const wbtn=document.getElementById('viewWeek'); 
+  if(prev) prev.addEventListener('click', async ()=>{ 
+    anchor=(view==='month')? new Date(anchor.getFullYear(), anchor.getMonth()-1,1): addDays(anchor,-7); 
+    await render(); 
+  }); 
+  if(next) next.addEventListener('click', async ()=>{ 
+    anchor=(view==='month')? new Date(anchor.getFullYear(), anchor.getMonth()+1,1): addDays(anchor,7); 
+    await render(); 
+  }); 
+  if(today) today.addEventListener('click', async ()=>{ 
+    anchor=new Date(); 
+    await render(); 
+  }); 
+  if(mbtn) mbtn.addEventListener('click', async ()=>{ 
+    view='month'; 
+    localStorage.setItem('view','month'); 
+    await render(); 
+  }); 
+  if(wbtn) wbtn.addEventListener('click', async ()=>{ 
+    view='week'; 
+    localStorage.setItem('view','week'); 
+    await render(); 
+  }); 
+})();
 
 // End calendar module
