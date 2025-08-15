@@ -1,0 +1,79 @@
+<!-- Edit Series Wizard Modal -->
+<div class="overlay is-hidden" id="editSeriesOverlay" role="dialog" aria-modal="true" aria-labelledby="editTitle">
+  <div class="modal" id="editSeriesModal">
+    <div class="hd" id="editTitle">Edit Series</div>
+    <div class="bd">
+      <div class="step" id="eStep1">
+        <div class="rowx">
+          <label>Scope</label>
+          <div class="muted">Changes apply to future occurrences in this series starting this week.</div>
+        </div>
+        <div class="rowx">
+          <label for="eEmployee">Reassign caregiver (optional)</label>
+          <select id="eEmployee" class="select"><option value="">Keep current</option></select>
+        </div>
+      </div>
+      <div class="step hidden" id="eStep2">
+        <div class="rowx">
+          <label>Start time</label>
+          <div class="time-selects">
+            <select id="eStartHour12" aria-label="Start hour" class="select">
+              <option value="">HH</option>
+              <option value="01">01</option><option value="02">02</option><option value="03">03</option><option value="04">04</option><option value="05">05</option><option value="06">06</option><option value="07">07</option><option value="08">08</option><option value="09">09</option><option value="10">10</option><option value="11">11</option><option value="12">12</option>
+            </select>
+            <span>:</span>
+            <select id="eStartMin" aria-label="Start minutes" class="select">
+              <option value="00">00</option><option value="15">15</option><option value="30">30</option><option value="45">45</option>
+            </select>
+            <div class="seg ampm-seg" role="radiogroup" aria-label="Start AM/PM">
+              <button type="button" class="chip ampm-btn active" id="eStartAM" aria-pressed="true" data-value="AM">AM</button>
+              <button type="button" class="chip ampm-btn" id="eStartPM" aria-pressed="false" data-value="PM">PM</button>
+            </div>
+          </div>
+        </div>
+        <div class="rowx">
+          <label>End time (optional)</label>
+          <div class="time-selects">
+            <select id="eEndHour12" aria-label="End hour" class="select">
+              <option value="">HH</option>
+              <option value="01">01</option><option value="02">02</option><option value="03">03</option><option value="04">04</option><option value="05">05</option><option value="06">06</option><option value="07">07</option><option value="08">08</option><option value="09">09</option><option value="10">10</option><option value="11">11</option><option value="12">12</option>
+            </select>
+            <span>:</span>
+            <select id="eEndMin" aria-label="End minutes" class="select">
+              <option value="">MM</option>
+              <option value="00">00</option><option value="15">15</option><option value="30">30</option><option value="45">45</option>
+            </select>
+            <div class="seg ampm-seg" role="radiogroup" aria-label="End AM/PM">
+              <button type="button" class="chip ampm-btn active" id="eEndAM" aria-pressed="true" data-value="AM">AM</button>
+              <button type="button" class="chip ampm-btn" id="eEndPM" aria-pressed="false" data-value="PM">PM</button>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="step hidden" id="eStep3">
+        <div class="rowx">
+          <label>Weekdays</label>
+          <div class="seg" id="eDays"></div>
+        </div>
+      </div>
+      <div class="step hidden" id="eStep4">
+        <div class="rowx">
+          <label>Repeat until (optional)</label>
+          <input type="date" id="eUntil" class="mini-input" aria-label="Repeat until date">
+          <div class="muted">Defaults to end of year if empty.</div>
+        </div>
+      </div>
+      <div class="step hidden" id="eStep5">
+        <div class="rowx">
+          <strong>Review</strong>
+          <div id="eReview" class="muted"></div>
+        </div>
+      </div>
+    </div>
+    <div class="ft">
+      <button class="btn btn-secondary" id="eCancel">Cancel</button>
+      <button class="btn btn-secondary hidden" id="eBack">Back</button>
+      <button class="btn btn-primary" id="eNext">Next</button>
+    </div>
+  </div>
+</div>

@@ -271,4 +271,26 @@ Post‑split validation checklist:
 
 Next (optional Phase 3): Extract HTML partials (`_wizard_create.html`, `_wizard_edit_series.html`, `_wizard_edit_day.html`, `_shift_menu.html`, `_nav.html`) to reduce `shifts.html` further.
 
+### Phase 3 (Template Partials) – Completed (Aug 2025)
+
+Extracted large structural blocks from `shifts.html` into Jinja partials:
+
+- `partials/_nav.html`
+- `partials/_shift_menu.html` (with added aria-label on swap select)
+- `partials/_wizard_create.html` (inline calendar role adjusted to group; repeat-until input labeled)
+- `partials/_wizard_edit_series.html`
+- `partials/_wizard_edit_day.html`
+
+Replaced inline markup with `{% include %}` directives to further reduce template size and isolate future changes.
+
+Validation checklist:
+
+1. Hard refresh; ensure partial includes render (view source shows expanded HTML at runtime).
+2. All wizard open/close flows work (create, edit series, edit day).
+3. Context menu still functions (select, delete, swap).
+4. No new console errors (ARIA adjustments applied where linter flagged issues).
+5. Performance unchanged (server-side include is simple text substitution in Jinja).
+
+Next (optional Phase 4 idea): Introduce Jinja macros for repeated time-select blocks to remove duplication and centralize AM/PM markup.
+
 ---

@@ -1,0 +1,94 @@
+<!-- Create Shift Wizard Modal -->
+<div class="overlay" id="wizardOverlay" role="dialog" aria-modal="true" aria-labelledby="wizTitle">
+  <div class="modal" id="wizardModal">
+    <div class="hd" id="wizTitle">Create Shift</div>
+    <div class="bd">
+      <div class="step" id="step1">
+        <div class="rowx">
+          <label>Employee</label>
+          <div id="wizEmployeeList" class="seg"></div>
+        </div>
+      </div>
+      <div class="step hidden" id="step2">
+        <div class="rowx">
+          <label for="wizStartDate">Start date & time</label>
+          <div class="time-selects">
+            <input type="date" id="wizStartDate" class="input">
+            <select id="wizStartHour12" aria-label="Start hour" class="select">
+              <option value="">HH</option>
+              <option value="01">01</option><option value="02">02</option><option value="03">03</option><option value="04">04</option><option value="05">05</option><option value="06">06</option><option value="07">07</option><option value="08">08</option><option value="09" selected>09</option><option value="10">10</option><option value="11">11</option><option value="12">12</option>
+            </select>
+            <span>:</span>
+            <select id="wizStartMin" aria-label="Start minutes" class="select">
+              <option value="">MM</option>
+              <option value="00" selected>00</option>
+              <option value="15">15</option>
+              <option value="30">30</option>
+              <option value="45">45</option>
+            </select>
+            <div class="seg ampm-seg" role="radiogroup" aria-label="Start AM/PM">
+              <button type="button" class="chip ampm-btn active" id="wizStartAM" aria-pressed="true" data-value="AM">AM</button>
+              <button type="button" class="chip ampm-btn" id="wizStartPM" aria-pressed="false" data-value="PM">PM</button>
+            </div>
+          </div>
+          <div class="inline-calendar" id="wizCalendar" role="group" aria-label="Date picker calendar">
+            <div class="cal-header">
+              <button type="button" class="cal-nav" id="wizCalPrev" aria-label="Previous month">&lt;</button>
+              <div class="cal-month" id="wizCalMonth" aria-live="polite"></div>
+              <button type="button" class="cal-nav" id="wizCalNext" aria-label="Next month">&gt;</button>
+            </div>
+            <div class="cal-weekdays">
+              <div class="cal-weekday">S</div><div class="cal-weekday">M</div><div class="cal-weekday">T</div><div class="cal-weekday">W</div><div class="cal-weekday">T</div><div class="cal-weekday">F</div><div class="cal-weekday">S</div>
+            </div>
+            <div class="cal-days" id="wizCalDays"></div>
+          </div>
+        </div>
+        <div class="rowx">
+          <label for="wizEndHour">End time (optional)</label>
+          <div class="time-selects">
+            <select id="wizEndHour12" aria-label="End hour" class="select">
+              <option value="">HH</option>
+              <option value="01">01</option><option value="02">02</option><option value="03">03</option><option value="04">04</option><option value="05">05</option><option value="06">06</option><option value="07">07</option><option value="08">08</option><option value="09">09</option><option value="10">10</option><option value="11">11</option><option value="12">12</option>
+            </select>
+            <span>:</span>
+            <select id="wizEndMin" aria-label="End minutes" class="select">
+              <option value="">MM</option>
+              <option value="00">00</option>
+              <option value="15">15</option>
+              <option value="30">30</option>
+              <option value="45">45</option>
+            </select>
+            <div class="seg ampm-seg" role="radiogroup" aria-label="End AM/PM">
+              <button type="button" class="chip ampm-btn active" id="wizEndAM" aria-pressed="true" data-value="AM">AM</button>
+              <button type="button" class="chip ampm-btn" id="wizEndPM" aria-pressed="false" data-value="PM">PM</button>
+            </div>
+          </div>
+        </div>
+        <div class="rowx">
+          <label>Repeat</label>
+          <button type="button" class="toggle-chip" id="wizRepeatToggle" aria-pressed="false">Repeat weekly</button>
+        </div>
+        <div class="rowx hidden" id="wizDaysCtn">
+          <label>Weekdays</label>
+          <div class="seg" id="wizDays" role="group" aria-label="Select weekdays"></div>
+        </div>
+        <div class="rowx hidden" id="wizUntilCtn">
+          <label>Repeat until (optional)</label>
+          <input type="date" id="wizUntil" class="input" aria-label="Repeat until date">
+          <div class="muted">Defaults to end of year if empty.</div>
+        </div>
+      </div>
+      <div class="step hidden" id="step3">
+        <div class="rowx">
+          <strong>Review</strong>
+          <div id="wizReview" class="muted"></div>
+        </div>
+      </div>
+    </div>
+    <div class="ft">
+      <button class="btn btn-secondary" id="wizCancel">Cancel</button>
+      <button class="btn btn-secondary hidden" id="wizBack">Back</button>
+      <button class="btn btn-primary" id="wizNext">Next</button>
+    </div>
+  </div>
+</div>

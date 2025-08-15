@@ -1,0 +1,15 @@
+<nav class="nav">
+    <div class="left">
+        <span class="logo">Care Calendar</span>
+        <a href="{{ url_for('index') }}">Home</a>
+        <a href="{{ url_for('employees') }}">Employees</a>
+        <a href="{{ url_for('shifts') }}">Shifts</a>
+        <a href="{{ url_for('attendance') }}">Attendance</a>
+        <a href="{{ url_for('tasks') }}">Tasks</a>
+        <a href="{{ url_for('performance') }}">Performance</a>
+        <a href="{{ url_for('hours_report') }}">Hours</a>
+    </div>
+    <div class="right">
+        <a href="{{ url_for('logout') }}">Logout</a>
+    </div>
+</nav>
