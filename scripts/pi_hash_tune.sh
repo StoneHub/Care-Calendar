@@ -1,4 +1,5 @@
 #!/usr/bin/env bash
+#changes
 # Care Calendar – Raspberry Pi password hash tuning & deployment helper
 #
 # Purpose:
