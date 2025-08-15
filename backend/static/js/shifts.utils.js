@@ -68,10 +68,11 @@ function rebuildTimeOffIndex(){
 window.__CARE_TIME_OFF__ = { fetchTimeOffForRange, timeOffDayIndex: ()=>timeOffDayIndex };
 
 // Time Off modal logic injected here to keep single additional file change (could be split later)
-document.addEventListener('DOMContentLoaded', ()=>{
+function initTimeOffModal(){
+  console.debug('[TimeOff] init modal binding');
   const btn = document.getElementById('btnNewTimeOff');
   const overlay = document.getElementById('timeOffOverlay');
-  if(!btn || !overlay) return;
+  if(!btn || !overlay){ console.debug('[TimeOff] elements missing, abort init'); return; }
   const form = document.getElementById('timeOffForm');
   const selEmp = document.getElementById('toEmployee');
   const startInput = document.getElementById('toStart');
@@ -124,7 +125,9 @@ document.addEventListener('DOMContentLoaded', ()=>{
   }
   function showErr(msg){ errBox.textContent=msg; errBox.classList.remove('hidden'); }
   btnSubmit.addEventListener('click', submitTO);
-});
+  console.debug('[TimeOff] modal ready');
+}
+if(document.readyState==='loading') document.addEventListener('DOMContentLoaded', initTimeOffModal); else initTimeOffModal();
 
 // Conflict detection helper (shift overlaps any time off for same employee date)
 function shiftConflictsWithTimeOff(shift){
