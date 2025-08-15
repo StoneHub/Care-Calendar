@@ -8,7 +8,8 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Kanit:wght@300;400;500;600;700&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="{{ url_for('static', filename='css/theme-dark.css') }}">
+  <!-- Added v=2 for cache busting calendar contrast update -->
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/theme-dark.css') }}?v=2">
     <style>
     *{ box-sizing: border-box; }
     header{ position:sticky; top:0; z-index:10; }
@@ -89,23 +90,24 @@
     .chip input{ margin-right:6px; }
 
     /* Inline Calendar Widget */
-    .inline-calendar{ margin-top:10px; border:1px solid var(--border); border-radius:8px; background:var(--bg-1); padding:8px; max-width:280px; }
-    .cal-header{ display:flex; align-items:center; justify-content:space-between; margin-bottom:8px; }
-    .cal-nav{ background:none; border:none; color:var(--text-1); cursor:pointer; padding:4px 8px; border-radius:4px; font-size:14px; }
-    .cal-nav:hover{ background:var(--bg-2); }
-    .cal-nav:focus-visible{ outline:2px solid var(--focus); outline-offset:2px; }
-    .cal-month{ font-weight:600; color:var(--text-1); font-size:14px; }
-    .cal-weekdays{ display:grid; grid-template-columns:repeat(7,1fr); gap:1px; margin-bottom:4px; }
-    .cal-weekday{ text-align:center; padding:4px; font-size:11px; font-weight:600; color:var(--text-3); }
-    .cal-days{ display:grid; grid-template-columns:repeat(7,1fr); gap:1px; }
-    .cal-day{ text-align:center; padding:6px 4px; font-size:12px; cursor:pointer; border-radius:4px; color:var(--text-1); transition:all .15s ease; }
-    .cal-day:hover{ background:var(--bg-2); }
-    .cal-day.other-month{ color:var(--text-3); }
-    .cal-day.selected{ background:var(--primary); color:#fff; }
-    .cal-day.today{ font-weight:700; border:1px solid var(--primary); }
-    .cal-day:focus-visible{ outline:2px solid var(--focus); outline-offset:2px; }
-    .cal-day[aria-disabled="true"]{ color:var(--text-3); cursor:not-allowed; opacity:0.5; }
-    .cal-day[aria-disabled="true"]:hover{ background:transparent; }
+  /* Calendar (wizard) high-contrast overrides */
+  .inline-calendar{ margin-top:10px; border:1px solid var(--border); border-radius:10px; background:var(--bg-2); padding:10px; max-width:300px; box-shadow:var(--shadow-1,0 2px 6px rgba(0,0,0,.4)); }
+  .cal-header{ display:flex; align-items:center; justify-content:space-between; margin-bottom:10px; gap:8px; }
+  .cal-nav{ background:var(--bg-1); border:1px solid var(--border); color:var(--text-1); cursor:pointer; padding:4px 8px; border-radius:6px; font-size:13px; line-height:1; }
+  .cal-nav:hover{ background:var(--bg-3, var(--bg-2)); border-color:var(--primary); }
+  .cal-nav:focus-visible{ outline:2px solid var(--focus); outline-offset:2px; }
+  .cal-month{ font-weight:700; color:var(--text-1); font-size:15px; letter-spacing:.5px; flex:1; text-align:center; }
+  .cal-weekdays{ display:grid; grid-template-columns:repeat(7,1fr); gap:2px; margin-bottom:4px; }
+  .cal-weekday{ text-align:center; padding:4px 0; font-size:11px; font-weight:700; color:var(--text-2); text-transform:uppercase; }
+  .cal-days{ display:grid; grid-template-columns:repeat(7,1fr); gap:2px; }
+  .cal-day{ text-align:center; padding:8px 0 6px; font-size:12px; font-weight:500; cursor:pointer; border-radius:6px; color:var(--text-1); background:var(--bg-1); border:1px solid var(--border); position:relative; transition:background .15s ease, color .15s ease, border-color .15s ease; }
+  .cal-day:hover{ background:var(--bg-3, var(--bg-2)); border-color:var(--primary); }
+  .cal-day.other-month{ color:var(--text-3); background:var(--bg-1); opacity:.55; }
+  .cal-day.selected{ background:var(--primary); color:#fff; font-weight:600; border-color:var(--primary); box-shadow:0 0 0 2px rgba(255,255,255,0.08), 0 0 0 4px var(--primary-alpha, rgba(0,136,255,.35)); }
+  .cal-day.today{ font-weight:700; border:1px solid var(--primary); box-shadow:0 0 0 2px rgba(0,0,0,.4) inset; }
+  .cal-day:focus-visible{ outline:2px solid var(--focus); outline-offset:2px; }
+  .cal-day[aria-disabled="true"]{ color:var(--text-3); cursor:not-allowed; opacity:0.4; }
+  .cal-day[aria-disabled="true"]:hover{ background:var(--bg-1); border-color:var(--border); }
     </style>
 </head>
 <body>
