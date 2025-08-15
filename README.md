@@ -86,6 +86,27 @@ sudo ./scripts/pi_hash_tune.sh --argon2 --target-ms 180 --apply
 
 The web app will automatically upgrade existing user hashes on the next successful login if a new `CARE_PWHASH_METHOD` is set.
 
+### One-off Manual User Re-hash Helper
+
+If SSH pasting multiline Python is error-prone, use the helper script instead of heredocs:
+
+```bash
+source .venv/bin/activate
+# Point to the populated DB if not using default
+export CARE_DB_PATH=data/database.db  # adjust if needed
+
+# Re-hash existing user using current CARE_PWHASH_METHOD (or default)
+python scripts/rehash_user.py --email your@email --password 'PlaintextPW'
+
+# Force a specific iteration count
+python scripts/rehash_user.py --email your@email --password 'PlaintextPW' --pbkdf2-iter 80000
+
+# Create the user if missing then hash
+python scripts/rehash_user.py --create --name "Admin" --email admin@example.com --password 'Secret123' --pbkdf2-iter 60000
+```
+
+The script prints local verification timing so you can quickly iterate on a suitable `pbkdf2` cost. After settling, update the systemd unit's `CARE_PWHASH_METHOD` and restart the service.
+
 ## Roadmap & Refactor Plan
 
 Detailed in `backend/ROADMAP.md`.
