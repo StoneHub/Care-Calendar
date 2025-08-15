@@ -100,7 +100,7 @@ INSTRUCTIONS.md
 requirements.txt or pyproject.toml
 ```
 
-### Phases
+### Phases (Shifts Split)
 
 #### Phase A (Cleanup & Consolidation)
 
@@ -169,5 +169,83 @@ Pulling new code will NOT delete the legacy `backend/database.db` because it was
 \n*** End Patch
 
 An interactive helper (`scripts/pi_post_pull.py`) will be added to automate: backup, copy, verify row counts, and print next commands.
+
+---
+
+## Shifts Template Modularization (Large File Split) – Plan
+
+Goal: Reduce `backend/templates/shifts.html` size (≈1.5K LOC) for maintainability without refactoring logic (pure MOVE of CSS & JS, then optional HTML partialization). Preserve exact runtime behavior.
+
+### Rationale
+
+- Single monolithic file mixes template markup, styles, scripts → hard to diff & onboard new contributors.
+- Inline CSS & JS block changes cause large, noisy commits and hinder caching/versioning.
+- Splitting enables targeted future refactors (tests, lint) while keeping this step risk‑minimal.
+
+### Guiding Constraints
+
+1. DO NOT rewrite logic; only relocate blocks verbatim.
+2. Preserve load order (data JSON scripts must precede app JS).
+3. Minimal token / churn approach so agents can resume with context quickly.
+4. Automated script performs deterministic transformation; reversible via created backup.
+
+### Phases
+
+| Phase | Action | Risk | Deliverables |
+|-------|--------|------|--------------|
+| 1 | Extract inline `<style>` → `static/css/shifts.css`; extract large inline JS → `static/js/shifts.js`. Replace with `<link>` & `<script src>` tags incl. cache-busting `?v=` param. | Very Low | New CSS/JS files; updated template; backup `.bak` file; script `split_shifts_template.py`. |
+| 2 (optional) | Split JS into logical modules (`shifts.utils.js`, `shifts.calendar.js`, `shifts.menu.js`, `shifts.wizard.js`) keeping original relative order. | Low | 4 module files + aggregator (or ordered tags). |
+| 3 (optional) | Extract large HTML blocks into partials under `templates/partials/` (`_nav.html`, `_shift_menu.html`, `_wizard_create.html`, `_wizard_edit_series.html`, `_wizard_edit_day.html`). Use `{% include %}`. | Low | Partial templates; slimmer `shifts.html`. |
+| 4 (later) | Introduce macro(s) for repeated wizard step patterns (not now). | Medium | Jinja macro file. |
+
+### Revert Strategy
+
+- Each automated run creates `backend/templates/shifts.html.bak.<timestamp>`; restore by copying over the modified file.
+
+### Automation Script (`scripts/split_shifts_template.py`)
+
+Capabilities:
+
+1. Detect if split already performed (presence of `static/css/shifts.css` & a `<script src="...shifts.js">` tag). Safe no-op unless `--force`.
+2. Extract first `<style>...</style>` block verbatim → `backend/static/css/shifts.css` (path uses existing static root) and replace with `<link rel="stylesheet" href="{{ url_for('static', filename='css/shifts.css') }}?v=1">` comment-tagged `<!-- shifts-split-css -->`.
+3. Locate the LARGE inline `<script>` after the data scripts (identified as the first `<script>` tag WITHOUT `id=` and without `src=` following `id="employees-data"` script) → write to `backend/static/js/shifts.js` and replace with `<script src="{{ url_for('static', filename='js/shifts.js') }}?v=1"></script>` annotated `<!-- shifts-split-js -->`.
+4. Writes backup file.
+5. Supports flags:
+  - `--dry-run`: Prints planned actions & byte counts; does not modify.
+  - `--force`: Overwrites existing target files & re-applies replacements.
+  - `--version N`: Set cache-bust query value (default 1).
+6. Validation pass after write: ensures link & script tags present and original blocks removed.
+7. Exit codes: 0 success / 1 error (with message).
+
+Invocation Examples:
+
+```bash
+python scripts/split_shifts_template.py --dry-run
+python scripts/split_shifts_template.py --version 2
+```
+
+### Agent Handoff Checklist (Resume Point)
+
+If returning later:
+
+1. Check whether Phase 1 completed: open `shifts.html`; look for `<!-- shifts-split-css -->` & `<!-- shifts-split-js -->` markers.
+2. If NOT done, run the script (dry-run first) then execute without `--dry-run`.
+3. Verify browser loads: network panel shows `shifts.css` & `shifts.js` (cache-bust param).
+4. Commit with message: `chore: split shifts template (phase 1)`.
+5. Decide whether to proceed to Phase 2 modules (create empty plan section if starting).
+
+### Risks & Mitigations
+
+- Incorrect pattern match removes wrong script: mitigated by anchoring search AFTER employees-data script & requiring absence of `src=`.
+- Duplicate run introduces duplicate includes: script checks sentinel comments before altering unless `--force`.
+- Cache stale on Pi: version query param ensures new fetch.
+
+### Success Criteria
+
+- File length of `shifts.html` reduced by >60% in Phase 1.
+- No functional diffs (manual smoke: open calendar, create shift, open menu, wizards).
+- Lighthouse / console shows zero new JS errors.
+
+Status: Phase 1 NOT YET RUN (script added – ready). Proceed when convenient.
 
 ---
