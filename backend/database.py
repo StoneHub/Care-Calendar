@@ -116,6 +116,14 @@ def get_user_by_email(email):
     conn.close()
     return user
 
+def update_user_password(user_id: int, new_hash: str):
+    """Update stored password hash for a user (used for hash upgrades)."""
+    conn = connect_db()
+    cur = conn.cursor()
+    cur.execute("UPDATE users SET password = ? WHERE id = ?", (new_hash, user_id))
+    conn.commit()
+    conn.close()
+
 def insert_employee(name, position):
     """Insert a new employee into the database."""
     conn = connect_db()

@@ -1,4 +1,4 @@
-from flask import Flask, render_template, request, redirect, url_for, flash, session, jsonify, Response
+from flask import Flask, render_template, request, redirect, url_for, flash, session, jsonify, Response, g
 from werkzeug.security import generate_password_hash, check_password_hash
 from functools import wraps
 from database import (
@@ -7,17 +7,44 @@ from database import (
     delete_employee, delete_shift, delete_attendance, delete_task,
     insert_user, get_user_by_email, delete_shifts_by_series, update_shift_employee,
     connect_db, insert_time_off, get_time_off_overlapping, delete_time_off,
-    employee_exists, get_time_off_by_id, update_time_off
+    employee_exists, get_time_off_by_id, update_time_off, update_user_password
 )
 import sqlite3
 from datetime import datetime, timedelta, date, time as dtime
 import os
 import uuid
+import time
+import logging
 
 app = Flask(__name__)
 app.secret_key = os.environ.get('FLASK_SECRET_KEY', 'dev-secret-change-me')
 # Kiosk-friendly: keep sessions alive longer unless explicitly logged out
 app.permanent_session_lifetime = timedelta(days=30)
+
+# -------- Lightweight performance instrumentation --------
+# Always enabled (overhead is tiny); can be disabled by setting CARE_DISABLE_TIMING=1
+if os.environ.get('CARE_DISABLE_TIMING') != '1':
+    # Configure root logging only if not already configured by parent app
+    _lvl = os.environ.get('CARE_LOG_LEVEL', 'INFO').upper()
+    logging.basicConfig(level=_lvl, format='[%(asctime)s] %(levelname)s %(message)s')
+
+    @app.before_request
+    def _care_timer_start():  # type: ignore
+        # High-resolution start time stored on flask.g
+        g._care_t0 = time.perf_counter()
+
+    @app.after_request
+    def _care_timer_end(resp):  # type: ignore
+        t0 = getattr(g, '_care_t0', None)
+        if t0 is not None:
+            dt_ms = (time.perf_counter() - t0) * 1000.0
+            if not request.path.startswith('/static/'):
+                app.logger.info(
+                    "REQ method=%s path=%s status=%s dur=%.1fms",
+                    request.method, request.path, resp.status_code, dt_ms
+                )
+        return resp
+
 
 def login_required(f):
     @wraps(f)
@@ -74,16 +101,44 @@ def login():
     if request.method == 'POST':
         email = request.form['email']
         password = request.form['password']
-        
+        # Granular timing to diagnose slow login
+        lt0 = time.perf_counter()
         user = get_user_by_email(email)
-        
-        if user and check_password_hash(user[3], password):  # Assuming password is the 4th column
+        lt1 = time.perf_counter()
+        hash_ok = False
+        upgraded = False
+        if user:
+            stored_hash = user[3]
+            try:
+                hash_ok = check_password_hash(stored_hash, password)
+            except Exception as e:
+                app.logger.warning("Password hash check failed: %s", e)
+            else:
+                target_method = os.environ.get('CARE_PWHASH_METHOD')
+                if hash_ok and target_method and not stored_hash.startswith(target_method + ':'):
+                    try:
+                        new_hash = generate_password_hash(password, method=target_method)
+                        update_user_password(user[0], new_hash)
+                        upgraded = True
+                    except Exception as e:
+                        app.logger.warning("Password hash upgrade failed: %s", e)
+        lt2 = time.perf_counter()
+        app.logger.info(
+            "LOGIN diag email=%s user_lookup=%.1fms hash=%.1fms total=%.1fms found=%s ok=%s upgraded=%s",
+            email,
+            (lt1-lt0)*1000.0,
+            (lt2-lt1)*1000.0,
+            (lt2-lt0)*1000.0,
+            bool(user),
+            hash_ok,
+            upgraded
+        )
+        if user and hash_ok:
             session['user_id'] = user[0]  # Assuming id is the 1st column
             session.permanent = True
             flash('Logged in successfully', 'success')
             return redirect(url_for('index'))
-        else:
-            flash('Invalid email or password', 'error')
+        flash('Invalid email or password', 'error')
     
     return render_template('login.html')
 
@@ -99,7 +154,11 @@ def signup():
             flash('Passwords do not match', 'error')
             return redirect(url_for('signup'))
         
-        hashed_password = generate_password_hash(password)
+        method_override = os.environ.get('CARE_PWHASH_METHOD')
+        if method_override:
+            hashed_password = generate_password_hash(password, method=method_override)
+        else:
+            hashed_password = generate_password_hash(password)
         
         try:
             insert_user(name, email, hashed_password)
