@@ -88,9 +88,13 @@ document.addEventListener('DOMContentLoaded', ()=>{
     startInput.value = iso; endInput.value = iso; reasonInput.value=''; reasonCount.textContent='0 / 120';
     errBox.classList.add('hidden'); errBox.textContent='';
     overlay.removeAttribute('hidden');
+    overlay.style.display = 'flex'; // Fix: ensure modal is visible by overriding CSS display: none
     selEmp.focus();
   }
-  function closeTO(){ overlay.setAttribute('hidden',''); }
+  function closeTO(){ 
+    overlay.setAttribute('hidden',''); 
+    overlay.style.display = 'none'; // Fix: ensure modal is properly hidden
+  }
   btn.addEventListener('click', openTO);
   btnCancel.addEventListener('click', closeTO);
   overlay.addEventListener('click', (e)=>{ if(e.target===overlay) closeTO(); });
