@@ -12,6 +12,8 @@
 - Weekly hours report page and CSV export at /hours and /hours.csv.
 - Consistent header/nav; home title is “Care Calendar”.
 
+Upcoming: Caregiver Time Off (multi-day unavailability) feature is planned – see ROADMAP.md section "Planned Feature: Caregiver Time Off".
+
 ## Install & run
 
 1. Install deps

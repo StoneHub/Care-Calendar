@@ -234,7 +234,7 @@ If returning later:
 4. Commit with message: `chore: split shifts template (phase 1)`.
 5. Decide whether to proceed to Phase 2 modules (create empty plan section if starting).
 
-### Risks & Mitigations
+### Time Off Risks & Mitigations
 
 - Incorrect pattern match removes wrong script: mitigated by anchoring search AFTER employees-data script & requiring absence of `src=`.
 - Duplicate run introduces duplicate includes: script checks sentinel comments before altering unless `--force`.
@@ -292,5 +292,152 @@ Validation checklist:
 5. Performance unchanged (server-side include is simple text substitution in Jinja).
 
 Next (optional Phase 4 idea): Introduce Jinja macros for repeated time-select blocks to remove duplication and centralize AM/PM markup.
+
+---
+
+## Planned Feature: Caregiver Time Off (Vacation / Unavailability)
+
+### Objective
+
+Allow marking a caregiver as unavailable across one or more consecutive full days so schedulers avoid assigning shifts, and the calendar visibly communicates planned absences.
+
+### In Scope (Phase 1–2)
+
+- Full‑day unavailability spanning 1–30 consecutive days.
+- Multiple non-overlapping time off records per caregiver.
+- Read (GET), create (POST), delete (DELETE) operations.
+- Calendar rendering (single day: pill; multi‑day: horizontal bar spanning dates) + legend entry.
+
+### Out of Scope (Deferred)
+
+- Partial‑day (hour-level) time off.
+- Edit (PATCH) endpoint (delete + recreate as workaround initially).
+- Bulk import / accrual balances / approval workflow.
+- Automatic shift removal or re-assignment.
+
+### Data Model
+
+Table: `time_off`
+
+| Column       | Type    | Notes |
+|--------------|---------|-------|
+| id           | INTEGER | PK |
+| employee_id  | INTEGER | FK employees(id) ON DELETE CASCADE |
+| start_date   | TEXT    | ISO YYYY-MM-DD (inclusive) |
+| end_date     | TEXT    | ISO YYYY-MM-DD (inclusive) |
+| reason       | TEXT    | Optional short note (<=120 chars) |
+| created_at   | TEXT    | DEFAULT CURRENT_TIMESTAMP |
+
+Indexes:
+
+- `idx_time_off_employee_start` (employee_id, start_date)
+
+Overlap Rule: For a given employee, no two rows may overlap date ranges (inclusive). Enforced by validation query (NOT a UNIQUE index due to range logic).
+
+### Backend Endpoints (Initial)
+
+1. `GET /api/time_off?start=YYYY-MM-DD&end=YYYY-MM-DD`
+  - Returns all time off rows intersecting the (start,end) window (defaults: month view range if omitted, or today±31d fallback).
+1. `POST /api/time_off`
+  - Body: `{ employee_id, start_date, end_date, reason? }`
+  - Validations (see below). Returns created row `{ id, ... }`.
+1. `DELETE /api/time_off/<id>`
+  - 404 if not found; 204 on success.
+
+Response Shape (row):
+
+`{ "id": int, "employee_id": int, "start_date": "YYYY-MM-DD", "end_date": "YYYY-MM-DD", "reason": "..." | null }`
+
+### Validation Rules
+
+- Dates parse & `start_date <= end_date`.
+- Span length limit (configurable; default 30 days) -> 400 on violation.
+- Employee exists.
+- Overlap check: reject with 409 if any existing row for employee intersects `[start_date, end_date]`:
+  `SELECT 1 FROM time_off WHERE employee_id=? AND NOT(end_date < ? OR start_date > ?) LIMIT 1`.
+- Reason length <=120 chars.
+
+### Conflict Semantics (Phase 1)
+
+- Time off does NOT auto-delete or block existing shifts; scheduling during time off is allowed but will later be flagged (Phase 3+). For now it is advisory.
+- Creation of time off overlapping existing shifts is permitted (simplifies first release) but may be toggled later via policy flag.
+
+### Frontend Integration Plan
+
+Bootstrap Fetch (Phase 1):
+
+- Extend existing calendar init to fetch time off for the rendered month once employees & shifts load.
+- Cache by month key (e.g., `YYYY-MM`). On month navigation, fetch if cache miss.
+
+Data Structure:
+
+```js
+window.CARE_TIME_OFF = [ /* rows */ ];
+// Build per-day index: { 'YYYY-MM-DD': [rows...] }
+```
+
+Index Build:
+
+For each row, loop inclusive from start_date to end_date (capped at reasonable 31-day guard) pushing row refs into `dayIndex[day]`.
+
+### Rendering (Phase 2)
+
+- Legend: add square / label "Time Off" (neutral color, e.g., #888 with diagonal stripe pattern or semi-transparent overlay respecting dark mode).
+- Single-day: small rounded badge (distinct from shift pill styling; maybe outline only) appended within cell below shifts.
+- Multi-day: CSS bar spanning horizontally across contiguous day cells (month view). Approach: Each day cell checks if row.start_date == day to create a bar element with `data-span` length; subsequent days detect continuation (row present but not start) and either skip or render continuation stub (simpler: render per-day pill first pass; upgrade to spanning bar once stable).
+- Week view: similar but always contiguous; simpler horizontal bar across 7-day grid.
+
+Phase 2 Minimum: Per-day discrete pill (start + subsequent days identical) — spanning bar is stretch goal (Phase 2b) to reduce complexity initially.
+
+### User Flow (Phase 3)
+
+Initial Creation UI (Minimum):
+
+- Add "Add Time Off" button near "New Shift" (opens modal) OR a tab in existing wizard container (simpler: dedicated smaller modal).
+- Fields: Employee select, Start Date, End Date (default = Start Date), Reason (optional, small text input), Submit.
+- On success: close modal, update local structures & re-render visible days.
+
+Deletion UI:
+
+- Clicking a time off pill opens a tiny popover with details + "Delete".
+
+### Phased Rollout
+
+| Phase | Deliverables |
+|-------|--------------|
+| 1 | DB migration + model, endpoints (GET/POST/DELETE), backend validation, basic tests |
+| 2 | Calendar fetch + per-day pill rendering + legend entry |
+| 2b (opt) | Multi-day spanning bar styling (month/week) |
+| 3 | Create/Delete UI modal + inline popover delete |
+| 4 | Conflict highlighting (shifts overlapping time off tinted / exclamation icon) |
+| 5 | Edit (PATCH) + partial-day + reporting (per-employee upcoming time off, hours impact) |
+
+### Testing Strategy
+
+- Unit: overlap validator queries (edge cases: abutting ranges, identical, nested, large spans, limit breach).
+- API: create, duplicate overlap (expect 409), delete then recreate, max span enforcement, reason length.
+- Calendar: month navigation triggers single GET per month (cache), DOM contains expected pill count for known fixtures.
+- Accessibility: modal focus trap; pill has aria-label ("Time off: Employee Name Start to End").
+
+### Risks & Mitigations
+
+- Rendering clutter if many overlapping time off entries: mitigate via stacking limit + "+N" overflow indicator (defer if low incidence).
+- Large spans ( >30d ) degrade per-day indexing: enforce length cap.
+- Date iteration performance: safe (<=31 days * entry count); optimize later if needed.
+
+### Future Enhancements
+
+- Supervisor approval workflow + status field (pending/approved/denied).
+- Partial-day (start_time/end_time) for appointments.
+- Export time off to ICS; include in hours report (deductions / PTO tracking).
+- Policy enforcement: block shift creation overlapping time off (toggleable).
+- Bulk creation (e.g., holidays) for all caregivers.
+
+### Implementation Notes (Dev Handoff)
+
+Migration: Add table creation in existing init_db; ensure idempotent (CREATE TABLE IF NOT EXISTS). Safe to run on Pi before endpoints are used.
+Security: Reuse existing auth decorator; same session requirements as shift APIs.
+Failure Codes: 400 (validation), 404 (delete not found), 409 (overlap), 500 (unexpected).
+Logging: Log POST with employee_id and span for traceability.
 
 ---

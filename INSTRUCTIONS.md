@@ -92,7 +92,7 @@ bash scripts/backup_db.sh
 
 - If you prefer the old style, you can still run from the subfolder:
   - `cd workforce-management-system && python app.py`
-- The roadmap for features and status is in `workforce-management-system/ROADMAP.md`.
+- The roadmap for features and status is in `backend/ROADMAP.md` (legacy docs may still reference `workforce-management-system/ROADMAP.md`). See the "Planned Feature: Caregiver Time Off" section for upcoming vacation/unavailability support.
 
 ## Shared Google Calendar (auto-sync from the Pi)
 
