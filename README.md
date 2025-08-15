@@ -45,6 +45,26 @@ Scripts:
 
 See `deployment/care-calendar.service` (includes `CARE_DB_PATH`). You can override environment via drop-in at `/etc/systemd/system/care-calendar.service.d/override.conf`.
 
+### Password Hash Performance Tuning (Raspberry Pi)
+
+Login latency is dominated by password hash verification. On resource-constrained Pi hardware you can calibrate a secure yet responsive cost and apply it automatically:
+
+```bash
+chmod +x scripts/pi_hash_tune.sh
+./scripts/pi_hash_tune.sh --target-ms 180           # Dry run, recommend method under 180ms
+sudo ./scripts/pi_hash_tune.sh --target-ms 180 --apply  # Update systemd unit with CARE_PWHASH_METHOD
+```
+
+Optionally prefer Argon2 (install `argon2-cffi` into the venv first):
+
+```bash
+source .venv/bin/activate
+pip install argon2-cffi
+sudo ./scripts/pi_hash_tune.sh --argon2 --target-ms 180 --apply
+```
+
+The web app will automatically upgrade existing user hashes on the next successful login if a new `CARE_PWHASH_METHOD` is set.
+
 ## Roadmap & Refactor Plan
 
 Detailed in `backend/ROADMAP.md`.
