@@ -29,7 +29,7 @@ os.environ.setdefault('CARE_PWHASH_METHOD', 'pbkdf2:sha256:15000')
 AUTOLOGIN = os.environ.get('CARE_AUTOLOGIN', '1') == '1'
 AUTOLOGIN_EMAIL = os.environ.get('CARE_AUTOLOGIN_EMAIL', 'monroesawesome@gmail.com')
 AUTOLOGIN_PASSWORD = os.environ.get('CARE_AUTOLOGIN_PASSWORD', 'linux')
-RATES_PIN = os.environ.get('CARE_RATES_PIN', '1234')
+RATES_PIN = os.environ.get('CARE_RATES_PIN', '4125')
 
 # -------- Lightweight performance instrumentation --------
 # Always enabled (overhead is tiny); can be disabled by setting CARE_DISABLE_TIMING=1
