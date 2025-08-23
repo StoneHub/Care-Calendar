@@ -32,6 +32,9 @@
                 <h3>Pay Rates</h3>
                 {% if session.get('rates_unlocked') %}
                     <div class="muted">Rates unlocked</div>
+                    <form method="post" action="{{ url_for('admin_lock_rates') }}" class="actions">
+                        <button class="btn" type="submit">Hide rates</button>
+                    </form>
                 {% else %}
                     <label class="muted">PIN <input class="input" type="password" name="pin" placeholder="Enter PIN to unlock"></label>
                     <button class="btn" type="submit">Unlock</button>

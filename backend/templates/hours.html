@@ -35,6 +35,9 @@
       </form>
       {% else %}
       <div class="muted">Rates unlocked</div>
+      <form method="post" action="{{ url_for('admin_lock_rates') }}" class="range-form">
+        <button class="btn" type="submit">Hide rates</button>
+      </form>
       <form method="post" action="{{ url_for('api_pay_adjustment', start=start, end=end) }}" class="range-form">
         <label class="muted">Employee
         <select class="input" name="employee_id" required aria-label="Employee for adjustment">

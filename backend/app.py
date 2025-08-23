@@ -986,6 +986,20 @@ def admin_unlock_rates():
     return redirect(ref)
 
 
+@app.route('/admin/lock_rates', methods=['POST'])
+@login_required
+def admin_lock_rates():
+    """Relock/hide pay rates by clearing the session flag."""
+    session.pop('rates_unlocked', None)
+    # For JSON callers
+    if request.content_type and 'application/json' in request.content_type:
+        return jsonify({ 'ok': True })
+    # For form posts, redirect back if referer exists
+    ref = request.headers.get('Referer') or url_for('employees')
+    flash('Rates hidden', 'success')
+    return redirect(ref)
+
+
 @app.route('/api/employee_rate', methods=['POST'])
 @login_required
 def api_employee_rate():
