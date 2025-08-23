@@ -169,10 +169,20 @@ def insert_employee(name, position):
     conn.close()
 
 def get_employees():
-    """Get all employees from the database."""
+    """Get all employees; include hourly_rate with default 16 for legacy rows."""
     conn = connect_db()
     cursor = conn.cursor()
-    cursor.execute("SELECT * FROM employees")
+    try:
+        cursor.execute(
+            """
+            SELECT id, name, position,
+                   COALESCE(hourly_rate, 16) AS hourly_rate
+            FROM employees
+            """
+        )
+    except sqlite3.OperationalError:
+        # Fallback for very old DBs without hourly_rate column
+        cursor.execute("SELECT id, name, position, 16 AS hourly_rate FROM employees")
     employees = cursor.fetchall()
     conn.close()
     return employees

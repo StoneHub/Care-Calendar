@@ -97,33 +97,28 @@ def login_required(f):
     return decorated_function
 
 def get_statistics():
-    # DB lives next to this file
-    db_path = os.path.join(os.path.dirname(__file__), 'database.db')
-    conn = sqlite3.connect(db_path)
-    cursor = conn.cursor()
-
-    # Count number of employees
-    cursor.execute("SELECT COUNT(*) FROM employees")
-    no_of_employees = cursor.fetchone()[0]
-
-    # Count number of tasks
-    cursor.execute("SELECT COUNT(*) FROM tasks")
-    no_of_tasks = cursor.fetchone()[0]
-
-    # Count number of shifts
-    cursor.execute("SELECT COUNT(*) FROM shifts")
-    no_of_shifts = cursor.fetchone()[0]
-
-    # Count number of attendance present
-    cursor.execute("SELECT COUNT(*) FROM attendance WHERE status = 'Present'")
-    no_of_present = cursor.fetchone()[0]
-
-    # Count number of attendance absent
-    cursor.execute("SELECT COUNT(*) FROM attendance WHERE status = 'Absent'")
-    no_of_absent = cursor.fetchone()[0]
-
-    conn.close()
-
+    """Return basic counts using the canonical DB connection.
+    Uses connect_db() so CARE_DB_PATH and migrations are respected.
+    """
+    conn = connect_db()
+    cur = conn.cursor()
+    try:
+        # Employees
+        cur.execute("SELECT COUNT(*) FROM employees")
+        no_of_employees = cur.fetchone()[0]
+        # Tasks
+        cur.execute("SELECT COUNT(*) FROM tasks")
+        no_of_tasks = cur.fetchone()[0]
+        # Shifts
+        cur.execute("SELECT COUNT(*) FROM shifts")
+        no_of_shifts = cur.fetchone()[0]
+        # Attendance Present/Absent
+        cur.execute("SELECT COUNT(*) FROM attendance WHERE status = 'Present'")
+        no_of_present = cur.fetchone()[0]
+        cur.execute("SELECT COUNT(*) FROM attendance WHERE status = 'Absent'")
+        no_of_absent = cur.fetchone()[0]
+    finally:
+        conn.close()
     return no_of_employees, no_of_tasks, no_of_shifts, no_of_present, no_of_absent
 
 @app.route('/performance')
