@@ -12,6 +12,12 @@
 - Weekly hours report page and CSV export at /hours and /hours.csv.
 - Consistent header/nav; home title is “Care Calendar”.
 
+Aug 2025 updates:
+
+- UI/UX consistency pass: unified header via partial, standardized containers/margins, and global heading scale.
+- Edit Day wizard completed: opens from shift menu, validates time, and updates only the selected occurrence.
+- Accessibility: nav ARIA labeling; subtle borders on calendar events for colorblind affordance.
+
 Upcoming: Caregiver Time Off (multi-day unavailability) feature is planned – see ROADMAP.md section "Planned Feature: Caregiver Time Off".
 
 ## Install & run

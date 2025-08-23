@@ -772,56 +772,43 @@ def api_edit_day():
     try:
         conn = connect_db()
         cursor = conn.cursor()
-        
-        # Get the original shift to determine employee_id and series_id if not provided
-        cursor.execute("SELECT employee_id, series_id FROM shifts WHERE id = ?", (shift_id,))
+
+        # Fetch the original shift; we will update THIS row only
+        cursor.execute("SELECT employee_id, series_id, shift_time FROM shifts WHERE id = ?", (shift_id,))
         original_shift = cursor.fetchone()
         if not original_shift:
             conn.close()
             return jsonify({ 'ok': False, 'error': 'Original shift not found' }), 404
-        
-        # Use original employee if not reassigning
+
+        # Default to original employee if not provided
         if employee_id is None:
-            employee_id = original_shift[0]
-        
-        original_series_id = original_shift[1]
-        
-        # Create the new shift datetime
+            employee_id = int(original_shift[0])
+
+        # Compute new datetimes on the provided date
         new_shift_datetime = datetime.combine(shift_datetime, shift_time_obj)
         new_end_datetime = None
         if end_time_obj:
             new_end_datetime = datetime.combine(shift_datetime, end_time_obj)
-        
-        # Check if there's already an existing shift for this date
+
+        # Validate end after start when provided
+        if new_end_datetime and new_end_datetime <= new_shift_datetime:
+            conn.close()
+            return jsonify({ 'ok': False, 'error': 'end_time must be after start time' }), 400
+
+        # Update this occurrence only
         cursor.execute(
-            "SELECT id FROM shifts WHERE date(shift_time) = date(?) AND employee_id = ?",
-            (shift_datetime.isoformat(), employee_id)
+            "UPDATE shifts SET shift_time = ?, end_time = ?, employee_id = ? WHERE id = ?",
+            (
+                new_shift_datetime.isoformat(),
+                new_end_datetime.isoformat() if new_end_datetime else None,
+                employee_id,
+                shift_id
+            )
         )
-        existing_shift = cursor.fetchone()
-        
-        if existing_shift:
-            # Update the existing shift
-            cursor.execute(
-                "UPDATE shifts SET shift_time = ?, end_time = ?, employee_id = ? WHERE id = ?",
-                (new_shift_datetime.isoformat(), 
-                 new_end_datetime.isoformat() if new_end_datetime else None,
-                 employee_id,
-                 existing_shift[0])
-            )
-        else:
-            # Create a new single-day shift (this creates an override for that date)
-            # Set series_id to None to indicate this is a single-day override
-            cursor.execute(
-                "INSERT INTO shifts (employee_id, shift_time, end_time, series_id) VALUES (?, ?, ?, ?)",
-                (employee_id, 
-                 new_shift_datetime.isoformat(), 
-                 new_end_datetime.isoformat() if new_end_datetime else None,
-                 None)  # No series_id for single-day overrides
-            )
-        
+
         conn.commit()
         conn.close()
-        
+
         return jsonify({ 'ok': True, 'message': 'Day updated successfully' })
     except Exception as e:
         return jsonify({ 'ok': False, 'error': str(e) }), 500

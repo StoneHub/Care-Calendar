@@ -41,4 +41,49 @@ function dBuildReview(){ const empName=dWiz.employeeId? (employeesData.find(e=>e
 
 // Keep existing global escape handler from wizard module; no changes needed here.
 
+// Helper: convert 12h to 24h string
+function to24h(h12, ampm){ let h=parseInt(h12||'0',10); if(isNaN(h)) return ''; if(ampm==='AM'){ if(h===12) h=0; } else { if(h!==12) h+=12; } return pad2(h); }
+function setDayAmPmButtons(prefix, ampm){ const amBtn=document.getElementById(prefix+'AM'); const pmBtn=document.getElementById(prefix+'PM'); if(!amBtn||!pmBtn) return; amBtn.classList.toggle('active', ampm==='AM'); pmBtn.classList.toggle('active', ampm==='PM'); amBtn.setAttribute('aria-pressed', ampm==='AM'?'true':'false'); pmBtn.setAttribute('aria-pressed', ampm==='PM'?'true':'false'); }
+
+// Open Edit Day flow
+(function bindEditDay(){ const btn=document.getElementById('btnOpenEditDay'); if(!btn || !dOverlay) return; btn.addEventListener('click', (ev)=>{ ev.stopPropagation(); if(!currentShift) return; // populate employees
+  dEmployee.innerHTML='<option value="">Keep current</option>'+employeesData.map(e=>`<option value="${e.id}">${e.name}</option>`).join('');
+  dEmployee.value=''; dWiz.employeeId=null;
+  // prefill start/end from currentShift
+  try{
+    const st=currentShift.start; const et=currentShift.end||null; const sh=st.getHours(); const sm=st.getMinutes(); const startAmpm=sh<12?'AM':'PM'; const sh12=(sh%12)||12; dStartHour12.value=pad2(sh12); dStartMin.value=pad2(sm); setDayAmPmButtons('dStart', startAmpm);
+    if(et){ const eh=et.getHours(); const em=et.getMinutes(); const endAmpm=eh<12?'AM':'PM'; const eh12=(eh%12)||12; dEndHour12.value=pad2(eh12); dEndMin.value=pad2(em); setDayAmPmButtons('dEnd', endAmpm);} else { dEndHour12.value=''; dEndMin.value=''; setDayAmPmButtons('dEnd','AM'); }
+  }catch{}
+  // show overlay
+  dOverlay.classList.remove('is-hidden'); dOverlay.style.display='flex'; dShowStep(1);
+}); })();
+
+// AM/PM toggle behavior for day wizard
+function setupDayAmPm(prefix){ const amBtn=document.getElementById(prefix+'AM'); const pmBtn=document.getElementById(prefix+'PM'); if(!amBtn||!pmBtn) return; [amBtn,pmBtn].forEach(btn=>{ btn.addEventListener('click',()=>{ setDayAmPmButtons(prefix, btn===amBtn?'AM':'PM'); }); btn.addEventListener('keydown',(e)=>{ if(e.key==='ArrowLeft'||e.key==='ArrowRight'){ e.preventDefault(); (btn===amBtn? pmBtn:amBtn).click(); (btn===amBtn? pmBtn:amBtn).focus(); } else if(e.key===' '||e.key==='Enter'){ e.preventDefault(); btn.click(); } }); }); }
+setupDayAmPm('dStart'); setupDayAmPm('dEnd');
+
+// Buttons wiring
+if(dCancel){ dCancel.addEventListener('click', (e)=>{ e.stopPropagation(); dOverlay.classList.add('is-hidden'); dOverlay.style.display='none'; }); }
+if(dBack){ dBack.addEventListener('click', (e)=>{ e.stopPropagation(); dShowStep(Math.max(1, dWiz.step-1)); }); }
+if(dEmployee){ dEmployee.addEventListener('change', ()=>{ const v=dEmployee.value; dWiz.employeeId = v? parseInt(v,10): null; }); }
+if(dNext){ dNext.addEventListener('click', async (e)=>{ e.stopPropagation(); if(dWiz.step===1){ // move to time step
+    dShowStep(2); return; }
+  if(dWiz.step===2){ // validate times and go review
+    const sh12=dStartHour12.value; const sm=dStartMin.value; if(!sh12||!sm) return alert('Pick a start time'); if(dEndHour12.value && dEndMin.value){ const eh12=dEndHour12.value; const em=dEndMin.value; const stMins=parseInt(to24h(sh12, dStartAM.classList.contains('active')?'AM':'PM'),10)*60 + parseInt(sm,10); const etMins=parseInt(to24h(eh12, dEndAM.classList.contains('active')?'AM':'PM'),10)*60 + parseInt(em,10); if(etMins<=stMins) return alert('End must be after start'); }
+    dShowStep(3); return; }
+  if(dWiz.step===3){ // submit
+    try{
+      if(!currentShift) throw new Error('No shift in context');
+      const shiftDate = localDateStr(currentShift.start);
+      const time = `${to24h(dStartHour12.value, dStartAM.classList.contains('active')?'AM':'PM')}:${dStartMin.value}`;
+      let end_time = null; if(dEndHour12.value && dEndMin.value){ end_time = `${to24h(dEndHour12.value, dEndAM.classList.contains('active')?'AM':'PM')}:${dEndMin.value}`; }
+      const payload = { shift_id: currentShift.id, shift_date: shiftDate, time, end_time, employee_id: dWiz.employeeId };
+      const js = await postJSON('/api/edit_day', payload);
+      if(!js.ok && js.error) throw new Error(js.error);
+      dOverlay.classList.add('is-hidden'); dOverlay.style.display='none';
+      location.reload();
+    }catch(err){ alert('Failed to save: '+err.message); }
+  }
+}); }
+
 // End edit module

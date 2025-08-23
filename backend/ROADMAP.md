@@ -23,6 +23,9 @@ This plan tracks upgrades to recurring weekly shifts, interactive calendar UI, c
 - Weekly hours report per employee (/hours) with nav links.
 - Consistent header/navigation links on index and shifts pages.
 - Password hash performance tuning (Aug 2025): introduced `CARE_PWHASH_METHOD` operational guidance, created `scripts/rehash_user.py` for safe user re-hash & benchmarking (auto DB detection, schema init), documented iteration selection process for Raspberry Pi hardware.
+- UI/UX consistency pass (Aug 2025): unified header via partial across pages, standardized containers/margins, and global heading scale in theme.
+- Edit Day (Aug 2025): front-end wizard wired from context menu; backend `/api/edit_day` now updates only the selected occurrence with validation.
+- Accessibility polish (Aug 2025): ARIA on nav; subtle event borders for colorblind users.
 
 ### In Progress
 
