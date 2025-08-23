@@ -10,36 +10,13 @@
     <link rel="stylesheet" href="{{ url_for('static', filename='css/theme-dark.css') }}">
     <title>Performance Metrics Dashboard</title>
     <style>
-        body{ font-family: Kanit, system-ui, Segoe UI, Roboto, sans-serif; margin:0; background: var(--bg-0); color: var(--text-1); display:flex; flex-direction:column; align-items:center; min-height:100vh; }
-        header{ width:100%; margin-bottom:20px; }
-        .nav{ max-width:1100px; margin:0 auto; display:flex; align-items:center; justify-content:space-between; padding:10px 16px; }
-        .nav .left{ display:flex; gap:12px; align-items:center; }
-        .logo{ font-weight:700; color: var(--primary); }
+        body{ display:flex; flex-direction:column; align-items:center; min-height:100vh; }
         .container{ width:90%; max-width:700px; }
-        h1{ margin-bottom:20px; font-size:26px; color: var(--text-1); text-align:center; }
-        .stat-box{ display:flex; justify-content:space-around; flex-wrap:wrap; margin-bottom:25px; }
-        .stat-box .stat-card{ width:140px; }
-        .footer{ margin-top:20px; font-size:14px; color: var(--text-3); text-align:center; }
-        .back-button{ margin-top:30px; }
     </style>
 </head>
 <body>
     <header>
-        <nav class="nav">
-            <div class="left">
-                <span class="logo">Care Calendar</span>
-                <a href="{{ url_for('index') }}">Home</a>
-                <a href="{{ url_for('employees') }}">Employees</a>
-                <a href="{{ url_for('shifts') }}">Shifts</a>
-                <a href="{{ url_for('attendance') }}">Attendance</a>
-                <a href="{{ url_for('tasks') }}">Tasks</a>
-                <a href="{{ url_for('performance') }}">Performance</a>
-                <a href="{{ url_for('hours_report') }}">Hours</a>
-            </div>
-            <div class="right">
-                <a href="{{ url_for('logout') }}">Logout</a>
-            </div>
-        </nav>
+        {% include 'partials/_nav.html' %}
     </header>
     <div class="container">
         <h1>Performance Metrics Dashboard</h1>
@@ -73,7 +50,7 @@
         </div>
 
         <div class="footer">Updated as of today</div>
-        <a href="/" class="btn btn-secondary back-button">Back</a>
+    <a href="/" class="btn btn-secondary back-button">Back</a>
     </div>
 </body>
 <script src="{{ url_for('static', filename='js/theme.js') }}"></script>

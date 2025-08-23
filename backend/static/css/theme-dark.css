@@ -62,13 +62,18 @@
 
 /* 2) Global base styles */
 html, body { height: 100%; }
-body { background: var(--bg-0); color: var(--text-1); font: 16px/1.5 system-ui, Inter, Segoe UI, Roboto, Arial, sans-serif; margin: 0; }
+body { background: var(--bg-0); color: var(--text-1); font: 16px/1.5 Kanit, system-ui, Inter, Segoe UI, Roboto, Arial, sans-serif; margin: 0; }
 ::selection { background: var(--selection-bg); color: var(--selection-text); }
 a { color: var(--link); text-decoration: none; }
 a:hover { text-decoration: underline; }
 
 /* 3) Navigation bar */
 header, .nav-bar { background: var(--bg-2); border-bottom: 1px solid var(--divider); }
+/* unified nav layout */
+.nav { max-width: 1100px; margin: 0 auto; display: flex; align-items: center; justify-content: space-between; padding: 10px 16px; }
+.nav .left { display: flex; gap: 12px; align-items: center; }
+.logo { display: inline-flex; align-items: center; gap: 8px; font-weight: 800; color: var(--primary); }
+.logo img { height: 28px; width: auto; display: block; }
 nav a { color: var(--text-2); padding: 6px 10px; border-radius: 8px; }
 nav a:hover { color: #fff; text-decoration: none; background: var(--bg-1); }
 nav a.active { color: var(--text-1); background: var(--bg-1); }
@@ -76,7 +81,8 @@ nav a.active { color: var(--text-1); background: var(--bg-1); }
 /* Layout helpers */
 .container { max-width: 1100px; margin: 0 auto; padding: 0 16px; }
 .card { background: var(--bg-2); border: 1px solid var(--border); border-radius: var(--radius); box-shadow: var(--shadow-2); }
-.card .section { padding: 14px; }
+/* support both .card .section and .card.section */
+.card .section, .card.section { padding: 14px; }
 .card h2 { color: #fff; }
 .muted { color: var(--text-3); }
 
@@ -104,11 +110,20 @@ nav a.active { color: var(--text-1); background: var(--bg-1); }
 .table tbody tr:hover { background: var(--row-hover); }
 .table .cell-muted { color: var(--text-3); }
 
+/* 7.5) Headings (unified) */
+h1 { margin: 12px 0 16px; font-size: 24px; font-weight: 800; color: var(--text-1); text-align: center; }
+h2 { margin: 10px 0 12px; font-size: 18px; font-weight: 700; color: var(--text-1); }
+h3 { margin: 8px 0 10px; font-size: 16px; font-weight: 700; color: var(--text-1); }
+
 /* 8) Performance dashboard */
 .stat-card { background: var(--bg-2); border: 1px solid var(--border); border-radius: var(--radius); padding: 16px; text-align: center; box-shadow: var(--shadow-2); }
 .stat-card .icon { color: var(--primary); font-size: 40px; }
 .stat-card .value { color: #fff; font-weight: 700; font-size: 20px; }
 .stat-card .label { color: var(--text-3); }
+.stat-box { display: flex; justify-content: space-around; flex-wrap: wrap; gap: 12px; margin-bottom: 25px; }
+.stat-box .stat-card { width: 140px; }
+.footer { margin-top: 20px; font-size: 14px; color: var(--text-3); text-align: center; }
+.back-button { margin-top: 20px; }
 
 /* 9) Calendar */
 .calendar .grid, .calendar .cells { background: var(--bg-1); }
@@ -129,6 +144,8 @@ nav a.active { color: var(--text-1); background: var(--bg-1); }
 .event.scarlett { background: var(--event-orange); }
 .event.purple { background: var(--event-purple); }
 .event.cyan { background: var(--event-cyan); }
+/* subtle border to help colorblind users distinguish events beyond color */
+.event { border: 1px solid rgba(255,255,255,.25); }
 .event.selected { outline: 2px solid #fff; box-shadow: inset 0 0 0 2px rgba(255,255,255,.6); }
 
 /* 10) Badges, chips, icons */
@@ -143,4 +160,10 @@ nav a.active { color: var(--text-1); background: var(--bg-1); }
 
 /* 12) Utilities */
 .w-60 { width: 60%; }
+.w-40 { width: 40%; }
 .center { margin-left: auto; margin-right: auto; }
+.table-wrap { width: 100%; display: flex; justify-content: center; }
+.actions { display: flex; gap: 8px; align-items: center; }
+.delete-icon { color: var(--danger); cursor: pointer; }
+.back-link { margin-top: 20px; display: inline-block; }
+.range-form { display: flex; gap: 8px; align-items: center; margin: 8px 0 12px; flex-wrap: wrap; }

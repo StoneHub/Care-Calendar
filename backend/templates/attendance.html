@@ -10,39 +10,16 @@
     <link href="https://fonts.googleapis.com/css2?family=Kanit:ital,wght@0,100;0,200;0,300;0,400;0,500;0,600;0,700;0,800;0,900;1,100;1,200;1,300;1,400;1,500;1,600;1,700;1,800;1,900&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="{{ url_for('static', filename='css/theme-dark.css') }}">
     <style>
-        body{ font-family: Kanit, system-ui, Segoe UI, Roboto, sans-serif; margin:0; background: var(--bg-0); color: var(--text-1); display:flex; flex-direction:column; align-items:center; padding:20px; }
-        header{ width:100%; margin:-20px -20px 20px -20px; }
-        .nav{ max-width:1100px; margin:0 auto; display:flex; align-items:center; justify-content:space-between; padding:10px 16px; }
-        .nav .left{ display:flex; gap:12px; align-items:center; }
-        .logo{ font-weight:700; color: var(--primary); }
-        h1, h2{ color: var(--text-1); text-align:center; width:100%; }
-        form.card{ width:100%; max-width:500px; margin-bottom:20px; }
-        .actions{ display:flex; gap:8px; }
-        .delete-icon{ color: var(--danger); cursor:pointer; }
-        .back-link{ margin-top:20px; }
-        .table-wrap{ width:100%; display:flex; justify-content:center; }
+    body{ display:flex; flex-direction:column; align-items:center; padding:20px; }
+    form.card{ width:100%; max-width:500px; margin-bottom:20px; }
     </style>
 </head>
 <body>
     <header>
-        <nav class="nav">
-            <div class="left">
-                <span class="logo">Care Calendar</span>
-                <a href="{{ url_for('index') }}">Home</a>
-                <a href="{{ url_for('employees') }}">Employees</a>
-                <a href="{{ url_for('shifts') }}">Shifts</a>
-                <a href="{{ url_for('attendance') }}">Attendance</a>
-                <a href="{{ url_for('tasks') }}">Tasks</a>
-                <a href="{{ url_for('performance') }}">Performance</a>
-                <a href="{{ url_for('hours_report') }}">Hours</a>
-            </div>
-            <div class="right">
-                <a href="{{ url_for('logout') }}">Logout</a>
-            </div>
-        </nav>
+        {% include 'partials/_nav.html' %}
     </header>
+    <div class="container">
     <h1>Attendance Tracking</h1>
-    
     <form action="{{ url_for('attendance') }}" method="post" class="card section">
         <h2>Add Attendance</h2>
         <label for="employee_id_select">Employee</label>
@@ -93,6 +70,7 @@
     </div>
 
     <a href="{{ url_for('index') }}" class="btn btn-secondary back-link">Back</a>
+    </div>
 </body>
 <script src="{{ url_for('static', filename='js/theme.js') }}"></script>
 </html>
