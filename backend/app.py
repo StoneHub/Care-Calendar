@@ -7,7 +7,8 @@ from database import (
     delete_employee, delete_shift, delete_attendance, delete_task,
     insert_user, get_user_by_email, delete_shifts_by_series, update_shift_employee,
     connect_db, insert_time_off, get_time_off_overlapping, delete_time_off,
-    employee_exists, get_time_off_by_id, update_time_off, update_user_password
+    employee_exists, get_time_off_by_id, update_time_off, update_user_password,
+    update_employee_rate, insert_adjustment
 )
 import sqlite3
 from datetime import datetime, timedelta, date, time as dtime
@@ -20,6 +21,15 @@ app = Flask(__name__)
 app.secret_key = os.environ.get('FLASK_SECRET_KEY', 'dev-secret-change-me')
 # Kiosk-friendly: keep sessions alive longer unless explicitly logged out
 app.permanent_session_lifetime = timedelta(days=30)
+
+# Force a low-cost hash suitable for Pi 2 unless overridden
+os.environ.setdefault('CARE_PWHASH_METHOD', 'pbkdf2:sha256:15000')
+
+# Simple auto-login controls (can be disabled via env)
+AUTOLOGIN = os.environ.get('CARE_AUTOLOGIN', '1') == '1'
+AUTOLOGIN_EMAIL = os.environ.get('CARE_AUTOLOGIN_EMAIL', 'monroesawesome@gmail.com')
+AUTOLOGIN_PASSWORD = os.environ.get('CARE_AUTOLOGIN_PASSWORD', 'linux')
+RATES_PIN = os.environ.get('CARE_RATES_PIN', '1234')
 
 # -------- Lightweight performance instrumentation --------
 # Always enabled (overhead is tiny); can be disabled by setting CARE_DISABLE_TIMING=1
@@ -44,6 +54,37 @@ if os.environ.get('CARE_DISABLE_TIMING') != '1':
                     request.method, request.path, resp.status_code, dt_ms
                 )
         return resp
+
+    # Opportunistic auto-login to streamline kiosk use
+    @app.before_request
+    def _care_autologin():  # type: ignore
+        # Skip for static/auth endpoints and if already logged in
+        if not AUTOLOGIN:
+            return None
+        if 'user_id' in session:
+            return None
+        if request.path.startswith('/static/'):
+            return None
+        if request.endpoint in ('logout', 'login', 'signup'):
+            return None
+        try:
+            user = get_user_by_email(AUTOLOGIN_EMAIL)
+        except Exception:
+            user = None
+        if not user:
+            # Create the user with current hash method
+            method = os.environ.get('CARE_PWHASH_METHOD')
+            try:
+                hpw = generate_password_hash(AUTOLOGIN_PASSWORD, method=method) if method else generate_password_hash(AUTOLOGIN_PASSWORD)
+                insert_user('Monroe', AUTOLOGIN_EMAIL, hpw)
+                user = get_user_by_email(AUTOLOGIN_EMAIL)
+            except Exception as e:
+                app.logger.warning("Auto-login user create failed: %s", e)
+                return None
+        if user:
+            session['user_id'] = user[0]
+            session.permanent = True
+        return None
 
 
 def login_required(f):
@@ -812,13 +853,13 @@ def hours_report():
     if end_date < start_date:
         start_date, end_date = end_date, start_date
 
-    db_path = os.path.join(os.path.dirname(__file__), 'database.db')
-    conn = sqlite3.connect(db_path)
-    conn.row_factory = sqlite3.Row
+    # Use canonical DB connection (respects CARE_DB_PATH, has schema migrations)
+    conn = connect_db()
     cur = conn.cursor()
     cur.execute(
         """
-        SELECT shifts.shift_time, shifts.end_time, employees.name AS employee_name
+        SELECT employees.id AS employee_id, employees.name AS employee_name, employees.hourly_rate AS hourly_rate,
+               shifts.shift_time, shifts.end_time
         FROM shifts
         JOIN employees ON shifts.employee_id = employees.id
         WHERE date(shifts.shift_time) BETWEEN date(?) AND date(?)
@@ -826,16 +867,20 @@ def hours_report():
         (start_date.isoformat(), end_date.isoformat())
     )
     rows = cur.fetchall()
-    conn.close()
 
+    # Aggregate minutes per employee
     totals_min = {}
+    names = {}
+    rates = {}
     for r in rows:
-        name = r['employee_name']
+        emp_id = r['employee_id']
+        names[emp_id] = r['employee_name']
+        # hourly_rate may be NULL for legacy rows; treat as 16 default
+        rates[emp_id] = r['hourly_rate'] if r['hourly_rate'] is not None else 16
         try:
             st = datetime.fromisoformat(r['shift_time'])
         except Exception:
             continue
-        # Default duration 60 minutes if invalid/missing end
         try:
             et = datetime.fromisoformat(r['end_time']) if r['end_time'] else (st + timedelta(hours=1))
         except Exception:
@@ -843,14 +888,37 @@ def hours_report():
         if et <= st:
             et = st + timedelta(hours=1)
         minutes = int((et - st).total_seconds() // 60)
-        totals_min[name] = totals_min.get(name, 0) + minutes
+        totals_min[emp_id] = totals_min.get(emp_id, 0) + minutes
 
-    report = [
-        { 'name': n, 'hours': round(m/60.0, 2) }
-        for n, m in sorted(totals_min.items(), key=lambda x: x[0].lower())
-    ]
+    # Adjustments within range
+    cur.execute(
+        """
+        SELECT employee_id, COALESCE(SUM(amount), 0) AS total
+        FROM pay_adjustments
+        WHERE date(date) BETWEEN date(?) AND date(?)
+        GROUP BY employee_id
+        """,
+        (start_date.isoformat(), end_date.isoformat())
+    )
+    adj_rows = cur.fetchall()
+    conn.close()
+    adj_by_emp = { r['employee_id']: (r['total'] or 0.0) for r in adj_rows }
+    rates_unlocked = bool(session.get('rates_unlocked'))
+    # Build report
+    report = []
+    for emp_id, mins in sorted(totals_min.items(), key=lambda x: names.get(x[0], '').lower()):
+        hours = round(mins / 60.0, 2)
+        row = { 'employee_id': emp_id, 'name': names.get(emp_id, str(emp_id)), 'hours': hours }
+        if rates_unlocked:
+            rate = float(rates.get(emp_id, 16))
+            adjustments = float(adj_by_emp.get(emp_id, 0.0))
+            total = round(hours * rate + adjustments, 2)
+            row.update({ 'rate': rate, 'adjustments': round(adjustments, 2), 'total': total })
+        report.append(row)
 
-    return render_template('hours.html', report=report, start=start_date.isoformat(), end=end_date.isoformat())
+    # Also need employees list for adjustment form
+    employees = get_employees()
+    return render_template('hours.html', report=report, start=start_date.isoformat(), end=end_date.isoformat(), rates_unlocked=rates_unlocked, employees=employees)
 
 # --- Weekly hours CSV export ---
 @app.route('/hours.csv')
@@ -877,13 +945,12 @@ def hours_csv():
     if end_date < start_date:
         start_date, end_date = end_date, start_date
 
-    db_path = os.path.join(os.path.dirname(__file__), 'database.db')
-    conn = sqlite3.connect(db_path)
-    conn.row_factory = sqlite3.Row
+    conn = connect_db()
     cur = conn.cursor()
     cur.execute(
         """
-        SELECT shifts.shift_time, shifts.end_time, employees.name AS employee_name
+        SELECT employees.name AS employee_name,
+               shifts.shift_time, shifts.end_time
         FROM shifts
         JOIN employees ON shifts.employee_id = employees.id
         WHERE date(shifts.shift_time) BETWEEN date(?) AND date(?)
@@ -915,6 +982,83 @@ def hours_csv():
         lines.append(f"{name},{round(mins/60.0, 2)}")
     csv_data = "\n".join(lines)
     return Response(csv_data, mimetype='text/csv', headers={'Content-Disposition': f'attachment; filename="hours_{start_date.isoformat()}_{end_date.isoformat()}.csv"'})
+
+
+# --- Rates PIN unlock and management ---
+
+@app.route('/admin/unlock_rates', methods=['POST'])
+@login_required
+def admin_unlock_rates():
+    pin = (request.form.get('pin') or (request.json and request.json.get('pin')) or '').strip()
+    if pin == RATES_PIN:
+        session['rates_unlocked'] = True
+        # For form posts, redirect back if referer exists
+        ref = request.headers.get('Referer') or url_for('employees')
+        if request.content_type and 'application/json' in request.content_type:
+            return jsonify({ 'ok': True })
+        return redirect(ref)
+    if request.content_type and 'application/json' in request.content_type:
+        return jsonify({ 'ok': False, 'error': 'Invalid PIN' }), 403
+    flash('Invalid PIN', 'error')
+    ref = request.headers.get('Referer') or url_for('employees')
+    return redirect(ref)
+
+
+@app.route('/api/employee_rate', methods=['POST'])
+@login_required
+def api_employee_rate():
+    if not session.get('rates_unlocked'):
+        return jsonify({ 'ok': False, 'error': 'Rates locked' }), 403
+    data = request.get_json(silent=True) or {}
+    employee_id_val = data.get('employee_id') or request.form.get('employee_id')
+    rate_val = data.get('rate') or request.form.get('rate')
+    if employee_id_val is None or rate_val is None:
+        return jsonify({ 'ok': False, 'error': 'employee_id and rate required' }), 400
+    try:
+        employee_id = int(employee_id_val)
+        rate = float(rate_val)
+    except Exception:
+        return jsonify({ 'ok': False, 'error': 'invalid employee_id or rate' }), 400
+    ok = update_employee_rate(employee_id, rate)
+    if not ok:
+        return jsonify({ 'ok': False, 'error': 'not found' }), 404
+    # Redirect if it was a form post
+    if request.content_type and 'application/json' in request.content_type:
+        return jsonify({ 'ok': True })
+    flash('Rate updated', 'success')
+    return redirect(url_for('employees'))
+
+
+@app.route('/api/pay_adjustment', methods=['POST'])
+@login_required
+def api_pay_adjustment():
+    data = request.get_json(silent=True) or {}
+    employee_id = data.get('employee_id') or request.form.get('employee_id')
+    adj_date = data.get('date') or request.form.get('date')
+    amount = data.get('amount') or request.form.get('amount')
+    note = (data.get('note') or request.form.get('note') or '').strip()
+    if not employee_id or not adj_date or amount is None:
+        return jsonify({ 'ok': False, 'error': 'employee_id, date, amount required' }), 400
+    try:
+        employee_id = int(employee_id)
+        amount = float(amount)
+        datetime.strptime(adj_date, '%Y-%m-%d')
+    except Exception:
+        return jsonify({ 'ok': False, 'error': 'invalid inputs' }), 400
+    from database import insert_adjustment, employee_exists
+    if not employee_exists(employee_id):
+        return jsonify({ 'ok': False, 'error': 'employee not found' }), 404
+    try:
+        insert_adjustment(employee_id, adj_date, amount, note)
+    except Exception as e:
+        return jsonify({ 'ok': False, 'error': str(e) }), 500
+    if request.content_type and 'application/json' in request.content_type:
+        return jsonify({ 'ok': True })
+    flash('Adjustment added', 'success')
+    # Redirect back to hours with same range if present
+    start = request.args.get('start') or request.form.get('start')
+    end = request.args.get('end') or request.form.get('end')
+    return redirect(url_for('hours_report', start=start, end=end))
 
 if __name__ == '__main__':
     init_db()

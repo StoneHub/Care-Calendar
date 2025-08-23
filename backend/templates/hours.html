@@ -45,11 +45,44 @@
         <a class="btn btn-secondary" href="{{ url_for('hours_csv', start=start, end=end) }}">Export CSV</a>
       </form>
       <div class="muted">Range: {{ start }} – {{ end }}</div>
+
+      {% if not rates_unlocked %}
+      <form method="post" action="{{ url_for('admin_unlock_rates') }}" class="range-form">
+        <input class="input" type="password" name="pin" placeholder="Enter PIN to unlock pay rates">
+        <button class="btn" type="submit">Unlock</button>
+      </form>
+      {% else %}
+      <div class="muted">Rates unlocked</div>
+      <form method="post" action="{{ url_for('api_pay_adjustment', start=start, end=end) }}" class="range-form">
+        <label class="muted">Employee
+        <select class="input" name="employee_id" required aria-label="Employee for adjustment">
+          {% for e in employees %}
+            <option value="{{ e['id'] }}">{{ e['name'] }}</option>
+          {% endfor %}
+        </select></label>
+        <label class="muted">Date <input class="input" type="date" name="date" value="{{ end }}" required></label>
+        <label class="muted">Amount <input class="input" type="number" step="0.01" name="amount" placeholder="Amount (+/-)" required></label>
+        <label class="muted">Note <input class="input" type="text" name="note" placeholder="Note (optional)"></label>
+        <button class="btn" type="submit">Add Adjustment</button>
+      </form>
+      {% endif %}
       <table class="table">
-        <thead><tr><th>Employee</th><th>Hours</th></tr></thead>
+        <thead>
+          <tr>
+            <th>Employee</th><th>Hours</th>
+            {% if rates_unlocked %}<th>Rate</th><th>Adjustments</th><th>Total</th>{% endif %}
+          </tr>
+        </thead>
         <tbody>
           {% for row in report %}
-          <tr><td>{{ row.name }}</td><td>{{ row.hours }}</td></tr>
+          <tr>
+            <td>{{ row.name }}</td><td>{{ row.hours }}</td>
+            {% if rates_unlocked %}
+              <td>${{ '%.2f'|format(row.rate) }}</td>
+              <td>{{ '%.2f'|format(row.adjustments or 0) }}</td>
+              <td><strong>${{ '%.2f'|format(row.total) }}</strong></td>
+            {% endif %}
+          </tr>
           {% endfor %}
         </tbody>
       </table>

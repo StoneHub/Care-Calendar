@@ -99,6 +99,42 @@ def init_db():
     cursor.execute('CREATE INDEX IF NOT EXISTS idx_time_off_employee_start ON time_off (employee_id, start_date)')
     
     conn.commit()
+    # Lightweight migration: ensure new columns on existing DBs
+    # SQLite doesn't support IF NOT EXISTS for columns; guard manually
+    if not _column_exists(conn, 'shifts', 'end_time'):
+        conn.execute('ALTER TABLE shifts ADD COLUMN end_time TEXT')
+    if not _column_exists(conn, 'shifts', 'series_id'):
+        conn.execute('ALTER TABLE shifts ADD COLUMN series_id TEXT')
+
+    # Employee hourly_rate for pay calculations (default $16)
+    if not _column_exists(conn, 'employees', 'hourly_rate'):
+        conn.execute('ALTER TABLE employees ADD COLUMN hourly_rate REAL DEFAULT 16')
+
+    # --- Pay adjustments table (misc owed/paid) ---
+    cursor.execute('''
+        CREATE TABLE IF NOT EXISTS pay_adjustments (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            employee_id INTEGER NOT NULL,
+            date TEXT NOT NULL,  -- YYYY-MM-DD
+            amount REAL NOT NULL, -- positive owed, negative paid
+            note TEXT,
+            created_at TEXT DEFAULT CURRENT_TIMESTAMP,
+            FOREIGN KEY (employee_id) REFERENCES employees (id) ON DELETE CASCADE
+        )
+    ''')
+    cursor.execute('CREATE INDEX IF NOT EXISTS idx_adjustments_emp_date ON pay_adjustments (employee_id, date)')
+
+    # One-off: ensure Scarlett gets $20 default if present and at default rate
+    try:
+        cursor.execute("""
+            UPDATE employees
+            SET hourly_rate = 20
+            WHERE name = 'Scarlett' AND (hourly_rate IS NULL OR hourly_rate = 16)
+        """)
+    except Exception:
+        pass
+
+    conn.commit()
     conn.close()
     
 def insert_user(name, email, password):
@@ -140,6 +176,16 @@ def get_employees():
     employees = cursor.fetchall()
     conn.close()
     return employees
+
+def update_employee_rate(employee_id: int, rate: float) -> bool:
+    """Update an employee's hourly rate. Returns True if a row changed."""
+    conn = connect_db()
+    cur = conn.cursor()
+    cur.execute("UPDATE employees SET hourly_rate = ? WHERE id = ?", (rate, employee_id))
+    changed = cur.rowcount > 0
+    conn.commit()
+    conn.close()
+    return changed
 
 def insert_shift(employee_id, shift_time, end_time=None, series_id=None):
     """Insert a new shift into the database. Idempotent on (employee_id, shift_time)."""
@@ -356,7 +402,7 @@ def insert_time_off(employee_id: int, start_date: str, end_date: str, reason: st
         "INSERT INTO time_off (employee_id, start_date, end_date, reason) VALUES (?, ?, ?, ?)",
         (employee_id, start_date, end_date, reason)
     )
-    new_id = cur.lastrowid
+    new_id = int(cur.lastrowid or 0)
     conn.commit()
     conn.close()
     return new_id
@@ -415,3 +461,33 @@ def update_time_off(time_off_id: int, employee_id: int, start_date: str, end_dat
     conn.commit()
     conn.close()
     return changed
+
+# ---- Pay adjustments helpers ----
+
+def insert_adjustment(employee_id: int, date: str, amount: float, note: str|None) -> int:
+    conn = connect_db()
+    cur = conn.cursor()
+    cur.execute(
+        "INSERT INTO pay_adjustments (employee_id, date, amount, note) VALUES (?, ?, ?, ?)",
+        (employee_id, date, amount, note)
+    )
+    new_id = cur.lastrowid
+    conn.commit()
+    conn.close()
+    return int(new_id if new_id is not None else -1)
+
+def get_adjustments_between(start_date: str, end_date: str):
+    conn = connect_db()
+    cur = conn.cursor()
+    cur.execute(
+        """
+        SELECT id, employee_id, date, amount, note
+        FROM pay_adjustments
+        WHERE date(date) BETWEEN date(?) AND date(?)
+        ORDER BY date, employee_id
+        """,
+        (start_date, end_date)
+    )
+    rows = cur.fetchall()
+    conn.close()
+    return rows
