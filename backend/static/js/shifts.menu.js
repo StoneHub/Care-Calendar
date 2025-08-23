@@ -22,7 +22,13 @@ document.getElementById('btnSwap').addEventListener('click', async ()=>{ if(!cur
 
 document.getElementById('btnSaveCoverage').addEventListener('click',()=>{ const sh=document.getElementById('covStartHour').value||'09'; const sm=document.getElementById('covStartMin').value||'00'; const eh=document.getElementById('covEndHour').value||'21'; const em=document.getElementById('covEndMin').value||'00'; const a=parseInt(sh,10)*60+parseInt(sm,10); const b=parseInt(eh,10)*60+parseInt(em,10); if(b<=a) return alert('Coverage end must be after start'); setCov(a,b); closeMenu(); render(); });
 document.getElementById('btnCloseMenu').addEventListener('click',()=> closeMenu());
-window.addEventListener('click',(e)=>{ if(menu.style.display==='block' && !menu.contains(e.target) && !e.target.closest('.pill')){ if(typeof eOverlay!=='undefined' && eOverlay && eOverlay.style.display==='flex' && !eOverlay.classList.contains('is-hidden')) closeMenu(true); else closeMenu(); } });
+window.addEventListener('click',(e)=>{ if(menu.style.display==='block' && !menu.contains(e.target) && !e.target.closest('.pill')){
+	// Preserve selected shift if any edit overlay (series or day) is open
+	const isSeriesOpen = (typeof eOverlay!=='undefined' && eOverlay && eOverlay.style.display==='flex' && !eOverlay.classList.contains('is-hidden'));
+	const dayOverlay = document.getElementById('editDayOverlay');
+	const isDayOpen = (dayOverlay && dayOverlay.style.display==='flex' && !dayOverlay.classList.contains('is-hidden'));
+	if(isSeriesOpen || isDayOpen) closeMenu(true); else closeMenu();
+} });
 window.addEventListener('resize',()=>{ if(menu.style.display==='block'){ positionMenuNear(menuAnchor.x, menuAnchor.y); } });
 
 // End menu module

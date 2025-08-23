@@ -971,15 +971,21 @@ def hours_csv():
 @app.route('/admin/unlock_rates', methods=['POST'])
 @login_required
 def admin_unlock_rates():
-    pin = (request.form.get('pin') or (request.json and request.json.get('pin')) or '').strip()
+    # Support both form posts and JSON; do not require a specific content-type
+    pin = ''
+    if request.form:
+        pin = (request.form.get('pin') or '').strip()
+    elif request.is_json:
+        data = request.get_json(silent=True) or {}
+        pin = (data.get('pin') or '').strip()
     if pin == RATES_PIN:
         session['rates_unlocked'] = True
         # For form posts, redirect back if referer exists
         ref = request.headers.get('Referer') or url_for('employees')
-        if request.content_type and 'application/json' in request.content_type:
+        if request.is_json:
             return jsonify({ 'ok': True })
         return redirect(ref)
-    if request.content_type and 'application/json' in request.content_type:
+    if request.is_json:
         return jsonify({ 'ok': False, 'error': 'Invalid PIN' }), 403
     flash('Invalid PIN', 'error')
     ref = request.headers.get('Referer') or url_for('employees')

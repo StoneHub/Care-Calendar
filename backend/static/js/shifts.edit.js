@@ -36,6 +36,8 @@ if(eNextBtn){ eNextBtn.addEventListener('click', async (ev)=>{ ev.stopPropagatio
 // Edit Day wizard (d*)
 const dOverlay=document.getElementById('editDayOverlay'); const dBack=document.getElementById('dBack'); const dNext=document.getElementById('dNext'); const dCancel=document.getElementById('dCancel'); const dStartHour12=document.getElementById('dStartHour12'); const dStartMin=document.getElementById('dStartMin'); const dEndHour12=document.getElementById('dEndHour12'); const dEndMin=document.getElementById('dEndMin'); const dReview=document.getElementById('dReview'); const dEmployee=document.getElementById('dEmployee'); const dStartAM=document.getElementById('dStartAM'); const dStartPM=document.getElementById('dStartPM'); const dEndAM=document.getElementById('dEndAM'); const dEndPM=document.getElementById('dEndPM');
 const dWiz={ step:1, employeeId:null, end:null };
+// Keep a stable reference to the shift being edited during the Edit Day flow
+let editingShift=null;
 function dShowStep(n){ dWiz.step=n; for(let i=1;i<=3;i++) document.getElementById('dStep'+i).classList.toggle('hidden', i!==n); dBack.classList.toggle('hidden', n===1); dNext.textContent=(n===3?'Save':'Next'); if(n===3) dBuildReview(); }
 function dBuildReview(){ const empName=dWiz.employeeId? (employeesData.find(e=>e.id===dWiz.employeeId)||{}).name:'Keep current'; const startAmpm=dStartAM.classList.contains('active')?'AM':'PM'; const startStr=`${dStartHour12.value}:${dStartMin.value} ${startAmpm}`; let endStr='None'; if(dEndHour12.value && dEndMin.value){ const endAmpm=dEndAM.classList.contains('active')?'AM':'PM'; endStr=`${dEndHour12.value}:${dEndMin.value} ${endAmpm}`; } dReview.textContent=`${empName} • ${startStr} – ${endStr}`; }
 
@@ -47,11 +49,15 @@ function setDayAmPmButtons(prefix, ampm){ const amBtn=document.getElementById(pr
 
 // Open Edit Day flow
 (function bindEditDay(){ const btn=document.getElementById('btnOpenEditDay'); if(!btn || !dOverlay) return; btn.addEventListener('click', (ev)=>{ ev.stopPropagation(); if(!currentShift) return; // populate employees
+  // Hide the context menu but preserve the selected shift
+  if(typeof menu!=='undefined' && menu && menu.style.display==='block') closeMenu(true);
+  // Stash the shift in case click-away handlers clear currentShift
+  editingShift=currentShift;
   dEmployee.innerHTML='<option value="">Keep current</option>'+employeesData.map(e=>`<option value="${e.id}">${e.name}</option>`).join('');
   dEmployee.value=''; dWiz.employeeId=null;
   // prefill start/end from currentShift
   try{
-    const st=currentShift.start; const et=currentShift.end||null; const sh=st.getHours(); const sm=st.getMinutes(); const startAmpm=sh<12?'AM':'PM'; const sh12=(sh%12)||12; dStartHour12.value=pad2(sh12); dStartMin.value=pad2(sm); setDayAmPmButtons('dStart', startAmpm);
+    const st=editingShift.start; const et=editingShift.end||null; const sh=st.getHours(); const sm=st.getMinutes(); const startAmpm=sh<12?'AM':'PM'; const sh12=(sh%12)||12; dStartHour12.value=pad2(sh12); dStartMin.value=pad2(sm); setDayAmPmButtons('dStart', startAmpm);
     if(et){ const eh=et.getHours(); const em=et.getMinutes(); const endAmpm=eh<12?'AM':'PM'; const eh12=(eh%12)||12; dEndHour12.value=pad2(eh12); dEndMin.value=pad2(em); setDayAmPmButtons('dEnd', endAmpm);} else { dEndHour12.value=''; dEndMin.value=''; setDayAmPmButtons('dEnd','AM'); }
   }catch{}
   // show overlay
@@ -63,7 +69,7 @@ function setupDayAmPm(prefix){ const amBtn=document.getElementById(prefix+'AM');
 setupDayAmPm('dStart'); setupDayAmPm('dEnd');
 
 // Buttons wiring
-if(dCancel){ dCancel.addEventListener('click', (e)=>{ e.stopPropagation(); dOverlay.classList.add('is-hidden'); dOverlay.style.display='none'; }); }
+if(dCancel){ dCancel.addEventListener('click', (e)=>{ e.stopPropagation(); dOverlay.classList.add('is-hidden'); dOverlay.style.display='none'; editingShift=null; }); }
 if(dBack){ dBack.addEventListener('click', (e)=>{ e.stopPropagation(); dShowStep(Math.max(1, dWiz.step-1)); }); }
 if(dEmployee){ dEmployee.addEventListener('change', ()=>{ const v=dEmployee.value; dWiz.employeeId = v? parseInt(v,10): null; }); }
 if(dNext){ dNext.addEventListener('click', async (e)=>{ e.stopPropagation(); if(dWiz.step===1){ // move to time step
@@ -73,14 +79,14 @@ if(dNext){ dNext.addEventListener('click', async (e)=>{ e.stopPropagation(); if(
     dShowStep(3); return; }
   if(dWiz.step===3){ // submit
     try{
-      if(!currentShift) throw new Error('No shift in context');
-      const shiftDate = localDateStr(currentShift.start);
+      if(!editingShift) throw new Error('No shift in context');
+      const shiftDate = localDateStr(editingShift.start);
       const time = `${to24h(dStartHour12.value, dStartAM.classList.contains('active')?'AM':'PM')}:${dStartMin.value}`;
       let end_time = null; if(dEndHour12.value && dEndMin.value){ end_time = `${to24h(dEndHour12.value, dEndAM.classList.contains('active')?'AM':'PM')}:${dEndMin.value}`; }
-      const payload = { shift_id: currentShift.id, shift_date: shiftDate, time, end_time, employee_id: dWiz.employeeId };
+      const payload = { shift_id: editingShift.id, shift_date: shiftDate, time, end_time, employee_id: dWiz.employeeId };
       const js = await postJSON('/api/edit_day', payload);
       if(!js.ok && js.error) throw new Error(js.error);
-      dOverlay.classList.add('is-hidden'); dOverlay.style.display='none';
+      dOverlay.classList.add('is-hidden'); dOverlay.style.display='none'; editingShift=null;
       location.reload();
     }catch(err){ alert('Failed to save: '+err.message); }
   }
